@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.just.courses.model.theme.Theme;
 import ru.just.courses.model.user.User;
+import ru.just.dtolib.audit.ChangeType;
 
 import java.time.LocalDateTime;
 

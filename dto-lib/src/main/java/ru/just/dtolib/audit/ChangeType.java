@@ -1,4 +1,4 @@
-package ru.just.courses.model.audit;
+package ru.just.dtolib.audit;
 
 public enum ChangeType {
     CREATE, UPDATE, DELETE

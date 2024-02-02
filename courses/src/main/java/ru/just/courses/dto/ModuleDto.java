@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.just.courses.model.Module;
 import ru.just.courses.model.course.Course;
+import ru.just.dtolib.base.Dto;
 
 @Getter
 @Setter

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import ru.just.courses.model.course.Course;
 import ru.just.courses.model.user.User;
+import ru.just.dtolib.audit.ChangeType;
 
 import java.time.ZonedDateTime;
 

@@ -5,10 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.just.courses.controller.response.ApiResponse;
 import ru.just.courses.dto.CreateModuleDto;
 import ru.just.courses.dto.ModuleDto;
 import ru.just.courses.service.ModuleService;
+import ru.just.dtolib.response.ApiResponse;
 
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/modules")

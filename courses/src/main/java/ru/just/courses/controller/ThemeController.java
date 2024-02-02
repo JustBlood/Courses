@@ -1,7 +1,6 @@
 package ru.just.courses.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -9,10 +8,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-import ru.just.courses.controller.response.ApiResponse;
 import ru.just.courses.dto.CreateThemeDto;
 import ru.just.courses.dto.ThemeDto;
 import ru.just.courses.service.ThemeService;
+import ru.just.dtolib.response.ApiResponse;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -54,8 +53,7 @@ public class ThemeController {
     }
 
     @GetMapping(value = "/content/text/{themeId}", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<StreamingResponseBody> getThemeTextContent(@PathVariable("themeId") Long themeId,
-                                    HttpServletResponse response) {
+    public ResponseEntity<StreamingResponseBody> getThemeTextContent(@PathVariable("themeId") Long themeId) {
         StreamingResponseBody streamingResponseBody = out -> {
             themeService.writeTextThemeContentToResponse(themeId, out);
         };
