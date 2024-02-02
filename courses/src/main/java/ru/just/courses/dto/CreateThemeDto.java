@@ -9,6 +9,7 @@ import ru.just.courses.dto.validation.EnumValue;
 import ru.just.courses.model.Module;
 import ru.just.courses.model.theme.ContentType;
 import ru.just.courses.model.theme.Theme;
+import ru.just.dtolib.base.Dto;
 
 @Getter
 @Setter

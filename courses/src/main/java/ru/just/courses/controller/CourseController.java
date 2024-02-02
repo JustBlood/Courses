@@ -5,10 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.just.courses.controller.response.ApiResponse;
 import ru.just.courses.dto.CourseDto;
 import ru.just.courses.dto.CreateCourseDto;
 import ru.just.courses.service.CourseService;
+import ru.just.dtolib.response.ApiResponse;
 
 import java.util.List;
 import java.util.Optional;

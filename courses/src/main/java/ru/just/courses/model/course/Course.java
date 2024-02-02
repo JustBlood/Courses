@@ -6,7 +6,6 @@ import ru.just.courses.model.Module;
 import ru.just.courses.model.audit.CourseChangeEvent;
 import ru.just.courses.model.user.User;
 
-import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;

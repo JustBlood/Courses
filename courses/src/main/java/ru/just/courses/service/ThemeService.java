@@ -1,10 +1,8 @@
 package ru.just.courses.service;
 
 import jakarta.persistence.EntityManager;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.courses.dto.CreateThemeDto;
@@ -64,7 +62,7 @@ public class ThemeService {
     private void writeResponse(TextThemeContentProjection themeContent, OutputStream out) {
         byte[] buffer = new byte[1024];
         try (BufferedInputStream br = new BufferedInputStream(themeContent.getText().getAsciiStream())){
-            int realSize = 0;
+            int realSize;
             while ((realSize = br.read(buffer)) != -1) {
                 out.write(buffer, 0, realSize);
             }

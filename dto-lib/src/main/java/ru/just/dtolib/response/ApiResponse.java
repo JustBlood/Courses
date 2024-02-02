@@ -1,9 +1,6 @@
-package ru.just.courses.controller.response;
+package ru.just.dtolib.response;
 
 import lombok.Data;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 import java.time.ZonedDateTime;
 

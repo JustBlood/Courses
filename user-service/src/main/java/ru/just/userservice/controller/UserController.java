@@ -1,14 +1,14 @@
-package ru.just.courses.controller;
+package ru.just.userservice.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.just.courses.controller.response.ApiResponse;
-import ru.just.courses.dto.CreateUserDto;
-import ru.just.courses.dto.UserDto;
-import ru.just.courses.service.UserService;
+import ru.just.dtolib.response.ApiResponse;
+import ru.just.userservice.dto.CreateUserDto;
+import ru.just.userservice.dto.UserDto;
+import ru.just.userservice.service.UserService;
 
 // TODO: выделить в отдельный микросервис
 @RequiredArgsConstructor

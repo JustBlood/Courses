@@ -6,6 +6,7 @@ import lombok.Setter;
 import ru.just.courses.model.Module;
 import ru.just.courses.model.theme.ContentType;
 import ru.just.courses.model.theme.Theme;
+import ru.just.dtolib.base.Dto;
 
 @Getter
 @Setter
