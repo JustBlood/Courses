@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: '9'
+      author: 'Kirill Porozov'
+
+      changes:
+        - dropTable:
+            tableName: 'courses'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'lesson'
+            cascadeConstraints: true

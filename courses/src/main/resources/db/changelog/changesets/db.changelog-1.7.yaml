@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: '8'
+      author: 'Kirill Porozov'
+
+      changes:
+        - createTable:
+            tableName: 'theme_text_content'
+            columns:
+              - column:
+                  name: theme_id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: theme_text_content_id_pkey
+                    nullable: false
+                    unique: true
+                    foreignKeyName: text_content_theme_id_fkey
+              - column:
+                  name: text
+                  type: CLOB
+                  constraints:
+                    nullable: false
+                    checkConstraint: TRIM(title) <> ''
+        - addForeignKeyConstraint:
+            baseColumnNames: theme_id
+            baseTableName: theme_text_content
+            constraintName: text_content_theme_id_fkey
+            referencedColumnNames: id
+            referencedTableName: theme
+            onDelete: CASCADE
+            onUpdate: CASCADE

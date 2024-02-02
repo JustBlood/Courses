@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: '1'
+      author: 'Kirill Porozov'
+
+      changes:
+        - createTable:
+            tableName: 'courses'
+            columns:
+              - column:
+                  name: id
+                  type: bigserial
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: courses_id_pk
+              - column:
+                  name: author
+                  type: varchar(255)
+              - column:
+                  name: title
+                  type: varchar(255)

@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: '2'
+      author: 'Kirill Porozov'
+      changes:
+        - createTable:
+            tableName: 'lesson'
+            columns:
+              - column:
+                  name: id
+                  type: bigserial
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: lesson_id_pk
+              - column:
+                  name: name
+                  type: varchar(255)

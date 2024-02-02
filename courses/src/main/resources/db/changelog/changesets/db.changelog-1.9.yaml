@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: '10'
+      author: 'Kirill Porozov'
+
+      changes:
+        # todo: exercises table + report help tables
