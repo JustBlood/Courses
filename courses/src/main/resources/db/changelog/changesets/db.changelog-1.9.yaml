@@ -4,4 +4,15 @@ databaseChangeLog:
       author: 'Kirill Porozov'
 
       changes:
-        # todo: exercises table + report help tables
+        - dropTable:
+            tableName: 'user_achievement'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'achievement'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'user_change_event'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'users'
+            cascadeConstraints: true

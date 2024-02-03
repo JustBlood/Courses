@@ -1,4 +1,4 @@
-package ru.just.courses.controller.error;
+package ru.just.dtolib.error;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

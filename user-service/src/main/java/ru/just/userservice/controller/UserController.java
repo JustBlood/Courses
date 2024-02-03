@@ -10,7 +10,6 @@ import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
-// TODO: выделить в отдельный микросервис
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/users")
@@ -19,7 +18,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long userId) {
-        return ResponseEntity.of(userService.getUserDtoById(userId));
+        return ResponseEntity.of(userService.getUserById(userId));
     }
 
     @PostMapping

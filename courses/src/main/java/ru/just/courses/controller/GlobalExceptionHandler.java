@@ -6,7 +6,7 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.just.courses.controller.error.ApiError;
+import ru.just.dtolib.error.ApiError;
 import ru.just.courses.repository.exceptions.EntityNotFoundException;
 
 import java.time.OffsetDateTime;

@@ -27,6 +27,7 @@ public class CreateUserDto {
     private String mail;
     @Pattern(regexp = "(^8|7|\\+7)((\\d{10})|(\\s\\(\\d{3}\\)\\s\\d{3}\\s\\d{2}\\s\\d{2}))", message = "specify valid phone number")
     private String phone;
+    private Boolean isAdmin = false;
     @JsonIgnore
     private List<UserChangeEvent> userChangeEvents = new ArrayList<>();
     @JsonIgnore

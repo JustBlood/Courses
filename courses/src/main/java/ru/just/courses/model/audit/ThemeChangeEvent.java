@@ -25,9 +25,7 @@ public class ThemeChangeEvent {
     private Long id;
     @Enumerated(EnumType.STRING)
     private ChangeType changeType;
-    @ManyToOne
-    @JoinColumn(name = "author_id")
-    private User author;
+    private Long authorId;
     @Column(nullable = false)
     private LocalDateTime changeTime = LocalDateTime.now();
     @ManyToOne

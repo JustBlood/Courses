@@ -15,7 +15,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: users_id_seq
+                  defaultValueSequenceNext: users_id_seq
                   constraints:
                     primaryKey: true
                     primaryKeyName: users_id_pkey

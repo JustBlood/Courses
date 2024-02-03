@@ -46,7 +46,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: avatar_image_id_seq
+                  defaultValueSequenceNext: avatar_image_id_seq
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -87,7 +87,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: user_change_event_id_seq
+                  defaultValueSequenceNext: user_change_event_id_seq
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -157,7 +157,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: achievement_id_seq
+                  defaultValueSequenceNext: achievement_id_seq
                   constraints:
                     primaryKey: true
                     primaryKeyName: achievement_id_pkey
@@ -212,7 +212,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: social_media_link_id_seq
+                  defaultValueSequenceNext: social_media_link_id_seq
                   constraints:
                     primaryKey: true
                     primaryKeyName: social_media_link_id_pkey

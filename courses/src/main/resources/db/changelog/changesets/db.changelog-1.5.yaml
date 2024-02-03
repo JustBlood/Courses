@@ -16,7 +16,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: module_id_seq
+                  defaultValueSequenceNext: module_id_seq
                   constraints:
                     primaryKey: true
                     primaryKeyName: module_id_pkey
@@ -57,7 +57,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: module_change_event_id_seq
+                  defaultValueSequenceNext: module_change_event_id_seq
                   constraints:
                     nullable: false
                     primaryKey: true

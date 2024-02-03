@@ -15,7 +15,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: theme_id_seq
+                  defaultValueSequenceNext: theme_id_seq
                   constraints:
                     primaryKey: true
                     primaryKeyName: theme_id_pkey
@@ -74,7 +74,7 @@ databaseChangeLog:
               - column:
                   name: id
                   type: BIGINT
-                  valueSequenceNext: theme_change_event_id_seq
+                  defaultValueSequenceNext: theme_change_event_id_seq
                   constraints:
                     nullable: false
                     primaryKey: true

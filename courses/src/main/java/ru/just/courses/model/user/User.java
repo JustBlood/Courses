@@ -2,7 +2,6 @@ package ru.just.courses.model.user;
 
 import jakarta.persistence.*;
 import lombok.*;
-import ru.just.courses.model.audit.UserChangeEvent;
 import ru.just.courses.model.course.Course;
 
 import java.time.LocalDate;
@@ -10,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+// TODO: удалить
 @With
 @Getter
 @Setter
@@ -37,8 +37,6 @@ public class User {
     private LocalDate registrationDate;
     @Column(nullable = false)
     private Boolean isAdmin;
-    @OneToMany(mappedBy = "user")
-    private List<UserChangeEvent> userChangeEvents;
     @OneToMany(mappedBy = "author")
     private Set<Course> authoredCourses;
     @ManyToMany(mappedBy = "users")
