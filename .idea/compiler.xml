@@ -2,7 +2,6 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
-      <profile default="true" name="Default" enabled="true" />
       <profile name="Gradle Imported" enabled="true">
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
@@ -10,23 +9,11 @@
         </processorPath>
         <module name="user-service.main" />
       </profile>
-      <profile name="Maven default annotation processors profile" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <module name="dto-lib" />
-        <module name="courses-service" />
-      </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="security-service" target="21" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="courses-service" options="-parameters" />
-      <module name="dto-lib" options="" />
-      <module name="security-service" options="-parameters" />
     </option>
   </component>
 </project>
