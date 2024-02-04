@@ -30,8 +30,6 @@ public class Course {
     @Column(nullable = false, updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
     private Integer completionTimeInHours; // todo: index
-    @Transient
-    private Double rating; // todo: index
     @OneToMany(mappedBy = "course", orphanRemoval = true,  cascade = CascadeType.ALL)
     private List<Module> modules;
     @ManyToMany

@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: '10'
+      author: 'Kirill Porozov'
+      comment: "Перенос пользователей в другой микросервис, удаление/изменение связанных с этим таблиц"
+
+      changes:
+        - dropTable:
+            tableName: 'avatar_image'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'social_media_link'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'user_achievement'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'achievement'
+            cascadeConstraints: true
+        - dropTable:
+            tableName: 'user_change_event'
+            cascadeConstraints: true
+        - dropColumn:
+            tableName: 'users'
+            columns:
+              - column:
+                  name: 'username'
+              - column:
+                  name: 'password'
+              - column:
+                  name: 'first_name'
+              - column:
+                  name: 'last_name'
+              - column:
+                  name: 'mail'
+              - column:
+                  name: 'phone'
+              - column:
+                  name: 'registration_date'
+              - column:
+                  name: 'is_admin'
+        - renameColumn:
+            tableName: 'users'
+            oldColumnName: 'id'
+            newColumnName: 'user_id'
+

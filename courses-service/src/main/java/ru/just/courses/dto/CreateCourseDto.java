@@ -31,7 +31,7 @@ public class CreateCourseDto extends Dto<Course> {
         description = entity.getDescription();
         createdAt = entity.getCreatedAt();
         completionTime = entity.getCompletionTimeInHours();
-        authorId = entity.getAuthor().getId();
+        authorId = entity.getAuthor().getUserId();
         return this;
     }
 
@@ -42,6 +42,6 @@ public class CreateCourseDto extends Dto<Course> {
                 .withDescription(description)
                 .withCreatedAt(createdAt)
                 .withCompletionTimeInHours(completionTime)
-                .withAuthor(new User().withId(authorId));
+                .withAuthor(new User().withUserId(authorId));
     }
 }

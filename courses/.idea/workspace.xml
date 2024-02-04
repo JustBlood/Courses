@@ -1,0 +1,525 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5b502681-f858-4f12-9093-678df799f537" name="Changes" comment="fix[courses-service]: rename module and delete/edit user models from service">
+      <change afterPath="$PROJECT_DIR$/../courses-service/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/.mvn/wrapper/maven-wrapper.jar" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/.mvn/wrapper/maven-wrapper.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/mvnw" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/mvnw.cmd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/CoursesApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/controller/CourseController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/controller/GlobalExceptionHandler.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/controller/ModuleController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/controller/ThemeController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/CourseDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/CreateCourseDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/CreateModuleDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/CreateThemeDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/ModuleDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/ThemeDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/validation/EnumValue.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/dto/validation/EnumValueValidator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/Module.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/audit/CourseChangeEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/audit/ModuleChangeEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/audit/ThemeChangeEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/course/Course.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/course/CourseWithRating.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/exercise/Exercise.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/exercise/TestExercise.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/theme/ContentType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/theme/Theme.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/theme/content/TextThemeContent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/theme/content/ThemeContent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/user/User.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/model/user/UserCourseEvaluation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/CourseRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/ModuleRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/TextThemeContentRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/ThemeRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/UserRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/exceptions/EntityNotFoundException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/repository/projection/TextThemeContentProjection.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/service/CourseService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/service/ModuleService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/java/ru/just/courses/service/ThemeService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.0.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.1.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.2.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.3.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.4.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.5.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.6.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.7.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.8.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/changesets/db.changelog-1.9.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/main/resources/db/changelog/db.changelog.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/test/java/ru/just/courses/CoursesApplicationTests.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../courses-service/src/test/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/CoursesApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/controller/CourseController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/controller/GlobalExceptionHandler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/controller/ModuleController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/controller/ThemeController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/CourseDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/CreateCourseDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/CreateModuleDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/CreateThemeDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/ModuleDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/ThemeDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/validation/EnumValue.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/dto/validation/EnumValueValidator.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/Module.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/audit/CourseChangeEvent.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/audit/ModuleChangeEvent.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/audit/ThemeChangeEvent.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/course/Course.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/course/CourseWithRating.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/exercise/Exercise.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/exercise/TestExercise.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/theme/ContentType.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/theme/Theme.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/theme/content/TextThemeContent.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/theme/content/ThemeContent.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/user/Achievement.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/user/AvatarImage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/user/SocialMediaLink.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/user/User.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/model/user/UserCourseEvaluation.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/CourseRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/ModuleRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/TextThemeContentRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/ThemeRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/UserRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/exceptions/EntityNotFoundException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/repository/projection/TextThemeContentProjection.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/service/CourseService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/service/ModuleService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/just/courses/service/ThemeService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.0.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.1.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.2.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.3.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.4.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.5.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.6.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.7.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.8.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/changesets/db.changelog-1.9.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/db/changelog/db.changelog.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/ru/just/courses/CoursesApplicationTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../dto-lib/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../dto-lib/pom.xml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$/../user-service">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$/../user-service">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="user-service" type="f1a62948:ProjectNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="user-service" type="f1a62948:ProjectNode" />
+                <item name="Run Configurations" type="7b0102dc:RunConfigurationsNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="AnnotationType" />
+        <option value="Interface" />
+        <option value="Enum" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="dev" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedIndex" value="1" />
+    <option name="showToolbar" value="false" />
+  </component>
+  <component name="ProjectId" id="2atVpPM5XZHmW7w5521yyaTEWGz" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="DatabaseDriversLRU" value="postgresql" />
+    <property name="RequestMappingsPanelOrder0" value="0" />
+    <property name="RequestMappingsPanelOrder1" value="1" />
+    <property name="RequestMappingsPanelWidth0" value="75" />
+    <property name="RequestMappingsPanelWidth1" value="75" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="TODO_SCOPE" value="All Places" />
+    <property name="ToolWindowProblems.ShowToolbar" value="false" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="full.screen.before.presentation.mode" value="false" />
+    <property name="jdk.selected.JAVA_MODULE" value="openjdk-21" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../courses-service" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.41609195" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CreateClassDialog.RecentsKey">
+      <recent name="ru.just.userservice.controller.exception" />
+      <recent name="ru.just.courses.repository" />
+      <recent name="ru.just.courses.dto" />
+      <recent name="ru.just.courses.service" />
+      <recent name="ru.just.courses.dto.validation" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts" />
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\user-service\src\main\java\ru\just\userservice\model" />
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\user-service\src\main\java\ru\just\userservice\dto" />
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\courses\src\main\resources\db\changelog\changesets" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\user-service" />
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\user-service\src\main\resources\db\changelog\changesets" />
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\user-service\src\main\resources\db\changelog" />
+      <recent name="C:\Users\User\AllMine\prog\prog_java\mts\user-service\src\main\resources\db.changelog\changesets" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="ru.just.dtolib.base" />
+      <recent name="ru.just.courses.controller" />
+      <recent name="ru.just.courses.dto" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="SpringBootApplicationConfigurationType" />
+      </set>
+    </option>
+  </component>
+  <component name="RunManager" selected="Gradle.user-service [jooqCodegen]">
+    <configuration name="user-service [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/../user-service" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="clean" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="user-service [compileJava]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/../user-service" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="compileJava" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="user-service [dependencies]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/../user-service" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="dependencies" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="user-service [jooqCodegen]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/../user-service" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="--stacktrace" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="jooqCodegen" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="CoursesApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="courses-service" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.just.courses.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="SPRING_BOOT_MAIN_CLASS" value="ru.just.courses.CoursesApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="UserServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+      <module name="user-service.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="ru.just.userservice.UserServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Gradle.user-service [jooqCodegen]" />
+      <item itemvalue="Gradle.user-service [dependencies]" />
+      <item itemvalue="Gradle.user-service [clean]" />
+      <item itemvalue="Gradle.user-service [compileJava]" />
+      <item itemvalue="Spring Boot.UserServiceApplication" />
+      <item itemvalue="Spring Boot.CoursesApplication" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.CoursesApplication" />
+        <item itemvalue="Gradle.user-service [jooqCodegen]" />
+        <item itemvalue="Gradle.user-service [compileJava]" />
+        <item itemvalue="Gradle.user-service [clean]" />
+        <item itemvalue="Gradle.user-service [dependencies]" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5b502681-f858-4f12-9093-678df799f537" name="Changes" comment="" />
+      <created>1705138045893</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1705138045893</updated>
+      <workItem from="1705138047221" duration="111000" />
+      <workItem from="1705138179079" duration="3863000" />
+      <workItem from="1705214926281" duration="44000" />
+      <workItem from="1705214990883" duration="597000" />
+      <workItem from="1705514323099" duration="240000" />
+      <workItem from="1705766913977" duration="1316000" />
+      <workItem from="1705842789189" duration="4392000" />
+      <workItem from="1705907303774" duration="100000" />
+      <workItem from="1706342646000" duration="13468000" />
+      <workItem from="1706380490195" duration="32000" />
+      <workItem from="1706423173400" duration="25412000" />
+      <workItem from="1706509424452" duration="14000" />
+      <workItem from="1706618284565" duration="17893000" />
+      <workItem from="1706684509305" duration="129000" />
+      <workItem from="1706769811286" duration="18765000" />
+      <workItem from="1706863225970" duration="9837000" />
+      <workItem from="1706880700311" duration="7037000" />
+      <workItem from="1706949411506" duration="20202000" />
+      <workItem from="1706969775834" duration="2386000" />
+      <workItem from="1706972191794" duration="797000" />
+      <workItem from="1707029169350" duration="423000" />
+      <workItem from="1707047582088" duration="4133000" />
+    </task>
+    <task id="LOCAL-00001" summary="[project]: initial microservices update">
+      <created>1706893762413</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1706893762413</updated>
+    </task>
+    <task id="LOCAL-00002" summary="[project]: code style changes">
+      <created>1706893800213</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1706893800213</updated>
+    </task>
+    <task id="LOCAL-00003" summary="[users-service]: configure gradle users-service and jooq">
+      <created>1706972954231</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1706972954231</updated>
+    </task>
+    <task id="LOCAL-00004" summary="[users-service]: delete unused jooq config">
+      <created>1706972973299</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1706972973299</updated>
+    </task>
+    <task id="LOCAL-00005" summary="[users-service]: remove password from users-service">
+      <created>1707048039494</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1707048039494</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="feature/users-service" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="[project]: initial microservices update" />
+    <MESSAGE value="[project]: code style changes" />
+    <MESSAGE value="[users-service]: configure gradle users-service and jooq" />
+    <MESSAGE value="[users-service]: delete unused jooq config" />
+    <MESSAGE value="[users-service]: remove password from users-service" />
+    <MESSAGE value="fix[courses-service]: rename module and delete/edit user models from service" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix[courses-service]: rename module and delete/edit user models from service" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/ru/just/courses/controller/CourseController.java</url>
+          <line>34</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/../user-service/src/main/java/ru/just/userservice/controller/UserController.java</url>
+          <line>20</line>
+          <option name="timeStamp" value="17" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/../user-service/src/main/java/ru/just/userservice/controller/UserController.java</url>
+          <line>25</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/../user-service/src/main/java/ru/just/userservice/controller/UserController.java</url>
+          <line>31</line>
+          <option name="timeStamp" value="21" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

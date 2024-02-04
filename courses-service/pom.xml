@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ru.just</groupId>
-    <artifactId>courses</artifactId>
+    <artifactId>courses-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>courses</name>
-    <description>courses</description>
+    <name>courses-service</name>
+    <description>courses-service</description>
     <properties>
         <java.version>21</java.version>
     </properties>
@@ -38,6 +38,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- logging sql -->
         <dependency>
             <groupId>com.github.gavlyukovskiy</groupId>
             <artifactId>datasource-proxy-spring-boot-starter</artifactId>

@@ -17,3 +17,5 @@ databaseChangeLog:
       file: classpath:db/changelog/changesets/db.changelog-1.7.yaml
   - include:
       file: classpath:db/changelog/changesets/db.changelog-1.8.yaml
+  - include:
+      file: classpath:db/changelog/changesets/db.changelog-1.9.yaml
