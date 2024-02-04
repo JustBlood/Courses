@@ -1,9 +1,19 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.postgresql:postgresql:42.6.0")
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.1'
-    id 'io.spring.dependency-management' version '1.1.4'
-    id 'org.jooq.jooq-codegen-gradle' version "3.19.3"
+    id("org.jooq.jooq-codegen-gradle") version "3.19.3"
 }
+
+apply plugin: 'io.spring.dependency-management'
 
 group = 'ru.just'
 version = '0.0.1-SNAPSHOT'
@@ -24,19 +34,40 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.liquibase:liquibase-core'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation 'ru.just:dto-lib:0.0.1-SNAPSHOT'
+    implementation 'org.jooq:jooq:3.19.3'
 
-    compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
+    compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+jooq {
+    version = '3.18.7'
+
+    configuration {
+        jdbc {
+            driver = 'org.postgresql.Driver'
+            url = 'jdbc:postgresql://localhost:5432/users_service'
+            user = 'postgres'
+            password = 'admin'
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/generated-sources/jooq'
+        }
+    }
 }

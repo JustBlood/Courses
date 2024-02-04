@@ -1,0 +1,202 @@
+databaseChangeLog:
+  - changeSet:
+      id: '5'
+      author: 'Kirill Porozov'
+
+      changes:
+        - createSequence:
+            sequenceName: course_id_seq
+            startValue: 1
+            incrementBy: 1
+            cacheSize: 1
+        - createTable:
+            tableName: 'course'
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: course_id_seq
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: course_id_pkey
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    checkConstraint: TRIM(title) <> ''
+              - column:
+                  name: description
+                  type: varchar(2048)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: course_author_id_fkey
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completion_time_in_hours
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseColumnNames: author_id
+            baseTableName: course
+            constraintName: course_author_id_fkey
+            referencedColumnNames: id
+            referencedTableName: users
+            onDelete: RESTRICT
+            onUpdate: CASCADE
+
+        - createTable:
+            tableName: 'user_course_evaluation'
+            columns:
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: user_course_evaluation_user_id_fkey
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: user_course_evaluation_course_id_fkey
+              - column:
+                  name: evaluation
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+                    checkConstraint: evaluation >= 0 AND evaluation <= 5
+        - addForeignKeyConstraint:
+            baseColumnNames: course_id
+            baseTableName: user_course_evaluation
+            constraintName: user_course_evaluation_course_id_fkey
+            referencedColumnNames: id
+            referencedTableName: course
+            onDelete: CASCADE
+            onUpdate: CASCADE
+        - addForeignKeyConstraint:
+            baseColumnNames: user_id
+            baseTableName: user_course_evaluation
+            constraintName: user_course_evaluation_user_id_fkey
+            referencedColumnNames: id
+            referencedTableName: users
+            onDelete: SET NULL
+            onUpdate: CASCADE
+
+        - createView:
+            viewName: 'course_with_rating'
+            selectQuery: SELECT c.id AS course_id, AVG(r.evaluation) AS average_rating FROM course c LEFT JOIN user_course_evaluation r ON c.id = r.course_id GROUP BY c.id
+
+        - createSequence:
+            sequenceName: course_change_event_id_seq
+            startValue: 1
+            incrementBy: 1
+            cacheSize: 1
+        - createTable:
+            tableName: course_change_event
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: course_change_event_id_seq
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: course_change_event_pkey
+              - column:
+                  name: change_type
+                  type: VARCHAR
+                  constraints:
+                    nullable: false
+                    checkConstraint: ANY (ARRAY['CREATE'::character varying,
+                      'UPDATE'::character varying,
+                      'DELETE'::character varying]::text[])
+              - column:
+                  name: change_time
+                  type: DATETIME
+                  defaultValue: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: change_event_course_course_id_fkey
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: course_change_event_author_id_fkey
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseColumnNames: course_id
+            baseTableName: course_change_event
+            constraintName: change_event_course_course_id_fkey
+            referencedColumnNames: id
+            referencedTableName: course
+            onDelete: CASCADE
+            onUpdate: CASCADE
+        - addForeignKeyConstraint:
+            baseColumnNames: author_id
+            baseTableName: course_change_event
+            constraintName: course_change_event_author_id_fkey
+            referencedColumnNames: id
+            referencedTableName: users
+            onDelete: RESTRICT
+            onUpdate: CASCADE
+
+        - createTable:
+            tableName: course_users
+            columns:
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: course_users_user_id_fkey
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: course_users_course_id_fkey
+        - addForeignKeyConstraint:
+            baseColumnNames: user_id
+            baseTableName: course_users
+            constraintName: course_users_user_id_fkey
+            referencedColumnNames: id
+            referencedTableName: users
+            onDelete: CASCADE
+            onUpdate: CASCADE
+        - addForeignKeyConstraint:
+            baseColumnNames: course_id
+            baseTableName: course_users
+            constraintName: course_users_course_id_fkey
+            referencedColumnNames: id
+            referencedTableName: course
+            onDelete: RESTRICT
+            onUpdate: CASCADE
+        - createIndex:
+            columns:
+              - column:
+                  name: course_id
+              - column:
+                  name: change_type
+              - column:
+                  name: change_time
+                  descending: true
+            indexName: idx_course_id_change_type_change_time
+            tableName: course_change_event

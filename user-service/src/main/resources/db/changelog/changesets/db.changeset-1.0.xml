@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="1" author="Kirill Porozov">
+        <createSequence sequenceName="user_id_seq" startValue="1" incrementBy="1" />
+        <createTable tableName="users">
+            <column name="user_id" type="BIGINT" defaultValueSequenceNext="user_id_seq">
+                <constraints primaryKey="true" primaryKeyName="users_id_pkey"/>
+            </column>
+            <column name="username" type="varchar(64)">
+                <constraints nullable="false" />
+            </column>
+            <column name="first_name" type="VARCHAR(64)">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_name" type="VARCHAR(64)">
+                <constraints nullable="true" />
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="phone" type="VARCHAR(32)">
+                <constraints nullable="true" />
+            </column>
+            <column name="registration_date" type="DATE" defaultValueDate="CURRENT_DATE">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_admin" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false" />
+            </column>
+            <column name="status" type="VARCHAR(16)" defaultValue="ACTIVE">
+                <constraints checkConstraint="ANY (ARRAY['ACTIVE'::varchar,
+                                'DELETED'::varchar]::text[])" nullable="false" />
+            </column>
+        </createTable>
+
+        <createSequence sequenceName="user_change_event_id_seq" incrementBy="1" startValue="1" cacheSize="1" />
+        <createTable tableName="user_change_event">
+            <column name="user_change_event_id" type="BIGINT" defaultValueSequenceNext="user_change_event_id_seq">
+                <constraints primaryKey="true" primaryKeyName="user_change_event_id_pkey" />
+            </column>
+            <column name="change_type" type="VARCHAR(32)">
+                <constraints nullable="false" checkConstraint="ANY (ARRAY['CREATE'::character varying,
+                                                'UPDATE'::character varying,
+                                                'DELETE'::character varying]::text[])" />
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="user_change_event_user_id_fkey" />
+            </column>
+            <column name="author_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="user_change_event_author_id_fkey" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_change_event" baseColumnNames="user_id"
+                                 constraintName="user_change_event_user_id_fkey"
+                                 referencedTableName="users"
+                                 referencedColumnNames="user_id" />
+        <addForeignKeyConstraint baseTableName="user_change_event" baseColumnNames="author_id"
+                                 constraintName="user_change_event_author_id_fkey"
+                                 referencedTableName="users"
+                                 referencedColumnNames="user_id" />
+
+        <createSequence sequenceName="avatar_image_id_seq" startValue="1" incrementBy="1" cacheSize="1" />
+        <createTable tableName="avatar_image">
+            <column name="avatar_image_id" type="BIGINT" defaultValueSequenceNext="avatar_image_id_seq">
+                <constraints primaryKey="true" primaryKeyName="avatar_image_id_pkey" />
+            </column>
+            <column name="content_type" type="VARCHAR(64)">
+                <constraints nullable="false" />
+            </column>
+            <column name="filename" type="VARCHAR(512)">
+                <constraints nullable="false" />
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="avatar_image_user_id_fkey" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="avatar_image" baseColumnNames="user_id"
+                                 constraintName="avatar_image_user_id_fkey"
+                                 referencedTableName="users"
+                                 referencedColumnNames="user_id" />
+        
+        <createSequence sequenceName="achievement_id_seq" startValue="1" incrementBy="1" cacheSize="1" />
+        <createTable tableName="achievement">
+            <column name="achievement_id" type="BIGINT" defaultValueSequenceNext="achievement_id_seq">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="achievement_id_pkey" />
+            </column>
+            <column name="message" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+
+        <createTable tableName="user_achievement">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="user_achievement_user_id_fkey"
+                             primaryKey="true" primaryKeyName="user_achievement_pkey" />
+            </column>
+            <column name="achievement_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="user_achievement_achievement_id_fkey"
+                             primaryKey="true" primaryKeyName="user_achievement_pkey" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_achievement" baseColumnNames="user_id"
+                                 constraintName="user_achievement_user_id_fkey"
+                                 referencedTableName="users"
+                                 referencedColumnNames="user_id" />
+        <addForeignKeyConstraint baseTableName="user_achievement" baseColumnNames="achievement_id"
+                                 constraintName="user_achievement_achievement_id_fkey"
+                                 referencedTableName="achievement"
+                                 referencedColumnNames="achievement_id" />
+
+        <createSequence sequenceName="social_media_link_id_seq" startValue="1" incrementBy="1" cacheSize="1" />
+        <createTable tableName="social_media_link">
+            <column name="link_id" type="BIGINT" defaultValueSequenceNext="social_media_link_id_seq">
+                <constraints primaryKey="true" primaryKeyName="social_media_link_id_pkey" />
+            </column>
+            <column name="link" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+
+        <createTable tableName="user_social_media_link">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="user_social_media_link_pkey"
+                             foreignKeyName="user_social_media_link_user_id_fkey" />
+            </column>
+            <column name="link_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="user_social_media_link_pkey"
+                             foreignKeyName="user_social_media_link_link_id_fkey" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_social_media_link" baseColumnNames="user_id"
+                                 constraintName="user_social_media_link_user_id_fkey"
+                                 referencedTableName="users"
+                                 referencedColumnNames="user_id" />
+        <addForeignKeyConstraint baseTableName="user_social_media_link" baseColumnNames="link_id"
+                                 constraintName="user_social_media_link_link_id_fkey"
+                                 referencedTableName="social_media_link"
+                                 referencedColumnNames="link_id" />
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: USERS-SERVICE
+  datasource:
+    url: jdbc:postgresql://localhost:5432/users_service
+    username: postgres
+    password: admin
+    driver-class-name: org.postgresql.Driver
+  jooq:
+    sql-dialect: postgres
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog.xml
+server:
+  port: 8081

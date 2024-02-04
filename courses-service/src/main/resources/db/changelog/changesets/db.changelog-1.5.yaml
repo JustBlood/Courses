@@ -1,0 +1,117 @@
+databaseChangeLog:
+  - changeSet:
+      id: '6'
+      author: 'Kirill Porozov'
+
+      changes:
+        - createSequence:
+            sequenceName: module_id_seq
+            startValue: 1
+            incrementBy: 1
+            cacheSize: 1
+
+        - createTable:
+            tableName: 'module'
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: module_id_seq
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: module_id_pkey
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    checkConstraint: TRIM(title) <> ''
+              - column:
+                  name: description
+                  type: varchar(2048)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: course_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: module_course_id_dkey
+        - addForeignKeyConstraint:
+            baseColumnNames: course_id
+            baseTableName: module
+            constraintName: module_course_id_dkey
+            referencedColumnNames: id
+            referencedTableName: course
+            onDelete: CASCADE
+            onUpdate: CASCADE
+
+        - createSequence:
+            sequenceName: module_change_event_id_seq
+            startValue: 1
+            incrementBy: 1
+            cacheSize: 1
+        - createTable:
+            tableName: module_change_event
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: module_change_event_id_seq
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: module_change_event_id_pkey
+              - column:
+                  name: change_type
+                  type: VARCHAR
+                  constraints:
+                    nullable: false
+                    checkConstraint: ANY (ARRAY['CREATE'::character varying,
+                      'UPDATE'::character varying,
+                      'DELETE'::character varying]::text[])
+              - column:
+                  name: change_time
+                  type: DATETIME
+                  defaultValue: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: module_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: module_change_event_module_id_fkey
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: module_change_event_author_id_fkey
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseColumnNames: module_id
+            baseTableName: module_change_event
+            constraintName: module_change_event_module_id_fkey
+            referencedColumnNames: id
+            referencedTableName: module
+            onDelete: CASCADE
+            onUpdate: CASCADE
+        - addForeignKeyConstraint:
+            baseColumnNames: author_id
+            baseTableName: module_change_event
+            constraintName: module_change_event_author_id_fkey
+            referencedColumnNames: id
+            referencedTableName: users
+            onDelete: RESTRICT
+            onUpdate: CASCADE
+        - createIndex:
+            columns:
+              - column:
+                  name: module_id
+              - column:
+                  name: change_type
+              - column:
+                  name: change_time
+                  descending: true
+            indexName: idx_module_id_change_type_change_time
+            tableName: module_change_event

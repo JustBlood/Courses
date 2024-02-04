@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: '3'
+      author: 'Kirill Porozov'
+
+      changes:
+        - createSequence:
+            sequenceName: users_id_seq
+            startValue: 1
+            incrementBy: 1
+            cacheSize: 1
+        - createTable:
+            tableName: 'users'
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  defaultValueSequenceNext: users_id_seq
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: users_id_pkey
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
