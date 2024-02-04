@@ -43,10 +43,9 @@ public class UserRepository {
     public UserDto save(CreateUserDto createUserDto) {
         final Record record = jooq.insertInto(USERS)
                 .set(USERS.USERNAME, createUserDto.getUsername())
-                .set(USERS.PASSWORD, createUserDto.getPassword())
                 .set(USERS.FIRST_NAME, createUserDto.getFirstName())
                 .set(USERS.LAST_NAME, createUserDto.getLastName())
-                .set(USERS.EMAIL, createUserDto.getMail())
+                .set(USERS.EMAIL, createUserDto.getEmail())
                 .set(USERS.IS_ADMIN, createUserDto.getIsAdmin())
                 .set(USERS.PHONE, createUserDto.getPhone())
                 .set(USERS.STATUS, UserStatus.ACTIVE.name())
