@@ -1,6 +1,5 @@
 package ru.just.securityservice.repository;
 
-import io.micrometer.observation.ObservationFilter;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.just.securityservice.model.User;
 
