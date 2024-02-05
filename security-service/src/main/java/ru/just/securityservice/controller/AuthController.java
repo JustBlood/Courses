@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.just.dtolib.response.ApiResponse;
@@ -17,7 +18,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse> register(CreateUserDto createUserDto) {
+    public ResponseEntity<ApiResponse> register(@RequestBody CreateUserDto createUserDto) {
         authService.register(createUserDto);
         return new ResponseEntity<>(new ApiResponse("User registered successfully"), HttpStatus.CREATED);
     }

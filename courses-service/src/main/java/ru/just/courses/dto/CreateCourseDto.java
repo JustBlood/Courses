@@ -3,6 +3,7 @@ package ru.just.courses.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import ru.just.courses.model.course.Course;
@@ -13,7 +14,7 @@ import java.time.ZonedDateTime;
 
 @Getter
 @Setter
-@RequiredArgsConstructor
+@NoArgsConstructor
 public class CreateCourseDto extends Dto<Course> {
     @NotBlank(message = "title shouldn't be blank")
     private String title;

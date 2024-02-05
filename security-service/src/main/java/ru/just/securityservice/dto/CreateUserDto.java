@@ -1,22 +1,22 @@
 package ru.just.securityservice.dto;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
 import ru.just.dtolib.base.Dto;
 import ru.just.securityservice.model.Role;
 import ru.just.securityservice.model.User;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Getter
 @Setter
-@Builder
+@NoArgsConstructor
 public class CreateUserDto extends Dto<User> {
     private String password;
     private String username;
     private String email;
-    private Set<Role> roles;
+    private Set<Role> roles = new HashSet<>();
 
     @Override
     public Dto<User> fromEntity(User entity) {
