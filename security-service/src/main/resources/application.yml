@@ -5,3 +5,9 @@ spring:
     url: jdbc:postgresql://localhost:5432/security_service
     username: postgres
     password: admin
+  jpa:
+    hibernate:
+      ddl-auto: update
+  flyway:
+    enabled: true
+
