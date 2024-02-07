@@ -6,14 +6,14 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.securityservice.repository.UserRepository;
 
 import java.util.stream.Collectors;
 
+@Component
 @RequiredArgsConstructor
-@Service
 public class UserAuthService implements UserDetailsService {
     private final UserRepository userRepository;
 

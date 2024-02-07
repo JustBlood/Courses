@@ -1,7 +1,8 @@
 package ru.just.securityservice.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.just.dtolib.base.Dto;
 import ru.just.securityservice.model.Role;
 import ru.just.securityservice.model.User;
