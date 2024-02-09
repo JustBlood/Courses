@@ -1,15 +1,12 @@
 package ru.just.securityservice.config.token;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import ru.just.securityservice.model.Token;
 
-import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Stream;
 

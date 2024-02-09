@@ -1,16 +1,10 @@
 package ru.just.securityservice.config.token;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.web.filter.OncePerRequestFilter;
 import ru.just.securityservice.model.TokenUser;
-
-import java.io.IOException;
-import java.util.Date;
 
 public class JwtLogoutHandler implements LogoutHandler {
 

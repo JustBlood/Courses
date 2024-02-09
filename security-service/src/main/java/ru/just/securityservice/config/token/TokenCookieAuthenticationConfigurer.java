@@ -1,14 +1,10 @@
 package ru.just.securityservice.config.token;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.AuthenticationEntryPointFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationFilter;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
@@ -44,7 +40,7 @@ public class TokenCookieAuthenticationConfigurer
     }
 
     @Override
-    public void configure(HttpSecurity builder) throws Exception {
+    public void configure(HttpSecurity builder) {
         var cookieAuthenticationFilter = new AuthenticationFilter(
                 builder.getSharedObject(AuthenticationManager.class),
                 new TokenCookieAuthenticationConverter(tokenCookieStringDeserializer, COOKIE_NAME));
