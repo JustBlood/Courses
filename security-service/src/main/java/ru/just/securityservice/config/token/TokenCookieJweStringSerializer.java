@@ -29,7 +29,7 @@ public class TokenCookieJweStringSerializer implements Function<Token, String> {
                 .jwtID(token.id().toString())
                 .subject(token.subject())
                 .issueTime(Date.from(token.createdAt()))
-                .expirationTime(Date.from(token.expiredAt()))
+                .expirationTime(Date.from(token.expiresAt()))
                 .claim("authorities", token.authorities())
                 .build();
         var encryptedJWT = new EncryptedJWT(jwsHeader, claimsSet);

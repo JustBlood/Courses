@@ -21,4 +21,10 @@ server:
     enabled-protocols: TLSv1.2
   port: 8083
 jwt:
-  cookie-token-key: '{"kty":"oct","k":"956PBFst1FguLr5irJD-aQ"}'
+  token-ttl-in-minutes: 10
+  cookie-name: '__Host-auth-token'
+  cookie-token-key: '{"kty":"oct","k":"FA-yeE6vKp_AvZ3nJtqswg"}'
+
+logging:
+  level:
+    org.springframework.security: trace

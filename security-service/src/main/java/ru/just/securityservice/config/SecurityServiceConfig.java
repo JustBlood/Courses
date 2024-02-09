@@ -1,6 +1,8 @@
 package ru.just.securityservice.config;
 
+import com.nimbusds.jose.JWEDecrypter;
 import com.nimbusds.jose.JWEEncrypter;
+import com.nimbusds.jose.crypto.DirectDecrypter;
 import com.nimbusds.jose.crypto.DirectEncrypter;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,12 +54,16 @@ public class SecurityServiceConfig {
     }
 
     @Bean
+    public JWEDecrypter jweDecrypter(@Value("${jwt.cookie-token-key}") String cookieTokenKey) throws Exception {
+        return new DirectDecrypter(OctetSequenceKey.parse(cookieTokenKey));
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            TokenCookieAuthenticationConfigurer tokenCookieAuthenticationConfigurer,
                                            TokenCookieSessionAuthenticationStrategy sessionAuthenticationStrategy) throws Exception {
 
         return http.httpBasic(Customizer.withDefaults())
-                .formLogin(Customizer.withDefaults())
                 .addFilterAfter(new GetCsrfTokenFilter(), ExceptionTranslationFilter.class)
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
