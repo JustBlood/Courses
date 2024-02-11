@@ -1,9 +1,10 @@
 package ru.just.securityservice.config;
 
-import com.nimbusds.jose.JWEDecrypter;
-import com.nimbusds.jose.JWEEncrypter;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.DirectDecrypter;
 import com.nimbusds.jose.crypto.DirectEncrypter;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -16,16 +17,15 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.ExceptionTranslationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import ru.just.securityservice.config.token.GetCsrfTokenFilter;
-import ru.just.securityservice.config.token.TokenCookieAuthenticationConfigurer;
-import ru.just.securityservice.config.token.TokenCookieSessionAuthenticationStrategy;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+import ru.just.securityservice.config.token.*;
+
+import java.text.ParseException;
 
 @Configuration
 @EnableWebSecurity
@@ -49,33 +49,43 @@ public class SecurityServiceConfig {
     }
 
     @Bean
-    public JWEEncrypter jweEncrypter(@Value("${jwt.cookie-token-key}") String cookieTokenKey) throws Exception {
-        return new DirectEncrypter(OctetSequenceKey.parse(cookieTokenKey));
-    }
-
-    @Bean
-    public JWEDecrypter jweDecrypter(@Value("${jwt.cookie-token-key}") String cookieTokenKey) throws Exception {
-        return new DirectDecrypter(OctetSequenceKey.parse(cookieTokenKey));
+    public TokenJwtAuthenticationConfigurer jwtAuthenticationConfigurer(
+            @Value("${jwt.access-token-key}") String accessTokenKey,
+            @Value("${jwt.refresh-token-key}") String refreshTokenKey,
+            AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> userDetailsService,
+            RefreshTokenFactory refreshTokenFactory,
+            AccessTokenFactory accessTokenFactory
+    ) throws JOSEException, ParseException {
+        return TokenJwtAuthenticationConfigurer.builder()
+                .accessTokenStringSerializer(new AccessTokenJwsStringSerializer(
+                        new MACSigner(OctetSequenceKey.parse(accessTokenKey))
+                ))
+                .refreshTokenStringSerializer(new RefreshTokenJweStringSerializer(
+                        new DirectEncrypter(OctetSequenceKey.parse(refreshTokenKey))
+                ))
+                .accessDeserializer(new AccessTokenStringDeserializer(
+                        new MACVerifier(OctetSequenceKey.parse(accessTokenKey))
+                ))
+                .refreshDeserializer(new RefreshTokenStringDeserializer(
+                        new DirectDecrypter(OctetSequenceKey.parse(refreshTokenKey))
+                ))
+                .refreshTokenFactory(refreshTokenFactory)
+                .accessTokenFactory(accessTokenFactory)
+                .userDetailsService(userDetailsService)
+                .build();
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           TokenCookieAuthenticationConfigurer tokenCookieAuthenticationConfigurer,
-                                           TokenCookieSessionAuthenticationStrategy sessionAuthenticationStrategy) throws Exception {
-
+                                           TokenJwtAuthenticationConfigurer tokenJwtAuthenticationConfigurer) throws Exception {
         return http.httpBasic(Customizer.withDefaults())
-                .addFilterAfter(new GetCsrfTokenFilter(), ExceptionTranslationFilter.class)
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
                                 .requestMatchers("/api/v1/auth/register",
                                         "/api/v1/auth/login").permitAll()
                                 .anyRequest().authenticated())
                 .sessionManagement(sessionManagement -> sessionManagement
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        .sessionAuthenticationStrategy(sessionAuthenticationStrategy))
-                .csrf(csrf -> csrf.csrfTokenRepository(new CookieCsrfTokenRepository())
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        .sessionAuthenticationStrategy((authentication, request, response) -> {}))
-                .with(tokenCookieAuthenticationConfigurer, Customizer.withDefaults()).build();
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .with(tokenJwtAuthenticationConfigurer, Customizer.withDefaults()).build();
     }
 }

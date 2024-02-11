@@ -21,9 +21,10 @@ server:
     enabled-protocols: TLSv1.2
   port: 8083
 jwt:
-  token-ttl-in-minutes: 10
-  cookie-name: '__Host-auth-token'
-  cookie-token-key: '{"kty":"oct","k":"FA-yeE6vKp_AvZ3nJtqswg"}'
+  access-ttl-in-seconds: 1800
+  refresh-ttl-in-days: 20
+  access-token-key: '{"kty":"oct","k":"hi7S5RX5ZRZooHA0RKGctZ-KtR9FoESgCnH-3BNg5XI"}'
+  refresh-token-key: '{"kty":"oct","k":"956PBFst1FguLr5irJD-aQ"}'
 
 logging:
   level:

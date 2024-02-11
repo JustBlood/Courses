@@ -1,28 +1,30 @@
 package ru.just.securityservice.config.token;
 
-import com.nimbusds.jose.*;
-import com.nimbusds.jwt.EncryptedJWT;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import ru.just.securityservice.model.Token;
 
 import java.util.Date;
 import java.util.function.Function;
 
+@AllArgsConstructor
 @RequiredArgsConstructor
 @Slf4j
-@Component
-public class TokenCookieJweStringSerializer implements Function<Token, String> {
+public class AccessTokenJwsStringSerializer implements Function<Token, String> {
+    private final JWSSigner jwsSigner;
 
-    private final JWEEncrypter jweEncrypter;
-    private final JWEAlgorithm jweAlgorithm = JWEAlgorithm.DIR;
-    private final EncryptionMethod encryptionMethod = EncryptionMethod.A128GCM;
+    private JWSAlgorithm jwsAlgorithm = JWSAlgorithm.HS256;
 
     @Override
     public String apply(Token token) {
-        var jwsHeader = new JWEHeader.Builder(jweAlgorithm, encryptionMethod)
+        var jwsHeader = new JWSHeader.Builder(this.jwsAlgorithm)
                 .keyID(token.id().toString())
                 .build();
         var claimsSet = new JWTClaimsSet.Builder()
@@ -32,14 +34,14 @@ public class TokenCookieJweStringSerializer implements Function<Token, String> {
                 .expirationTime(Date.from(token.expiresAt()))
                 .claim("authorities", token.authorities())
                 .build();
-        var encryptedJWT = new EncryptedJWT(jwsHeader, claimsSet);
+        var signedJWT = new SignedJWT(jwsHeader, claimsSet);
         try {
-            encryptedJWT.encrypt(jweEncrypter);
-
-            return encryptedJWT.serialize();
-        } catch (JOSEException e) {
-            log.error(e.getMessage(), e);
+            signedJWT.sign(this.jwsSigner);
+            return signedJWT.serialize();
+        } catch (JOSEException exception) {
+            log.error(exception.getMessage(), exception);
         }
+
         return null;
     }
 }
