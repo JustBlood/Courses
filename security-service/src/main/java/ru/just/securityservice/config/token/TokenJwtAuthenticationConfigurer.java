@@ -23,15 +23,15 @@ public class TokenJwtAuthenticationConfigurer
         extends AbstractHttpConfigurer<TokenJwtAuthenticationConfigurer, HttpSecurity> {
     private Function<String, Token> accessDeserializer;
     private Function<String, Token> refreshDeserializer;
-    private Function<Token, String> refreshTokenStringSerializer = Object::toString;
-    private Function<Token, String> accessTokenStringSerializer = Object::toString;
+    private Function<Token, String> refreshTokenStringSerializer;
+    private Function<Token, String> accessTokenStringSerializer;
     private AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> userDetailsService;
     private Function<Token, Token> accessTokenFactory;
     private Function<Authentication, Token> refreshTokenFactory;
     // todo: тут tokenRepository или тип того
 
     @Override
-    public void init(HttpSecurity builder) throws Exception {
+    public void init(HttpSecurity builder) {
         var csrfConfigurer = builder.getConfigurer(CsrfConfigurer.class);
         if (csrfConfigurer != null) {
             csrfConfigurer.ignoringRequestMatchers(new AntPathRequestMatcher("/jwt/tokens", "POST"));
