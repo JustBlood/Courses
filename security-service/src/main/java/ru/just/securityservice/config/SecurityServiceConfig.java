@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import ru.just.securityservice.config.token.*;
+import ru.just.securityservice.repository.RefreshTokenRepository;
+import ru.just.securityservice.repository.UserRepository;
 
 import java.text.ParseException;
 
@@ -54,7 +56,9 @@ public class SecurityServiceConfig {
             @Value("${jwt.refresh-token-key}") String refreshTokenKey,
             AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> userDetailsService,
             RefreshTokenFactory refreshTokenFactory,
-            AccessTokenFactory accessTokenFactory
+            AccessTokenFactory accessTokenFactory,
+            RefreshTokenRepository refreshTokenRepository,
+            UserRepository userRepository
     ) throws JOSEException, ParseException {
         return TokenJwtAuthenticationConfigurer.builder()
                 .accessTokenStringSerializer(new AccessTokenJwsStringSerializer(
@@ -72,6 +76,8 @@ public class SecurityServiceConfig {
                 .refreshTokenFactory(refreshTokenFactory)
                 .accessTokenFactory(accessTokenFactory)
                 .userDetailsService(userDetailsService)
+                .refreshTokenRepository(refreshTokenRepository)
+                .userRepository(userRepository)
                 .build();
     }
 

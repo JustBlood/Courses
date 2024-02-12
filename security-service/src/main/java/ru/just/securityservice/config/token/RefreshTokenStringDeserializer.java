@@ -5,7 +5,7 @@ import com.nimbusds.jose.JWEDecrypter;
 import com.nimbusds.jwt.EncryptedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
 
 import java.text.ParseException;
 import java.util.UUID;
@@ -24,6 +24,7 @@ public class RefreshTokenStringDeserializer implements Function<String, Token> {
             var claims = encryptedJWT.getJWTClaimsSet();
             return new Token(UUID.fromString(claims.getJWTID()),
                     claims.getSubject(),
+                    UUID.fromString(claims.getStringClaim("device_id")),
                     claims.getStringListClaim("authorities"),
                     claims.getIssueTime().toInstant(),
                     claims.getExpirationTime().toInstant());

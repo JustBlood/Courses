@@ -6,7 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
 
 import java.util.function.Function;
 

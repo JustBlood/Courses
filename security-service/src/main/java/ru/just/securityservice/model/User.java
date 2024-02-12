@@ -16,7 +16,7 @@ import java.util.Set;
 public class User {
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_user_id_seq")
     @SequenceGenerator(name = "user_user_id_seq", sequenceName = "user_user_id_seq", allocationSize = 1)
-    public Long userId;
+    private Long userId;
     @Column(nullable = false, unique = true)
     private String username;
     @Column(nullable = false)

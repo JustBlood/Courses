@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,15 +15,18 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.just.securityservice.model.TokenUser;
+import ru.just.securityservice.config.token.model.TokenUser;
+import ru.just.securityservice.repository.RefreshTokenRepository;
 
 import java.io.IOException;
 
 @Setter
+@RequiredArgsConstructor
 public class JwtLogoutFilter extends OncePerRequestFilter {
 
     private RequestMatcher requestMatcher = new AntPathRequestMatcher("/jwt/logout", HttpMethod.POST.name());
     private SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
+    private final RefreshTokenRepository refreshTokenRepository;
     // todo: тут добавить репозиторий/сервис управления токенами в БД
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,

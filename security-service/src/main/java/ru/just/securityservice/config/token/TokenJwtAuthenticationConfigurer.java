@@ -14,7 +14,9 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
+import ru.just.securityservice.repository.RefreshTokenRepository;
+import ru.just.securityservice.repository.UserRepository;
 
 import java.util.function.Function;
 
@@ -28,7 +30,8 @@ public class TokenJwtAuthenticationConfigurer
     private AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> userDetailsService;
     private Function<Token, Token> accessTokenFactory;
     private Function<Authentication, Token> refreshTokenFactory;
-    // todo: тут tokenRepository или тип того
+    private RefreshTokenRepository refreshTokenRepository;
+    private UserRepository userRepository;
 
     @Override
     public void init(HttpSecurity builder) {
@@ -40,7 +43,8 @@ public class TokenJwtAuthenticationConfigurer
 
     @Override
     public void configure(HttpSecurity builder) {
-        var requestJwtTokensFilter = new RequestJwtTokensFilter(refreshTokenFactory, accessTokenFactory);
+        var requestJwtTokensFilter = new RequestJwtTokensFilter(
+                refreshTokenFactory, accessTokenFactory, refreshTokenRepository, userRepository);
         requestJwtTokensFilter.setAccessTokenStringSerializer(this.accessTokenStringSerializer);
         requestJwtTokensFilter.setRefreshTokenStringSerializer(this.refreshTokenStringSerializer);
 
@@ -54,12 +58,11 @@ public class TokenJwtAuthenticationConfigurer
         var authenticationProvider = new PreAuthenticatedAuthenticationProvider();
         authenticationProvider.setPreAuthenticatedUserDetailsService(userDetailsService);
 
-        var refreshTokenFilter = new RefreshTokenFilter(accessTokenFactory, refreshTokenFactory);
+        var refreshTokenFilter = new RefreshTokenFilter(accessTokenFactory, refreshTokenFactory, refreshTokenRepository);
         refreshTokenFilter.setAccessTokenStringSerializer(this.accessTokenStringSerializer);
+        refreshTokenFilter.setRefreshTokenStringSerializer(this.refreshTokenStringSerializer);
 
-        // todo: сюда прокинуть взаимодействие в БД
-
-        var jwtLogoutFilter = new JwtLogoutFilter();
+        var jwtLogoutFilter = new JwtLogoutFilter(refreshTokenRepository);
 
         builder.addFilterAfter(requestJwtTokensFilter, ExceptionTranslationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, CsrfFilter.class)

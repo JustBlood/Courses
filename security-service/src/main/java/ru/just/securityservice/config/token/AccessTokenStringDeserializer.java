@@ -5,7 +5,7 @@ import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
 
 import java.text.ParseException;
 import java.util.UUID;
@@ -26,6 +26,7 @@ public class AccessTokenStringDeserializer implements Function<String, Token> {
             var claimsSet = signedJwt.getJWTClaimsSet();
             return new Token(UUID.fromString(claimsSet.getJWTID()),
                     claimsSet.getSubject(),
+                    UUID.fromString(claimsSet.getStringClaim("device_id")),
                     claimsSet.getStringListClaim("authorities"),
                     claimsSet.getIssueTime().toInstant(),
                     claimsSet.getExpirationTime().toInstant());

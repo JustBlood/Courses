@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class UserAuthService implements UserDetailsService {
+public class DefaultUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)

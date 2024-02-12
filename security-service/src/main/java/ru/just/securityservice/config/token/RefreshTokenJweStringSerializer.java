@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
 
 import java.util.Date;
 import java.util.function.Function;
@@ -32,6 +32,7 @@ public class RefreshTokenJweStringSerializer implements Function<Token, String> 
                 .issueTime(Date.from(token.createdAt()))
                 .expirationTime(Date.from(token.expiresAt()))
                 .claim("authorities", token.authorities())
+                .claim("device_id", token.deviceId())
                 .build();
         var encryptedJWT = new EncryptedJWT(jweHeader, claimsSet);
         try {

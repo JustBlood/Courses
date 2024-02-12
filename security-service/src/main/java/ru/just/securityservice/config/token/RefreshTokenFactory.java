@@ -5,7 +5,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
+import ru.just.securityservice.config.token.model.TokenUser;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -29,8 +30,11 @@ public class RefreshTokenFactory implements Function<Authentication, Token> {
                 .stream().map(GrantedAuthority::getAuthority)
                 .map(authority -> "GRANT_" + authority)
                 .forEach(authorities::add);
-
-        return new Token(UUID.randomUUID(), authentication.getName(), authorities, createdAt,
+        UUID deviceId = UUID.randomUUID();
+        if (authentication.getPrincipal() instanceof TokenUser tokenUser) {
+            deviceId = tokenUser.getToken().deviceId();
+        }
+        return new Token(UUID.randomUUID(), authentication.getName(), deviceId, authorities, createdAt,
                 createdAt.plus(tokenTtlInDays));
     }
 }

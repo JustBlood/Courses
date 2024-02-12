@@ -9,7 +9,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
 
 import java.util.Date;
 import java.util.function.Function;
@@ -33,6 +33,7 @@ public class AccessTokenJwsStringSerializer implements Function<Token, String> {
                 .issueTime(Date.from(token.createdAt()))
                 .expirationTime(Date.from(token.expiresAt()))
                 .claim("authorities", token.authorities())
+                .claim("device_id", token.deviceId())
                 .build();
         var signedJWT = new SignedJWT(jwsHeader, claimsSet);
         try {

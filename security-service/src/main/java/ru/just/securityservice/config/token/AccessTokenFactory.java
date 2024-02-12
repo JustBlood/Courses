@@ -3,7 +3,7 @@ package ru.just.securityservice.config.token;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import ru.just.securityservice.model.Token;
+import ru.just.securityservice.config.token.model.Token;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -18,7 +18,7 @@ public class AccessTokenFactory implements Function<Token, Token> {
     @Override
     public Token apply(Token refreshToken) {
         var createdAt = Instant.now();
-        return new Token(refreshToken.id(), refreshToken.subject(),
+        return new Token(refreshToken.id(), refreshToken.subject(), refreshToken.deviceId(),
                 refreshToken.authorities().stream()
                         .filter(authority -> authority.startsWith("GRANT_"))
                         .map(authority -> authority.replace("GRANT_", ""))
