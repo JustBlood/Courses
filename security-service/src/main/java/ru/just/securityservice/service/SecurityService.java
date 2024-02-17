@@ -11,7 +11,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
-import ru.just.securityservice.repository.RefreshTokenRepository;
 import ru.just.securityservice.repository.UserRepository;
 
 import java.time.Duration;
@@ -28,7 +27,6 @@ public class SecurityService {
     public static final String AUTHORITIES_CLAIM = "authorities";
     public static final String ROLE_PREFIX = "GRANT_";
     public static final String ISSUER = "just-company";
-    private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
     private final Algorithm algorithm;
     @Value("${jwt.secret}")

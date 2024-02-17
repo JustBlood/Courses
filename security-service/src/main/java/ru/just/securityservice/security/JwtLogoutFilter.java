@@ -40,7 +40,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
             if (this.securityContextRepository.containsContext(request)) {
                 var context = this.securityContextRepository.loadDeferredContext(request).get();
                 if (context != null && context.getAuthentication() instanceof PreAuthenticatedAuthenticationToken token &&
-                        context.getAuthentication().getPrincipal() instanceof User user &&
+                        context.getAuthentication().getPrincipal() instanceof User &&
                         context.getAuthentication().getAuthorities()
                                 .contains(new SimpleGrantedAuthority("JWT_LOGOUT"))) {
                     // todo: тут сделать удаление токена из активных в БД
