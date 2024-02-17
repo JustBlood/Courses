@@ -1,11 +1,6 @@
 package ru.just.securityservice.config;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.crypto.DirectDecrypter;
-import com.nimbusds.jose.crypto.DirectEncrypter;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jose.jwk.OctetSequenceKey;
+import com.auth0.jwt.algorithms.Algorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,17 +18,19 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
-import ru.just.securityservice.config.token.*;
-import ru.just.securityservice.repository.RefreshTokenRepository;
 import ru.just.securityservice.repository.UserRepository;
-
-import java.text.ParseException;
+import ru.just.securityservice.security.TokenJwtAuthenticationConfigurer;
+import ru.just.securityservice.service.RefreshTokenService;
+import ru.just.securityservice.service.SecurityService;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
-public class SecurityServiceConfig {
-
+public class SecurityConfig {
+    @Bean
+    public Algorithm algorithm(@Value("${jwt.secret}") String secret) {
+        return Algorithm.HMAC256(secret);
+    }
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -52,32 +49,16 @@ public class SecurityServiceConfig {
 
     @Bean
     public TokenJwtAuthenticationConfigurer jwtAuthenticationConfigurer(
-            @Value("${jwt.access-token-key}") String accessTokenKey,
-            @Value("${jwt.refresh-token-key}") String refreshTokenKey,
             AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> userDetailsService,
-            RefreshTokenFactory refreshTokenFactory,
-            AccessTokenFactory accessTokenFactory,
-            RefreshTokenRepository refreshTokenRepository,
-            UserRepository userRepository
-    ) throws JOSEException, ParseException {
+            RefreshTokenService refreshTokenService,
+            UserRepository userRepository,
+            SecurityService securityService
+    ) {
         return TokenJwtAuthenticationConfigurer.builder()
-                .accessTokenStringSerializer(new AccessTokenJwsStringSerializer(
-                        new MACSigner(OctetSequenceKey.parse(accessTokenKey))
-                ))
-                .refreshTokenStringSerializer(new RefreshTokenJweStringSerializer(
-                        new DirectEncrypter(OctetSequenceKey.parse(refreshTokenKey))
-                ))
-                .accessDeserializer(new AccessTokenStringDeserializer(
-                        new MACVerifier(OctetSequenceKey.parse(accessTokenKey))
-                ))
-                .refreshDeserializer(new RefreshTokenStringDeserializer(
-                        new DirectDecrypter(OctetSequenceKey.parse(refreshTokenKey))
-                ))
-                .refreshTokenFactory(refreshTokenFactory)
-                .accessTokenFactory(accessTokenFactory)
                 .userDetailsService(userDetailsService)
-                .refreshTokenRepository(refreshTokenRepository)
+                .refreshTokenService(refreshTokenService)
                 .userRepository(userRepository)
+                .securityService(securityService)
                 .build();
     }
 

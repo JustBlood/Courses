@@ -8,5 +8,5 @@ import java.util.UUID;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Boolean existsByIdAndExpiresAtAfterAndDeviceIdAndUser_UserId(UUID tokenId, Instant now, UUID deviceId, Long userId);
-    void deleteByUserUserId(Long userId);
+    void deleteAllByUser_UserId(Long userId);
 }

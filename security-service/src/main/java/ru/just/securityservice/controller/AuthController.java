@@ -9,13 +9,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.response.ApiResponse;
 import ru.just.securityservice.dto.CreateUserDto;
-import ru.just.securityservice.service.AuthService;
+import ru.just.securityservice.service.UserService;
 
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
-    private final AuthService authService;
+    private final UserService userService;
 
     @GetMapping
     public ResponseEntity<String> getGreeting(@AuthenticationPrincipal UserDetails user) {
@@ -26,7 +26,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse> register(@RequestBody CreateUserDto createUserDto) {
-        authService.register(createUserDto);
+        userService.register(createUserDto);
         return new ResponseEntity<>(new ApiResponse("User registered successfully"), HttpStatus.CREATED);
     }
 }

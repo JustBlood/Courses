@@ -12,7 +12,7 @@ import java.util.NoSuchElementException;
 
 @RequiredArgsConstructor
 @Service
-public class AuthService {
+public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
 
