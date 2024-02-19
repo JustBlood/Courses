@@ -2,7 +2,6 @@ package ru.just.securityservice.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +22,7 @@ public class RefreshTokenService {
         return refreshTokenRepository.existsByIdAndExpiresAtAfterAndDeviceIdAndUser_UserId(id, Instant.now(), deviceId, userId);
     }
 
-    public void saveIssuedRefreshToken(SecurityContext securityContext, DecodedJWT refreshToken) {
-        User user = (User) securityContext.getAuthentication().getPrincipal();
-
+    public void saveIssuedRefreshToken(User user, DecodedJWT refreshToken) {
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .id(UUID.fromString(refreshToken.getId()))
                 .user(userRepository.findByUsername(user.getUsername()).orElseThrow()) // todo: exception handling

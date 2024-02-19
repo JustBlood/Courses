@@ -50,7 +50,7 @@ public class TokenJwtAuthenticationConfigurer
 
         var refreshTokenFilter = new RefreshTokenFilter(securityService, refreshTokenService);
 
-        var jwtLogoutFilter = new JwtLogoutFilter(refreshTokenService, securityService);
+        var jwtLogoutFilter = new JwtLogoutFilter(securityService, refreshTokenService);
 
         builder.addFilterAfter(requestJwtTokensFilter, ExceptionTranslationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, CsrfFilter.class)
