@@ -27,7 +27,7 @@ import java.io.IOException;
 
 @Setter
 public class RequestJwtTokensFilter extends OncePerRequestFilter {
-    private RequestMatcher requestMatcher = new AntPathRequestMatcher("/jwt/tokens", HttpMethod.POST.name());
+    private RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v1/auth/login", HttpMethod.POST.name());
     private SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
     private ObjectMapper objectMapper = new ObjectMapper();
     private final SecurityService securityService;

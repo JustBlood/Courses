@@ -10,9 +10,6 @@ spring:
       ddl-auto: update
   flyway:
     enabled: false
-server:
-  http2:
-    enabled: true
   port: 8083
 jwt:
   access-ttl-in-seconds: 1800

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.securityservice.dto.CreateUserDto;
+import ru.just.securityservice.dto.UserDto;
 import ru.just.securityservice.model.Role;
 import ru.just.securityservice.repository.RoleRepository;
 import ru.just.securityservice.repository.UserRepository;
@@ -17,10 +18,10 @@ public class UserService {
     private final RoleRepository roleRepository;
 
     @Transactional
-    public void register(CreateUserDto createUserDto) {
+    public UserDto register(CreateUserDto createUserDto) {
         Role role = roleRepository.findByNameEndsWith("USER")
                 .orElseThrow(() -> new NoSuchElementException("Can't register user. Internal security error"));
         createUserDto.getRoles().add(role);
-        userRepository.save(createUserDto.toEntity());
+        return new UserDto().fromEntity(userRepository.save(createUserDto.toEntity()));
     }
 }

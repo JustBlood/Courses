@@ -65,12 +65,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            TokenJwtAuthenticationConfigurer tokenJwtAuthenticationConfigurer) throws Exception {
-        return http.httpBasic(Customizer.withDefaults())
+        return http
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
                                 .requestMatchers("/api/v1/auth/register",
                                         "/api/v1/auth/login").permitAll()
                                 .anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults())
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .with(tokenJwtAuthenticationConfigurer, Customizer.withDefaults()).build();

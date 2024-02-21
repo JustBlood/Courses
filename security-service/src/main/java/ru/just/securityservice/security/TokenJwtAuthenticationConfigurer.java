@@ -40,7 +40,7 @@ public class TokenJwtAuthenticationConfigurer
 
         var jwtAuthenticationFilter = new AuthenticationFilter(builder.getSharedObject(AuthenticationManager.class),
                 new TokenJwtAuthenticationConverter(securityService));
-        jwtAuthenticationFilter
+        jwtAuthenticationFilter // todo: csrf politics
                 .setSuccessHandler((request, response, authentication) -> CsrfFilter.skipRequest(request));
         jwtAuthenticationFilter
                 .setFailureHandler((request, response, exception) -> response.sendError(HttpServletResponse.SC_FORBIDDEN));
@@ -48,14 +48,8 @@ public class TokenJwtAuthenticationConfigurer
         var authenticationProvider = new PreAuthenticatedAuthenticationProvider();
         authenticationProvider.setPreAuthenticatedUserDetailsService(userDetailsService);
 
-        var refreshTokenFilter = new RefreshTokenFilter(securityService, refreshTokenService);
-
-        var jwtLogoutFilter = new JwtLogoutFilter(securityService, refreshTokenService);
-
         builder.addFilterAfter(requestJwtTokensFilter, ExceptionTranslationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, CsrfFilter.class)
-                .addFilterAfter(refreshTokenFilter, ExceptionTranslationFilter.class)
-                .addFilterAfter(jwtLogoutFilter, ExceptionTranslationFilter.class)
                 .authenticationProvider(authenticationProvider);
     }
 }

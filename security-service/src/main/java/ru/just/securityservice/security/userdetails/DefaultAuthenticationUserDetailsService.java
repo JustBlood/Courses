@@ -1,4 +1,4 @@
-package ru.just.securityservice.service;
+package ru.just.securityservice.security.userdetails;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.RequiredArgsConstructor;
@@ -11,28 +11,18 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.securityservice.model.User;
 import ru.just.securityservice.repository.UserRepository;
 
-import java.time.Instant;
-import java.util.Optional;
-
 @Component
 @RequiredArgsConstructor
 public class DefaultAuthenticationUserDetailsService implements AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> {
     private final UserRepository userRepository;
-    private final SecurityService securityService;
 
     @Transactional(readOnly = true)
     @Override
     public UserDetails loadUserDetails(PreAuthenticatedAuthenticationToken authenticationToken) throws UsernameNotFoundException {
         if (authenticationToken.getPrincipal() instanceof DecodedJWT token) {
-            final Optional<User> user = userRepository.findById(Long.parseLong(token.getSubject()));
-            return new org.springframework.security.core.userdetails.User(
-                    user.orElse(new User().withUsername("")).getUsername(),
-                    "",
-                    true,
-                    user.isPresent(),
-                    token.getExpiresAtAsInstant().isAfter(Instant.now()),
-                    true,
-                    securityService.getAuthoritiesFromToken(token));
+            final User user = userRepository.findById(Long.parseLong(token.getSubject()))
+                    .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
+            return new TokenUser(user, token, true, true);
         }
         throw new UsernameNotFoundException("Principal must be of type Token");
     }

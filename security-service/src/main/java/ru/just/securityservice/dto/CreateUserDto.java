@@ -14,8 +14,8 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 public class CreateUserDto extends Dto<User> {
-    private String password;
     private String username;
+    private String password;
     private String email;
     private Set<Role> roles = new HashSet<>();
 
@@ -31,9 +31,9 @@ public class CreateUserDto extends Dto<User> {
     @Override
     public User toEntity() {
         return new User()
-                .withUsername(username)
-                .withPassword(password)
-                .withEmail(email)
-                .withRoles(roles);
+                .setUsername(username)
+                .setPassword(password)
+                .setEmail(email)
+                .setRoles(roles);
     }
 }

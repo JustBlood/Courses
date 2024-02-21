@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.util.Set;
 
+@Accessors(chain = true)
 @Getter
 @Setter
 @NoArgsConstructor
