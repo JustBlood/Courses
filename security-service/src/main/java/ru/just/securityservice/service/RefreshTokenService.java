@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.securityservice.model.RefreshToken;
 import ru.just.securityservice.model.User;
 import ru.just.securityservice.repository.RefreshTokenRepository;
-import ru.just.securityservice.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,7 +15,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserRepository userRepository;
 
     public boolean isRefreshTokenValid(UUID id, UUID deviceId, long userId) {
         return refreshTokenRepository.existsByIdAndExpiresAtAfterAndDeviceIdAndUser_UserId(id, Instant.now(), deviceId, userId);
