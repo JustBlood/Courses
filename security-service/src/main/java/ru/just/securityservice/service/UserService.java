@@ -1,6 +1,7 @@
 package ru.just.securityservice.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.securityservice.dto.CreateUserDto;
@@ -16,11 +17,13 @@ import java.util.NoSuchElementException;
 public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public UserDto register(CreateUserDto createUserDto) {
         Role role = roleRepository.findByNameEndsWith("USER")
                 .orElseThrow(() -> new NoSuchElementException("Can't register user. Internal security error"));
+        createUserDto.setPassword(passwordEncoder.encode(createUserDto.getPassword()));
         createUserDto.getRoles().add(role);
         return new UserDto().fromEntity(userRepository.save(createUserDto.toEntity()));
     }
