@@ -26,11 +26,8 @@ public class TokenJwtAuthenticationConfigurer
     private RefreshTokenService refreshTokenService;
 
     @Override
-    public void init(HttpSecurity builder) {
-        var csrfConfigurer = builder.getConfigurer(CsrfConfigurer.class);
-        if (csrfConfigurer != null) {
-            csrfConfigurer.ignoringRequestMatchers(new AntPathRequestMatcher("/jwt/tokens", "POST"));
-        }
+    public void init(HttpSecurity builder) throws Exception {
+        builder.csrf(CsrfConfigurer::disable);
     }
 
     @Override
