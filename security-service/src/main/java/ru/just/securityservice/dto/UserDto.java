@@ -22,7 +22,7 @@ public class UserDto extends Dto<User> {
     @Override
     public UserDto fromEntity(User entity) {
         userId = entity.getUserId();
-        username = entity.getUsername();
+        username = entity.getLogin();
         email = entity.getEmail();
         roles = entity.getRoles().stream().map(Role::getName).toList();
         return this;
@@ -32,7 +32,7 @@ public class UserDto extends Dto<User> {
     public User toEntity() {
         return new User()
                 .setUserId(userId)
-                .setUsername(username)
+                .setLogin(username)
                 .setEmail(email)
                 .setRoles(roles.stream().map(role -> new Role().setName(role)).collect(Collectors.toSet()));
     }

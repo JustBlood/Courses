@@ -13,13 +13,13 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "roles")
+@Table(name = "role")
 public class Role {
-    @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roles_id_seq")
-    @SequenceGenerator(name = "roles_id_seq", sequenceName = "roles_id_seq", allocationSize = 1)
+    @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "role_id_seq")
+    @SequenceGenerator(name = "role_id_seq", sequenceName = "role_id_seq", allocationSize = 1)
     private Long roleId;
     @Column(nullable = false, unique = true)
     private String name;
     @ManyToMany
-    private Set<User> userPrincipal;
+    private Set<User> users;
 }

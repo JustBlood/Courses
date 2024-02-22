@@ -21,7 +21,7 @@ public class CreateUserDto extends Dto<User> {
 
     @Override
     public Dto<User> fromEntity(User entity) {
-        this.username = entity.getUsername();
+        this.username = entity.getLogin();
         this.password = entity.getPassword();
         this.email = entity.getEmail();
         this.roles = entity.getRoles();
@@ -31,7 +31,7 @@ public class CreateUserDto extends Dto<User> {
     @Override
     public User toEntity() {
         return new User()
-                .setUsername(username)
+                .setLogin(username)
                 .setPassword(password)
                 .setEmail(email)
                 .setRoles(roles);

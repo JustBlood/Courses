@@ -22,7 +22,7 @@ public class DefaultUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .map(user -> new User(
-                        user.getUsername(),
+                        user.getLogin(),
                         user.getPassword(),
                         user.getRoles().stream()
                                 .map(role -> new SimpleGrantedAuthority(role.getName()))

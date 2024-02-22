@@ -38,7 +38,7 @@ public class TokenUser implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getUsername();
+        return user.getLogin();
     }
 
     @Override

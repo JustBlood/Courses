@@ -18,16 +18,16 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_user_id_seq")
-    @SequenceGenerator(name = "user_user_id_seq", sequenceName = "user_user_id_seq", allocationSize = 1)
+    @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_id_seq")
+    @SequenceGenerator(name = "user_id_seq", sequenceName = "user_id_seq", allocationSize = 1)
     private Long userId;
     @Column(nullable = false, unique = true)
-    private String username;
+    private String login;
     @Column(nullable = false)
     private String password;
     @Column
     public String email;
 
-    @ManyToMany(mappedBy = "userPrincipal")
+    @ManyToMany(mappedBy = "users")
     private Set<Role> roles = new HashSet<>();
 }
