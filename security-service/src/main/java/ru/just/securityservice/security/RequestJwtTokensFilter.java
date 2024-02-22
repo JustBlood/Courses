@@ -12,7 +12,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -55,8 +54,7 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
         var accessToken = securityService.generateAccess(decodedRefresh);
         final DecodedJWT decodedAccess = JWT.decode(accessToken);
 
-        User user = (User) securityContext.getAuthentication().getPrincipal();
-        refreshTokenService.saveIssuedRefreshToken(user, decodedRefresh);
+        refreshTokenService.saveIssuedRefreshToken(Long.parseLong(decodedAccess.getSubject()), decodedRefresh);
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

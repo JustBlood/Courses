@@ -10,8 +10,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import ru.just.securityservice.repository.UserRepository;
+import ru.just.securityservice.security.userdetails.TokenUser;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -36,12 +38,6 @@ public class SecurityService {
     @Value("${jwt.access-ttl-in-seconds}")
     private Integer accessTtlInSeconds;
 
-    public List<GrantedAuthority> getAuthoritiesFromToken(DecodedJWT decodedJwtToken) {
-        return decodedJwtToken.getClaim(AUTHORITIES_CLAIM).asList(String.class)
-                .stream().map(authority -> (GrantedAuthority) new SimpleGrantedAuthority(authority))
-                .toList();
-    }
-
     public String generateRefresh(Authentication authentication) {
         final Instant now = Instant.now();
 
@@ -62,11 +58,7 @@ public class SecurityService {
             log.debug("Authentication is not a bearer token");
         }
 
-        final User principal = (User) authentication.getPrincipal();
-        String userId = userRepository.findByUsername(principal.getUsername())
-                .orElseThrow()
-                .getUserId()
-                .toString();
+        String userId = getUserIdFromAuthentication(authentication);
 
         return JWT.create()
                 .withIssuer(ISSUER)
@@ -77,6 +69,15 @@ public class SecurityService {
                 .withClaim(DEVICE_ID_CLAIM, deviceId.toString())
                 .withClaim(AUTHORITIES_CLAIM, authorities)
                 .sign(algorithm);
+    }
+
+    private String getUserIdFromAuthentication(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof TokenUser tokenUser) {
+            return tokenUser.getUser().getUserId().toString();
+        }
+        return userRepository.findByUsername(((User) authentication.getPrincipal()).getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"))
+                .getUserId().toString();
     }
 
     public String generateAccess(DecodedJWT refreshToken) {

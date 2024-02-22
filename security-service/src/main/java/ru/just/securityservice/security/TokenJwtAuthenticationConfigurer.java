@@ -12,7 +12,6 @@ import org.springframework.security.web.authentication.AuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import ru.just.securityservice.repository.UserRepository;
 import ru.just.securityservice.service.RefreshTokenService;
 import ru.just.securityservice.service.SecurityService;

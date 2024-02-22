@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.stereotype.Service;
 import ru.just.dtolib.jwt.Tokens;
@@ -57,7 +56,7 @@ public class AuthService {
         final DecodedJWT decodedAccess = JWT.decode(accessToken);
 
         refreshTokenService.deleteById(tokenId);
-        refreshTokenService.saveIssuedRefreshToken((User) authentication.getPrincipal(), token);
+        refreshTokenService.saveIssuedRefreshToken(userId, token);
         return new Tokens(accessToken, decodedAccess.getExpiresAtAsInstant().toString(),
                 newRefreshToken, decodedRefresh.getExpiresAtAsInstant().toString());
     }
