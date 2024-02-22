@@ -15,14 +15,14 @@ import java.util.stream.Collectors;
 @Accessors(chain = true)
 public class UserDto extends Dto<User> {
     private Long userId;
-    private String username;
+    private String login;
     private String email;
     private List<String> roles;
 
     @Override
     public UserDto fromEntity(User entity) {
         userId = entity.getUserId();
-        username = entity.getLogin();
+        login = entity.getLogin();
         email = entity.getEmail();
         roles = entity.getRoles().stream().map(Role::getName).toList();
         return this;
@@ -32,7 +32,7 @@ public class UserDto extends Dto<User> {
     public User toEntity() {
         return new User()
                 .setUserId(userId)
-                .setLogin(username)
+                .setLogin(login)
                 .setEmail(email)
                 .setRoles(roles.stream().map(role -> new Role().setName(role)).collect(Collectors.toSet()));
     }

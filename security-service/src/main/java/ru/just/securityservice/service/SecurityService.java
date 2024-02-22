@@ -74,7 +74,7 @@ public class SecurityService {
         if (authentication.getPrincipal() instanceof TokenUser tokenUser) {
             return tokenUser.getUser().getUserId().toString();
         }
-        return userRepository.findByUsername(((User) authentication.getPrincipal()).getUsername())
+        return userRepository.findByLogin(((User) authentication.getPrincipal()).getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"))
                 .getUserId().toString();
     }

@@ -21,7 +21,7 @@ public class UserController {
         return ResponseEntity.of(userService.getUserById(userId));
     }
 
-    @PostMapping
+    @PostMapping // todo: переделать в update, user(id) будет из кафки
     public ResponseEntity<UserDto> saveUser(@Valid @RequestBody CreateUserDto createUserDto) {
         UserDto userDto = userService.saveUser(createUserDto);
         return new ResponseEntity<>(userDto, HttpStatus.CREATED);

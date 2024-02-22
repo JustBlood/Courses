@@ -14,14 +14,14 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 public class CreateUserDto extends Dto<User> {
-    private String username;
+    private String login;
     private String password;
     private String email;
     private Set<Role> roles = new HashSet<>();
 
     @Override
     public Dto<User> fromEntity(User entity) {
-        this.username = entity.getLogin();
+        this.login = entity.getLogin();
         this.password = entity.getPassword();
         this.email = entity.getEmail();
         this.roles = entity.getRoles();
@@ -31,7 +31,7 @@ public class CreateUserDto extends Dto<User> {
     @Override
     public User toEntity() {
         return new User()
-                .setLogin(username)
+                .setLogin(login)
                 .setPassword(password)
                 .setEmail(email)
                 .setRoles(roles);

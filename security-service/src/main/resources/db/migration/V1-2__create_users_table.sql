@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.users
     password character varying(255) NOT NULL,
     login character varying(255) NOT NULL,
     CONSTRAINT users_pkey PRIMARY KEY (user_id),
-    CONSTRAINT user_username_uq UNIQUE (username)
+    CONSTRAINT user_username_uq UNIQUE (login)
     );
 CREATE TRIGGER set_user_id_trigger
     BEFORE INSERT ON public.role

@@ -19,8 +19,8 @@ public class DefaultUserDetailsService implements UserDetailsService {
 
     @Transactional(readOnly = true)
     @Override
-    public UserDetails loadUserByUsername(String username) {
-        return userRepository.findByUsername(username)
+    public UserDetails loadUserByUsername(String login) {
+        return userRepository.findByLogin(login)
                 .map(user -> new User(
                         user.getLogin(),
                         user.getPassword(),
