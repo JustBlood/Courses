@@ -15,13 +15,14 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 @Service
 public class UserService {
+    public static final String STUDENT_ROLE = "STUDENT";
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public UserDto register(CreateUserDto createUserDto) {
-        Role role = roleRepository.findByNameEndsWith("USER")
+        Role role = roleRepository.findByNameEndsWith(STUDENT_ROLE)
                 .orElseThrow(() -> new NoSuchElementException("Can't register user. Internal security error"));
         createUserDto.setPassword(passwordEncoder.encode(createUserDto.getPassword()));
         createUserDto.getRoles().add(role);
