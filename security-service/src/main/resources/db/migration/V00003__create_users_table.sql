@@ -15,6 +15,6 @@ CREATE TABLE IF NOT EXISTS public.users
     CONSTRAINT user_username_uq UNIQUE (login)
     );
 CREATE TRIGGER set_user_id_trigger
-    BEFORE INSERT ON public.role
+    BEFORE INSERT ON public.users
     FOR EACH ROW
     EXECUTE FUNCTION set_user_id();
