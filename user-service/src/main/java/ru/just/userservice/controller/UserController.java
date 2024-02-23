@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.response.ApiResponse;
-import ru.just.userservice.dto.CreateUserDto;
+import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
@@ -22,8 +22,8 @@ public class UserController {
     }
 
     @PostMapping // todo: переделать в update, user(id) будет из кафки
-    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody CreateUserDto createUserDto) {
-        UserDto userDto = userService.saveUser(createUserDto);
+    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody UpdateUserDto updateUserDto) {
+        UserDto userDto = userService.updateUser(updateUserDto);
         return new ResponseEntity<>(userDto, HttpStatus.CREATED);
     }
 

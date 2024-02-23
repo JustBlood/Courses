@@ -14,9 +14,7 @@ public class UserDto {
     private String username;
     private String firstName;
     private String lastName;
-    private String mail;
     private String phone;
     private LocalDate registrationDate;
-    private Boolean isAdmin;
     private UserStatus userStatus;
 }

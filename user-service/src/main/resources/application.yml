@@ -2,14 +2,29 @@ spring:
   application:
     name: USERS-SERVICE
   datasource:
-    url: jdbc:postgresql://localhost:5432/users_service
+    url: jdbc:postgresql://localhost:5434/users_service
     username: postgres
-    password: admin
+    password: 242171e6a6d3b0701e83f72d33432a8e9fa11068
     driver-class-name: org.postgresql.Driver
   jooq:
     sql-dialect: postgres
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog.xml
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      replication-factor: 1
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: courses
+      bootstrap-servers: localhost:9092
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.just.dtolib.kafka.*"
 server:
   port: 8082
+
+topics:
+  user-actions-topic: userActions

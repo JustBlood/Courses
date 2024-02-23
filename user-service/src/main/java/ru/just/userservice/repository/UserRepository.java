@@ -4,7 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.springframework.stereotype.Repository;
-import ru.just.userservice.dto.CreateUserDto;
+import ru.just.dtolib.kafka.users.UserAction;
+import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 
@@ -33,23 +34,19 @@ public class UserRepository {
                 .withUsername(record.get(USERS.USERNAME))
                 .withFirstName(record.get(USERS.FIRST_NAME))
                 .withLastName(record.get(USERS.LAST_NAME))
-                .withMail(record.get(USERS.EMAIL))
-                .withIsAdmin(record.get(USERS.IS_ADMIN))
                 .withPhone(record.get(USERS.PHONE))
                 .withUserStatus(Enum.valueOf(UserStatus.class, record.get(USERS.STATUS)))
                 .withRegistrationDate(record.get(USERS.REGISTRATION_DATE));
     }
 
-    public UserDto save(CreateUserDto createUserDto) {
+    public UserDto save(UpdateUserDto updateUserDto) {
         final Record record = jooq.insertInto(USERS)
-                .set(USERS.USERNAME, createUserDto.getUsername())
-                .set(USERS.FIRST_NAME, createUserDto.getFirstName())
-                .set(USERS.LAST_NAME, createUserDto.getLastName())
-                .set(USERS.EMAIL, createUserDto.getEmail())
-                .set(USERS.IS_ADMIN, createUserDto.getIsAdmin())
-                .set(USERS.PHONE, createUserDto.getPhone())
+                .set(USERS.USERNAME, updateUserDto.getUsername())
+                .set(USERS.FIRST_NAME, updateUserDto.getFirstName())
+                .set(USERS.LAST_NAME, updateUserDto.getLastName())
+                .set(USERS.PHONE, updateUserDto.getPhone())
                 .set(USERS.STATUS, UserStatus.ACTIVE.name())
-                .set(USERS.REGISTRATION_DATE, createUserDto.getRegistrationDate())
+                .set(USERS.REGISTRATION_DATE, updateUserDto.getRegistrationDate())
                 .returning().fetchOne();
         return mapUserToDto(record);
     }
@@ -60,5 +57,18 @@ public class UserRepository {
                 .where(USERS.USER_ID.eq(userId))
                 .returning().fetchOne();
         return mapUserToDto(record);
+    }
+
+    public UserDto save(UserAction userAction) {
+        final Record record = jooq.insertInto(USERS)
+                .set(USERS.USER_ID, userAction.getUserId())
+                .set(USERS.USERNAME, userAction.getLogin())
+                .returning().fetchOne();
+        return mapUserToDto(record);
+    }
+
+    public void deleteById(Long id) {
+        jooq.delete(USERS).where(USERS.USER_ID.eq(id))
+                .execute();
     }
 }
