@@ -1,17 +1,25 @@
-server:
-  port: 8083
 spring:
   application:
     name: SECURITY-SERVICE
   datasource:
-    url: jdbc:postgresql://localhost:5432/security_service
+    url: jdbc:postgresql://localhost:5435/security_service
     username: postgres
-    password: admin
+    password: 242171e6a6d3b0701e83f72d33432a8e9fa11068
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
   flyway:
     enabled: true
+server:
+  http2:
+    enabled: true
+  ssl:
+    key-store-type: PKCS12
+    key-store: 'C:\Program Files\OpenSSL-Win64\keys\Server-keystore.p12'
+    key-store-password: password
+    protocol: TLS
+    enabled-protocols: TLSv1.2
+  port: 8083
 jwt:
   access-ttl-in-seconds: 1800
   refresh-ttl-in-days: 20
