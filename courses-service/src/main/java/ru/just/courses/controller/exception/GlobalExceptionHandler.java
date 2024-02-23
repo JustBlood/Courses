@@ -1,4 +1,4 @@
-package ru.just.courses.controller;
+package ru.just.courses.controller.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
