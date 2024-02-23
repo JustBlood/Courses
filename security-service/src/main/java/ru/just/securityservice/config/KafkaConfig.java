@@ -15,7 +15,6 @@ public class KafkaConfig {
     public NewTopic paymentTopic() {
         return TopicBuilder.name(userActionsTopic)
                 .partitions(10)
-                .compact()
                 .build();
     }
 }

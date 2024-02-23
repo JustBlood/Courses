@@ -17,9 +17,15 @@ import java.util.Set;
 public class Role {
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "role_id_seq")
     @SequenceGenerator(name = "role_id_seq", sequenceName = "role_id_seq", allocationSize = 1)
+    @Column(name = "role_id")
     private Long roleId;
     @Column(nullable = false, unique = true)
     private String name;
     @ManyToMany
+    @JoinTable(name = "user_role",
+            joinColumns =
+                @JoinColumn(name = "role_id", referencedColumnName = "role_id"),
+            inverseJoinColumns =
+                @JoinColumn(name = "user_id", referencedColumnName = "user_id"))
     private Set<User> users;
 }

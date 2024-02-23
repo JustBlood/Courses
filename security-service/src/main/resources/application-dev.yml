@@ -7,7 +7,7 @@ spring:
     password: 242171e6a6d3b0701e83f72d33432a8e9fa11068
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
   flyway:
     enabled: true
   kafka:
@@ -21,7 +21,7 @@ spring:
       bootstrap-servers: localhost:9092
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "ru.just.dtolib.kafka"
+        spring.json.trusted.packages: 'ru.just.dtolib.kafka.*'
 server:
   http2:
     enabled: true

@@ -1,11 +1,14 @@
 package ru.just.userservice.service;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.dtolib.audit.ChangeType;
+import ru.just.dtolib.kafka.users.UserAction;
 import ru.just.userservice.audit.UserChangeEvent;
-import ru.just.userservice.dto.CreateUserDto;
+import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 import ru.just.userservice.repository.UserChangeEventRepository;
@@ -20,14 +23,16 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final UserChangeEventRepository userChangeEventRepository;
+//    @Value("${topics.user-actions-topic}")
+//    private String userActionsTopic;
 
     public Optional<UserDto> getUserById(Long userId) {
         return userRepository.findActiveUserById(userId);
     }
 
     @Transactional
-    public UserDto saveUser(CreateUserDto createUserDto) {
-        UserDto dto = userRepository.save(createUserDto);
+    public UserDto updateUser(UpdateUserDto updateUserDto) {
+        UserDto dto = userRepository.save(updateUserDto);
         userChangeEventRepository.save(getCreateUserChangeEvent(dto.getId(), dto.getId()));
         return dto;
     }
@@ -50,5 +55,15 @@ public class UserService {
                 .withUserId(userId)
                 .withChangeTime(ZonedDateTime.now())
                 .withChangeType(ChangeType.DELETE));
+    }
+
+    @KafkaListener(topics = {"${topics.user-actions-topic}"})
+    public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
+        final UserAction userAction = userActionRecord.value();
+        if (userAction.getUserActionType().equals(UserAction.UserActionType.CREATED)) {
+            userRepository.save(userAction);
+        } else if (userAction.getUserActionType().equals(UserAction.UserActionType.DELETED)) {
+            userRepository.deleteById(userAction.getUserId());
+        }
     }
 }

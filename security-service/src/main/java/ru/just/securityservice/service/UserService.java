@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.dtolib.kafka.users.UserAction;
+import ru.just.securityservice.controller.exception.UsernameAlreadyExistsException;
 import ru.just.securityservice.dto.CreateUserDto;
 import ru.just.securityservice.dto.UserDto;
 import ru.just.securityservice.model.Role;
@@ -32,6 +33,9 @@ public class UserService {
 
     @Transactional
     public UserDto register(CreateUserDto createUserDto) {
+        if (userRepository.findByLogin(createUserDto.getLogin()).isPresent()) {
+            throw new UsernameAlreadyExistsException("Login already used");
+        }
         Role role = roleRepository.findByNameEndsWith(STUDENT_ROLE)
                 .orElseThrow(() -> new NoSuchElementException("Can't register user. Internal security error"));
         createUserDto.setPassword(passwordEncoder.encode(createUserDto.getPassword()));
@@ -39,16 +43,17 @@ public class UserService {
         UserDto userDto = new UserDto().fromEntity(userRepository.save(createUserDto.toEntity()));
         UserAction createUserAction = UserAction.builder()
                 .userId(userDto.getUserId())
+                .login(userDto.getLogin())
                 .userActionType(CREATED)
                 .build();
         kafkaTemplate.send(userActionsTopic, createUserAction)
                 .exceptionally(ex -> {
                     userRepository.findById(userDto.getUserId())
-                            .ifPresent(user -> userRepository.save(user.setUserDeliverStatus(NOT_SENT)));
+                            .ifPresent(user -> userRepository.save(user.setDeliverStatus(NOT_SENT)));
                     return null;
                 })
                 .thenAcceptAsync(result -> userRepository.findById(userDto.getUserId())
-                        .ifPresent(user -> userRepository.save(user.setUserDeliverStatus(DELIVERED))));
+                        .ifPresent(user -> userRepository.save(user.setDeliverStatus(DELIVERED))));
         return userDto;
     }
 }
