@@ -9,10 +9,16 @@ spring:
     hibernate:
       ddl-auto: update
   flyway:
-    enabled: false
+    enabled: true
 server:
   http2:
     enabled: true
+  ssl:
+    key-store-type: PKCS12
+    key-store: 'C:\Program Files\OpenSSL-Win64\keys\Server-keystore.p12'
+    key-store-password: password
+    protocol: TLS
+    enabled-protocols: TLSv1.2
   port: 8083
 jwt:
   access-ttl-in-seconds: 1800
