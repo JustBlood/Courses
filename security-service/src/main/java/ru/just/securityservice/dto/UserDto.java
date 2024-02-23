@@ -1,9 +1,11 @@
 package ru.just.securityservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import ru.just.dtolib.base.Dto;
+import ru.just.dtolib.kafka.users.UserDeliverStatus;
 import ru.just.securityservice.model.Role;
 import ru.just.securityservice.model.User;
 
@@ -18,6 +20,7 @@ public class UserDto extends Dto<User> {
     private String login;
     private String email;
     private List<String> roles;
+    private UserDeliverStatus deliverStatus;
 
     @Override
     public UserDto fromEntity(User entity) {

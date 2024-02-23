@@ -10,6 +10,18 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      replication-factor: 1
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: courses
+      bootstrap-servers: localhost:9092
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.just.dtolib.kafka"
 server:
   http2:
     enabled: true
@@ -28,3 +40,6 @@ jwt:
 logging:
   level:
     org.springframework.security: trace
+
+topics:
+  user-actions-topic: userActions

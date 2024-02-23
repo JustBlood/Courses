@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import ru.just.dtolib.kafka.users.UserDeliverStatus;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,8 +26,11 @@ public class User {
     private String login;
     @Column(nullable = false)
     private String password;
-    @Column
+    @Column(nullable = false)
     public String email;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private UserDeliverStatus userDeliverStatus;
 
     @ManyToMany(mappedBy = "users")
     private Set<Role> roles = new HashSet<>();
