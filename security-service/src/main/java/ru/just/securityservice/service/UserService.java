@@ -33,14 +33,23 @@ public class UserService {
 
     @Transactional
     public UserDto register(CreateUserDto createUserDto) {
-        if (userRepository.findByLogin(createUserDto.getLogin()).isPresent()) {
-            throw new UsernameAlreadyExistsException("Login already used");
+        if (userRepository.existsByLoginOrEmail(createUserDto.getLogin(), createUserDto.getEmail())) {
+            throw new UsernameAlreadyExistsException("Login or email already used");
         }
         Role role = roleRepository.findByNameEndsWith(STUDENT_ROLE)
                 .orElseThrow(() -> new NoSuchElementException("Can't register user. Internal security error"));
+        final UserDto userDto = saveUser(createUserDto, role);
+        sendUserToUsersService(userDto);
+        return userDto;
+    }
+
+    private UserDto saveUser(CreateUserDto createUserDto, Role role) {
         createUserDto.setPassword(passwordEncoder.encode(createUserDto.getPassword()));
         createUserDto.getRoles().add(role);
-        UserDto userDto = new UserDto().fromEntity(userRepository.save(createUserDto.toEntity()));
+        return new UserDto().fromEntity(userRepository.save(createUserDto.toEntity()));
+    }
+
+    private void sendUserToUsersService(UserDto userDto) {
         UserAction createUserAction = UserAction.builder()
                 .userId(userDto.getUserId())
                 .login(userDto.getLogin())
@@ -54,6 +63,5 @@ public class UserService {
                 })
                 .thenAcceptAsync(result -> userRepository.findById(userDto.getUserId())
                         .ifPresent(user -> userRepository.save(user.setDeliverStatus(DELIVERED))));
-        return userDto;
     }
 }

@@ -11,9 +11,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.just.dtolib.error.ApiError;
 
 import java.time.OffsetDateTime;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(value = NoSuchElementException.class)
+    public ResponseEntity<ApiError> handleNoSuchElementException(NoSuchElementException e) {
+        return new ResponseEntity<>(new ApiError(OffsetDateTime.now(), e.getMessage()),
+                HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(value = AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDeniedException(AccessDeniedException e) {
         return new ResponseEntity<>(new ApiError(OffsetDateTime.now(), e.getMessage()), HttpStatus.FORBIDDEN);

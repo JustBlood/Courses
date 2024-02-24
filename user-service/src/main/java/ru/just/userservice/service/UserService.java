@@ -23,8 +23,6 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final UserChangeEventRepository userChangeEventRepository;
-//    @Value("${topics.user-actions-topic}")
-//    private String userActionsTopic;
 
     public Optional<UserDto> getUserById(Long userId) {
         return userRepository.findActiveUserById(userId);
@@ -57,6 +55,7 @@ public class UserService {
                 .withChangeType(ChangeType.DELETE));
     }
 
+    @Transactional
     @KafkaListener(topics = {"${topics.user-actions-topic}"})
     public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
         final UserAction userAction = userActionRecord.value();
