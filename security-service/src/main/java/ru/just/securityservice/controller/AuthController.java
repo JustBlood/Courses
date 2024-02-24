@@ -15,6 +15,8 @@ import ru.just.securityservice.dto.UserDto;
 import ru.just.securityservice.service.AuthService;
 import ru.just.securityservice.service.UserService;
 
+import javax.validation.Valid;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -30,8 +32,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@RequestBody CreateUserDto createUserDto) {
-        return new ResponseEntity<>(userService.register(createUserDto), HttpStatus.CREATED);
+    public ResponseEntity<UserDto> register(@Valid @RequestBody CreateUserDto createUserDto) {
+        final UserDto registered = userService.register(createUserDto);
+        userService.sendUserToUsersService(registered);
+        return new ResponseEntity<>(registered, HttpStatus.CREATED);
     }
 
     @PostMapping("/logout")

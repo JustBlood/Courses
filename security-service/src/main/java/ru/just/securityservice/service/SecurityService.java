@@ -11,6 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import ru.just.dtolib.kafka.users.UserDeliverStatus;
 import ru.just.securityservice.repository.UserRepository;
 import ru.just.securityservice.security.userdetails.TokenUser;
 
@@ -74,7 +75,8 @@ public class SecurityService {
         if (authentication.getPrincipal() instanceof TokenUser tokenUser) {
             return tokenUser.getUser().getUserId().toString();
         }
-        return userRepository.findByLogin(((User) authentication.getPrincipal()).getUsername())
+        final User user = (User) authentication.getPrincipal();
+        return userRepository.findByLoginAndDeliverStatus(user.getUsername(), UserDeliverStatus.DELIVERED)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"))
                 .getUserId().toString();
     }

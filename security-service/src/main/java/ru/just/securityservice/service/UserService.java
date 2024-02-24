@@ -38,9 +38,7 @@ public class UserService {
         }
         Role role = roleRepository.findByNameEndsWith(STUDENT_ROLE)
                 .orElseThrow(() -> new NoSuchElementException("Can't register user. Internal security error"));
-        final UserDto userDto = saveUser(createUserDto, role);
-        sendUserToUsersService(userDto);
-        return userDto;
+        return saveUser(createUserDto, role);
     }
 
     private UserDto saveUser(CreateUserDto createUserDto, Role role) {
@@ -49,7 +47,7 @@ public class UserService {
         return new UserDto().fromEntity(userRepository.save(createUserDto.toEntity()));
     }
 
-    private void sendUserToUsersService(UserDto userDto) {
+    public void sendUserToUsersService(UserDto userDto) {
         UserAction createUserAction = UserAction.builder()
                 .userId(userDto.getUserId())
                 .login(userDto.getLogin())
