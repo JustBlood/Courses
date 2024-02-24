@@ -40,6 +40,7 @@ dependencies {
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation 'ru.just:dto-lib:0.0.1-SNAPSHOT'
     implementation 'org.jooq:jooq:3.19.3'
+    implementation 'org.springframework.kafka:spring-kafka'
 
     runtimeOnly 'org.postgresql:postgresql'
     compileOnly 'org.projectlombok:lombok'
@@ -57,9 +58,9 @@ jooq {
     configuration {
         jdbc {
             driver = 'org.postgresql.Driver'
-            url = 'jdbc:postgresql://localhost:5432/users_service'
+            url = 'jdbc:postgresql://localhost:5434/users_service'
             user = 'postgres'
-            password = 'admin'
+            password = '242171e6a6d3b0701e83f72d33432a8e9fa11068'
         }
     }
 }

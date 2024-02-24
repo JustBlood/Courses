@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import ru.just.dtolib.kafka.users.UserDeliverStatus;
 
-import java.util.HashSet;
 import java.util.Set;
 
 @Accessors(chain = true)
@@ -20,14 +20,23 @@ import java.util.Set;
 public class User {
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_id_seq")
     @SequenceGenerator(name = "user_id_seq", sequenceName = "user_id_seq", allocationSize = 1)
+    @Column(name = "user_id")
     private Long userId;
     @Column(nullable = false, unique = true)
     private String login;
     @Column(nullable = false)
     private String password;
-    @Column
+    @Column(nullable = false)
     public String email;
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private UserDeliverStatus deliverStatus;
 
-    @ManyToMany(mappedBy = "users")
-    private Set<Role> roles = new HashSet<>();
+    @ManyToMany
+    @JoinTable(name = "user_role",
+            joinColumns =
+                @JoinColumn(name = "user_id", referencedColumnName = "user_id"),
+            inverseJoinColumns =
+                @JoinColumn(name = "role_id", referencedColumnName = "role_id"))
+    private Set<Role> roles;
 }

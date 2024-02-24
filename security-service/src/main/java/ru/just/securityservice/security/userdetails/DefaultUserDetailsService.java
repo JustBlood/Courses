@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import ru.just.dtolib.kafka.users.UserDeliverStatus;
 import ru.just.securityservice.repository.UserRepository;
 
 import java.util.stream.Collectors;
@@ -20,7 +21,7 @@ public class DefaultUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     @Override
     public UserDetails loadUserByUsername(String login) {
-        return userRepository.findByLogin(login)
+        return userRepository.findByLoginAndDeliverStatus(login, UserDeliverStatus.DELIVERED)
                 .map(user -> new User(
                         user.getLogin(),
                         user.getPassword(),

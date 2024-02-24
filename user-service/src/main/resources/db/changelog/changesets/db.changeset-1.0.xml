@@ -19,16 +19,10 @@
             <column name="last_name" type="VARCHAR(64)">
                 <constraints nullable="true" />
             </column>
-            <column name="email" type="VARCHAR(255)">
-                <constraints nullable="false" />
-            </column>
             <column name="phone" type="VARCHAR(32)">
                 <constraints nullable="true" />
             </column>
             <column name="registration_date" type="DATE" defaultValueDate="CURRENT_DATE">
-                <constraints nullable="false" />
-            </column>
-            <column name="is_admin" type="BOOLEAN" defaultValue="false">
                 <constraints nullable="false" />
             </column>
             <column name="status" type="VARCHAR(16)" defaultValue="ACTIVE">
