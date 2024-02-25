@@ -50,7 +50,7 @@ public class AuthService {
             throw new AccessDeniedException("Token invalid. Re-authenticate.");
         }
 
-        String newRefreshToken = securityService.generateRefresh(authentication, deviceId);
+        String newRefreshToken = securityService.generateRefresh(authentication);
         final DecodedJWT decodedRefresh = JWT.decode(newRefreshToken);
         String accessToken = securityService.generateAccess(decodedRefresh);
         final DecodedJWT decodedAccess = JWT.decode(accessToken);
