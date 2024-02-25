@@ -4,12 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @Data
 @Builder
 public class ApiError {
-    private OffsetDateTime dateOccurred;
+    private LocalDateTime occured;
     private String message;
 }

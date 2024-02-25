@@ -9,8 +9,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Setter;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
@@ -19,10 +21,15 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.just.dtolib.jwt.Tokens;
+import ru.just.securityservice.dto.LoginDto;
 import ru.just.securityservice.service.RefreshTokenService;
 import ru.just.securityservice.service.SecurityService;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
+
+import static ru.just.securityservice.service.SecurityService.DEVICE_ID_CLAIM;
 
 @Setter
 public class RequestJwtTokensFilter extends OncePerRequestFilter {
@@ -49,7 +56,15 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
             throw new AccessDeniedException("User must be authenticated");
         }
 
-        var refreshToken = securityService.generateRefresh(securityContext.getAuthentication());
+        final Optional<UUID> deviceId = getDeviceId(request, securityContext.getAuthentication());
+
+        if (deviceId.isEmpty()) {
+            response.sendError(HttpStatus.BAD_REQUEST.value());
+            return;
+        }
+
+        var refreshToken = securityService.generateRefresh(securityContext.getAuthentication(),
+                deviceId.get());
         final DecodedJWT decodedRefresh = JWT.decode(refreshToken);
         var accessToken = securityService.generateAccess(decodedRefresh);
         final DecodedJWT decodedAccess = JWT.decode(accessToken);
@@ -65,8 +80,21 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
                         decodedRefresh.getExpiresAtAsInstant().toString()));
     }
 
+    private Optional<UUID> getDeviceId(HttpServletRequest request, Authentication authentication) {
+        if (authentication instanceof PreAuthenticatedAuthenticationToken) {
+            return Optional.of(UUID.fromString(securityService.getVerifiedDecodedJwt(authentication.getCredentials().toString())
+                    .getClaim(DEVICE_ID_CLAIM).asString()));
+        } else {
+            try {
+                return Optional.of(objectMapper.readValue(request.getInputStream(), LoginDto.class).getDeviceId());
+            } catch (IOException e) {
+                return Optional.empty();
+            }
+        }
+    }
+
     private boolean isUserNotAuthenticated(HttpServletRequest request, SecurityContext securityContext) {
         return !this.securityContextRepository.containsContext(request)
-                || securityContext == null || securityContext.getAuthentication() instanceof PreAuthenticatedAuthenticationToken;
+                || securityContext == null;
     }
 }
