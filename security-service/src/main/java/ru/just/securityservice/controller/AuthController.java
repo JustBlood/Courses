@@ -13,6 +13,7 @@ import ru.just.dtolib.response.ApiResponse;
 import ru.just.securityservice.dto.CreateUserDto;
 import ru.just.securityservice.dto.UserDto;
 import ru.just.securityservice.service.AuthService;
+import ru.just.securityservice.service.SecurityService;
 import ru.just.securityservice.service.UserService;
 
 import javax.validation.Valid;
@@ -23,6 +24,7 @@ import javax.validation.Valid;
 public class AuthController {
     private final AuthService authService;
     private final UserService userService;
+    private final SecurityService securityService;
 
     @GetMapping
     public ResponseEntity<String> getGreeting(@AuthenticationPrincipal UserDetails user) {
@@ -47,5 +49,11 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<Tokens> jwtRefresh(Authentication authentication) {
         return new ResponseEntity<>(authService.refresh(authentication), HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/token/validate", params = "token")
+    public ResponseEntity<ApiResponse> validateToken(@RequestParam String token) {
+        securityService.validateToken(token);
+        return new ResponseEntity<>(new ApiResponse("valid"), HttpStatus.OK);
     }
 }

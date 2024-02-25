@@ -45,6 +45,11 @@ public class SecurityService {
         var authorities = new LinkedList<String>();
         authorities.add("JWT_REFRESH");
         authorities.add("JWT_LOGOUT");
+        authentication.getAuthorities()
+                .stream().map(GrantedAuthority::getAuthority)
+                .filter(authority -> !authorities.contains(authority))
+                .map(authority -> authority.startsWith(ROLE_PREFIX) ? authority : ROLE_PREFIX + authority)
+                .forEach(authorities::add);
 
         String userId = getUserIdFromAuthentication(authentication);
 
