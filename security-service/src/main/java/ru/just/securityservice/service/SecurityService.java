@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -40,7 +39,7 @@ public class SecurityService {
     @Value("${jwt.access-ttl-in-seconds}")
     private Integer accessTtlInSeconds;
 
-    public String generateRefresh(Authentication authentication) {
+    public String generateRefresh(Authentication authentication, UUID deviceId) {
         final Instant now = Instant.now();
 
         var authorities = new LinkedList<String>();
@@ -51,14 +50,6 @@ public class SecurityService {
                 .filter(authority -> !authorities.contains(authority))
                 .map(authority -> authority.startsWith(ROLE_PREFIX) ? authority : ROLE_PREFIX + authority)
                 .forEach(authorities::add);
-
-        UUID deviceId = UUID.randomUUID();
-        try {
-            deviceId = UUID.fromString(JWT.require(algorithm).build().verify(authentication.getPrincipal().toString())
-                    .getClaim(DEVICE_ID_CLAIM).asString());
-        } catch (Exception e) {
-            log.debug("Authentication is not a bearer token");
-        }
 
         String userId = getUserIdFromAuthentication(authentication);
 

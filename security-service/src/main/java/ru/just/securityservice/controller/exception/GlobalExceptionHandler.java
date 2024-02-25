@@ -10,30 +10,30 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.just.dtolib.error.ApiError;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(value = NoSuchElementException.class)
     public ResponseEntity<ApiError> handleNoSuchElementException(NoSuchElementException e) {
-        return new ResponseEntity<>(new ApiError(OffsetDateTime.now(), e.getMessage()),
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()),
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(value = AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDeniedException(AccessDeniedException e) {
-        return new ResponseEntity<>(new ApiError(OffsetDateTime.now(), e.getMessage()), HttpStatus.FORBIDDEN);
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(value = UsernameNotFoundException.class)
     public ResponseEntity<ApiError> handleUsernameNotFoundException(UsernameNotFoundException e) {
-        return new ResponseEntity<>(new ApiError(OffsetDateTime.now(), e.getMessage()), HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(value = UsernameAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleUsernameNotFoundException(UsernameAlreadyExistsException e) {
-        return new ResponseEntity<>(new ApiError(OffsetDateTime.now(), e.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(value = {MethodArgumentNotValidException.class})
@@ -43,6 +43,6 @@ public class GlobalExceptionHandler {
             errorMsgBuilder.append("\n").append(error.getDefaultMessage());
         }
         return new ResponseEntity<>(
-                new ApiError(OffsetDateTime.now(), errorMsgBuilder.toString()), HttpStatus.BAD_REQUEST);
+                new ApiError(LocalDateTime.now(), errorMsgBuilder.toString()), HttpStatus.BAD_REQUEST);
     }
 }
