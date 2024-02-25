@@ -8,13 +8,14 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.dtolib.audit.ChangeType;
 import ru.just.dtolib.kafka.users.UserAction;
 import ru.just.userservice.audit.UserChangeEvent;
+import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 import ru.just.userservice.repository.UserChangeEventRepository;
 import ru.just.userservice.repository.UserRepository;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -29,40 +30,44 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateUser(UpdateUserDto updateUserDto) {
-        UserDto dto = userRepository.save(updateUserDto);
-        userChangeEventRepository.save(getCreateUserChangeEvent(dto.getId(), dto.getId()));
+    public UserDto createUser(CreateUserDto createUserDto) {
+        UserDto dto = userRepository.save(createUserDto);
+        saveUserChangeEvent(dto.getId(), dto.getId(), ChangeType.CREATE);
         return dto;
     }
 
-    private UserChangeEvent getCreateUserChangeEvent(Long userId, Long authorId) {
-        return new UserChangeEvent()
+    private void saveUserChangeEvent(Long userId, Long authorId, ChangeType changeType) {
+        userChangeEventRepository.save(new UserChangeEvent()
                 .withUserId(userId)
                 .withAuthorId(authorId)
-                .withChangeTime(ZonedDateTime.now())
-                .withChangeType(ChangeType.CREATE);
+                .withChangeTime(LocalDateTime.now())
+                .withChangeType(changeType));
     }
 
     @Transactional
     public void deleteUser(Long userId) {
-        UserDto user = userRepository.findActiveUserById(userId)
+        final UserDto user = userRepository.findActiveUserById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User with specified id doesn't exists"));
         userRepository.updateUserStatus(user.getId(), UserStatus.DELETED);
-        userChangeEventRepository.save(new UserChangeEvent()
-                .withAuthorId(userId)
-                .withUserId(userId)
-                .withChangeTime(ZonedDateTime.now())
-                .withChangeType(ChangeType.DELETE));
+        saveUserChangeEvent(userId, userId, ChangeType.DELETE);
     }
 
     @Transactional
     @KafkaListener(topics = {"${topics.user-actions-topic}"})
     public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
         final UserAction userAction = userActionRecord.value();
+        ChangeType changeType = userAction.getUserActionType().equals(UserAction.UserActionType.CREATED) ?
+                ChangeType.CREATE : ChangeType.DELETE;
         if (userAction.getUserActionType().equals(UserAction.UserActionType.CREATED)) {
-            userRepository.save(userAction);
+            userRepository.saveUserFromSecurityService(userAction);
         } else if (userAction.getUserActionType().equals(UserAction.UserActionType.DELETED)) {
             userRepository.deleteById(userAction.getUserId());
         }
+        saveUserChangeEvent(userAction.getUserId(), userAction.getUserId(), changeType);
+    }
+
+    public void updateUser(Long userId, UpdateUserDto userDto) {
+        userRepository.updateUserById(userId, userDto);
+        saveUserChangeEvent(userId, userId, ChangeType.UPDATE);
     }
 }

@@ -69,11 +69,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
                                 .requestMatchers("/api/v1/auth/register",
-                                        "/api/v1/auth/login").permitAll()
+                                        "/api/v1/auth/login",
+                                        "api/v1/auth/token/validate").permitAll()
                                 .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .with(tokenJwtAuthenticationConfigurer, Customizer.withDefaults()).build();
+                .with(tokenJwtAuthenticationConfigurer, Customizer.withDefaults())
+                .build();
     }
 }

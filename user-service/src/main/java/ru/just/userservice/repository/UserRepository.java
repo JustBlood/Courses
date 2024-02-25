@@ -5,6 +5,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.springframework.stereotype.Repository;
 import ru.just.dtolib.kafka.users.UserAction;
+import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
@@ -39,7 +40,7 @@ public class UserRepository {
                 .withRegistrationDate(record.get(USERS.REGISTRATION_DATE));
     }
 
-    public UserDto save(UpdateUserDto updateUserDto) {
+    public UserDto save(CreateUserDto updateUserDto) {
         final Record record = jooq.insertInto(USERS)
                 .set(USERS.USERNAME, updateUserDto.getUsername())
                 .set(USERS.FIRST_NAME, updateUserDto.getFirstName())
@@ -59,7 +60,7 @@ public class UserRepository {
         return mapUserToDto(record);
     }
 
-    public UserDto save(UserAction userAction) {
+    public UserDto saveUserFromSecurityService(UserAction userAction) {
         final Record record = jooq.insertInto(USERS)
                 .set(USERS.USER_ID, userAction.getUserId())
                 .set(USERS.USERNAME, userAction.getLogin())
@@ -70,5 +71,14 @@ public class UserRepository {
     public void deleteById(Long id) {
         jooq.delete(USERS).where(USERS.USER_ID.eq(id))
                 .execute();
+    }
+
+    public void updateUserById(Long userId, UpdateUserDto userDto) {
+        jooq.update(USERS)
+                .set(USERS.FIRST_NAME, userDto.getFirstName())
+                .set(USERS.LAST_NAME, userDto.getLastName())
+                .set(USERS.USERNAME, userDto.getUsername())
+                .set(USERS.PHONE, userDto.getPhone())
+                .where(USERS.USER_ID.eq(userId)).execute();
     }
 }
