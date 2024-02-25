@@ -40,4 +40,9 @@ public class RefreshTokenService {
     public void deleteById(UUID id) {
         refreshTokenRepository.deleteById(id);
     }
+
+    @Transactional
+    public void deleteTokenByUserIdAndDeviceId(long userId, UUID deviceId) {
+        refreshTokenRepository.deleteByUser_UserIdAndDeviceId(userId, deviceId);
+    }
 }
