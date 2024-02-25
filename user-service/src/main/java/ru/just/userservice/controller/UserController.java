@@ -6,13 +6,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.response.ApiResponse;
+import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/users/admin")
 public class UserController {
     private final UserService userService;
 
@@ -21,10 +22,17 @@ public class UserController {
         return ResponseEntity.of(userService.getUserById(userId));
     }
 
-    @PostMapping // todo: переделать в update, user(id) будет из кафки
-    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody UpdateUserDto updateUserDto) {
-        UserDto userDto = userService.updateUser(updateUserDto);
+    @PostMapping
+    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody CreateUserDto createUserDto) {
+        UserDto userDto = userService.createUser(createUserDto);
         return new ResponseEntity<>(userDto, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{userId}")
+    public ResponseEntity<Void> updateUser(@PathVariable Long userId,
+                                              @Valid @RequestBody UpdateUserDto userDto) {
+        userService.updateUser(userId, userDto);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/{userId}")
