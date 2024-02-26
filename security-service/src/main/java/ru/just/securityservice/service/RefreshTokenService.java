@@ -9,6 +9,7 @@ import ru.just.securityservice.model.User;
 import ru.just.securityservice.repository.RefreshTokenRepository;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,13 +21,13 @@ public class RefreshTokenService {
         return refreshTokenRepository.existsByIdAndExpiresAtAfterAndDeviceIdAndUser_UserId(id, Instant.now(), deviceId, userId);
     }
 
-    public void saveIssuedRefreshToken(Long userId, DecodedJWT refreshToken) {
+    public void saveIssuedRefreshToken(Long userId, DecodedJWT refreshToken, UUID deviceId) {
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .id(UUID.fromString(refreshToken.getId()))
                 .user(new User().setUserId(userId))
                 .createdAt(refreshToken.getIssuedAtAsInstant())
                 .expiresAt(refreshToken.getExpiresAtAsInstant())
-                .deviceId(UUID.fromString(refreshToken.getClaim(SecurityService.DEVICE_ID_CLAIM).asString()))
+                .deviceId(deviceId)
                 .build();
 
         refreshTokenRepository.save(refreshTokenEntity);
@@ -44,5 +45,9 @@ public class RefreshTokenService {
     @Transactional
     public void deleteTokenByUserIdAndDeviceId(long userId, UUID deviceId) {
         refreshTokenRepository.deleteByUser_UserIdAndDeviceId(userId, deviceId);
+    }
+
+    public Optional<RefreshToken> findById(UUID tokenId) {
+        return refreshTokenRepository.findById(tokenId);
     }
 }

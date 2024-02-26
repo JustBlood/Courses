@@ -21,15 +21,14 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.just.dtolib.jwt.Tokens;
-import ru.just.securityservice.dto.LoginDto;
+import ru.just.securityservice.dto.DeviceIdPayload;
+import ru.just.securityservice.model.RefreshToken;
 import ru.just.securityservice.service.RefreshTokenService;
 import ru.just.securityservice.service.SecurityService;
 
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
-
-import static ru.just.securityservice.service.SecurityService.DEVICE_ID_CLAIM;
 
 @Setter
 public class RequestJwtTokensFilter extends OncePerRequestFilter {
@@ -57,20 +56,19 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
         }
 
         final Optional<UUID> deviceId = getDeviceId(request, securityContext.getAuthentication());
-
         if (deviceId.isEmpty()) {
             response.sendError(HttpStatus.BAD_REQUEST.value());
             return;
         }
 
-        var refreshToken = securityService.generateRefresh(securityContext.getAuthentication(),
-                deviceId.get());
+        var refreshToken = securityService.generateRefresh(securityContext.getAuthentication());
         final DecodedJWT decodedRefresh = JWT.decode(refreshToken);
         var accessToken = securityService.generateAccess(decodedRefresh);
         final DecodedJWT decodedAccess = JWT.decode(accessToken);
 
         refreshTokenService.deleteTokenByUserIdAndDeviceId(Long.parseLong(decodedRefresh.getSubject()), deviceId.get());
-        refreshTokenService.saveIssuedRefreshToken(Long.parseLong(decodedAccess.getSubject()), decodedRefresh);
+        final long userId = Long.parseLong(decodedAccess.getSubject());
+        refreshTokenService.saveIssuedRefreshToken(userId, decodedRefresh, deviceId.get());
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -83,11 +81,12 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
 
     private Optional<UUID> getDeviceId(HttpServletRequest request, Authentication authentication) {
         if (authentication instanceof PreAuthenticatedAuthenticationToken) {
-            return Optional.of(UUID.fromString(securityService.getVerifiedDecodedJwt(authentication.getCredentials().toString())
-                    .getClaim(DEVICE_ID_CLAIM).asString()));
+            final DecodedJWT jwt = securityService.getVerifiedDecodedJwt(authentication.getCredentials().toString());
+            return refreshTokenService.findById(UUID.fromString(jwt.getId()))
+                    .map(RefreshToken::getDeviceId);
         } else {
             try {
-                return Optional.of(objectMapper.readValue(request.getInputStream(), LoginDto.class).getDeviceId());
+                return Optional.of(objectMapper.readValue(request.getInputStream(), DeviceIdPayload.class).getDeviceId());
             } catch (IOException e) {
                 return Optional.empty();
             }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.jwt.Tokens;
 import ru.just.dtolib.response.ApiResponse;
 import ru.just.securityservice.dto.CreateUserDto;
+import ru.just.securityservice.dto.DeviceIdPayload;
 import ru.just.securityservice.dto.UserDto;
 import ru.just.securityservice.service.AuthService;
 import ru.just.securityservice.service.SecurityService;
@@ -47,13 +48,14 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Tokens> jwtRefresh(Authentication authentication) {
-        return new ResponseEntity<>(authService.refresh(authentication), HttpStatus.OK);
+    public ResponseEntity<Tokens> jwtRefresh(@Valid @RequestBody DeviceIdPayload deviceIdPayload,
+                                             Authentication authentication) {
+        return new ResponseEntity<>(authService.refresh(deviceIdPayload, authentication), HttpStatus.OK);
     }
 
     @PostMapping(value = "/token/validate", params = "token")
-    public ResponseEntity<ApiResponse> validateToken(@RequestParam String token) {
-        securityService.validateToken(token);
+    public ResponseEntity<ApiResponse> validateAccessToken(@RequestParam String token) {
+        securityService.validateAccessToken(token);
         return new ResponseEntity<>(new ApiResponse("valid"), HttpStatus.OK);
     }
 }

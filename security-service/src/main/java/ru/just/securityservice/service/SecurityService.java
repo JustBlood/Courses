@@ -27,11 +27,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Service
 public class SecurityService {
-    public static final String DEVICE_ID_CLAIM = "did";
     public static final String AUTHORITIES_CLAIM = "authorities";
     public static final String ROLE_PREFIX = "GRANT_";
     public static final String ISSUER = "just-company";
+    public static final String JWT_REFRESH_CLAIM = "JWT_REFRESH";
     private final UserRepository userRepository;
+    private final RefreshTokenService refreshTokenService;
     private final Algorithm algorithm;
     @Value("${jwt.secret}")
     private String secret;
@@ -40,11 +41,11 @@ public class SecurityService {
     @Value("${jwt.access-ttl-in-seconds}")
     private Integer accessTtlInSeconds;
 
-    public String generateRefresh(Authentication authentication, UUID deviceId) {
+    public String generateRefresh(Authentication authentication) {
         final Instant now = Instant.now();
 
         var authorities = new LinkedList<String>();
-        authorities.add("JWT_REFRESH");
+        authorities.add(JWT_REFRESH_CLAIM);
         authorities.add("JWT_LOGOUT");
         authentication.getAuthorities()
                 .stream().map(GrantedAuthority::getAuthority)
@@ -60,7 +61,6 @@ public class SecurityService {
                 .withSubject(userId)
                 .withExpiresAt(now.plus(Duration.ofDays(refreshTtlInDays)))
                 .withIssuedAt(now)
-                .withClaim(DEVICE_ID_CLAIM, deviceId.toString())
                 .withClaim(AUTHORITIES_CLAIM, authorities)
                 .sign(algorithm);
     }
@@ -95,16 +95,24 @@ public class SecurityService {
     }
 
     public DecodedJWT getVerifiedDecodedJwt(String rawToken) {
-        return JWT.require(Algorithm.HMAC256(secret))
+        final DecodedJWT jwt = JWT.require(Algorithm.HMAC256(secret))
                 .build()
                 .verify(rawToken);
+        if (jwt.getClaim(AUTHORITIES_CLAIM).asList(String.class).contains(JWT_REFRESH_CLAIM)) {
+            refreshTokenService.findById(UUID.fromString(jwt.getId()))
+                    .orElseThrow(() -> new AccessDeniedException("Refresh token invalid"));
+        }
+        return jwt;
     }
 
-    public void validateToken(String token) {
+    public void validateAccessToken(String token) {
         try {
             DecodedJWT jwt = getVerifiedDecodedJwt(token);
             if (jwt.getExpiresAtAsInstant().isBefore(Instant.now())) {
                 throw new JWTVerificationException("Jwt token expired");
+            }
+            if (jwt.getClaim(AUTHORITIES_CLAIM).asList(String.class).contains(JWT_REFRESH_CLAIM)) {
+                throw new JWTVerificationException("Refresh token can't be validated");
             }
         } catch (JWTVerificationException verificationException) {
             throw new AccessDeniedException(verificationException.getMessage());
