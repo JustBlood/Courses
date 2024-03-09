@@ -2,14 +2,26 @@ spring:
   application:
     name: SECURITY-SERVICE
   datasource:
-    url: jdbc:postgresql://localhost:5432/security_service
+    url: jdbc:postgresql://security_service_db:5432/security_service
     username: postgres
-    password: admin
+    password: 242171e6a6d3b0701e83f72d33432a8e9fa11068
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
   flyway:
     enabled: true
+  kafka:
+    bootstrap-servers: kafka-broker:9092
+    streams:
+      replication-factor: 1
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: courses
+      bootstrap-servers: kafka-broker:9092
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: 'ru.just.dtolib.kafka.*'
 server:
   http2:
     enabled: true
@@ -28,3 +40,6 @@ jwt:
 logging:
   level:
     org.springframework.security: trace
+
+topics:
+  user-actions-topic: userActions

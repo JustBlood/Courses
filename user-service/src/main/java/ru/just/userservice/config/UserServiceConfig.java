@@ -5,6 +5,9 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jooq.DSLContext;
+import org.jooq.impl.DefaultConfiguration;
+import org.jooq.impl.DefaultDSLContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -41,10 +44,17 @@ public class UserServiceConfig {
     private String redisHost;
     @Value("${spring.data.redis.port}")
     private int redisPort;
+
+    @Bean
+    public DSLContext dslContext() {
+        return new DefaultDSLContext(new DefaultConfiguration());
+    }
+
     @Bean
     public JedisConnectionFactory jedisConnectionFactory() {
         return new JedisConnectionFactory(new RedisStandaloneConfiguration(redisHost, redisPort));
     }
+
     @Bean
     public RedisCacheManager cacheManager() {
         return RedisCacheManager.builder(jedisConnectionFactory())
@@ -120,4 +130,6 @@ public class UserServiceConfig {
                 .setFailureHandler((request, response, exception) -> response.sendError(HttpServletResponse.SC_FORBIDDEN));
         return jwtAuthenticationFilter;
     }
+
+
 }

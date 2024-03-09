@@ -12,7 +12,7 @@ import ru.just.userservice.dto.UserStatus;
 
 import java.util.Optional;
 
-import static org.jooq.generated.public_.tables.Users.USERS;
+import static ru.just.model.public_.tables.Users.USERS;
 
 @RequiredArgsConstructor
 @Repository
