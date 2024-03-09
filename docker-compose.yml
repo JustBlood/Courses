@@ -16,8 +16,6 @@ services:
     restart: unless-stopped
     networks:
       - postgres
-    ports:
-      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -28,8 +26,6 @@ services:
     restart: unless-stopped
     networks:
       - postgres
-    ports:
-      - "5434:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -40,8 +36,6 @@ services:
     restart: unless-stopped
     networks:
       - postgres
-    ports:
-      - "5435:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068

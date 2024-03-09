@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class CoursesExceptionHandler {
     @ExceptionHandler(value = {EntityNotFoundException.class})
     public ResponseEntity<ApiError> entityNotFoundExceptionHandler(EntityNotFoundException ex) {
         return new ResponseEntity<>(new ApiError(LocalDateTime.now(), ex.getMessage()), HttpStatus.NOT_FOUND);
