@@ -1,5 +1,6 @@
 package ru.just.userservice.service;
 
+import jakarta.servlet.ServletInputStream;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -69,5 +70,12 @@ public class UserService {
     public void updateUser(Long userId, UpdateUserDto userDto) {
         userRepository.updateUserById(userId, userDto);
         saveUserChangeEvent(userId, userId, ChangeType.UPDATE);
+    }
+
+    public void addPhotoToUser(Long userId, ServletInputStream inputStream) {
+        // TODO: save to s3 logic
+        String photoUrl = "";
+
+        userRepository.saveUserPhoto(userId, photoUrl);
     }
 }

@@ -36,6 +36,7 @@ public class UserRepository {
                 .withFirstName(record.get(USERS.FIRST_NAME))
                 .withLastName(record.get(USERS.LAST_NAME))
                 .withPhone(record.get(USERS.PHONE))
+                .withPhotoUrl(record.get(USERS.PHOTO_URL))
                 .withUserStatus(Enum.valueOf(UserStatus.class, record.get(USERS.STATUS)))
                 .withRegistrationDate(record.get(USERS.REGISTRATION_DATE));
     }
@@ -79,6 +80,12 @@ public class UserRepository {
                 .set(USERS.LAST_NAME, userDto.getLastName())
                 .set(USERS.USERNAME, userDto.getUsername())
                 .set(USERS.PHONE, userDto.getPhone())
+                .where(USERS.USER_ID.eq(userId)).execute();
+    }
+
+    public void saveUserPhoto(Long userId, String photoUrl) {
+        jooq.update(USERS)
+                .set(USERS.PHOTO_URL, photoUrl)
                 .where(USERS.USER_ID.eq(userId)).execute();
     }
 }

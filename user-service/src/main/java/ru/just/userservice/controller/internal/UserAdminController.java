@@ -1,5 +1,6 @@
-package ru.just.userservice.controller;
+package ru.just.userservice.controller.internal;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,10 +12,12 @@ import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
+import java.io.IOException;
+
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/users/admin")
-public class UserController {
+@RequestMapping("/api/v1/internal/users/admin")
+public class UserAdminController {
     private final UserService userService;
 
     @GetMapping("/{userId}")
@@ -28,7 +31,7 @@ public class UserController {
         return new ResponseEntity<>(userDto, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{userId}")
+    @PutMapping("/{userId}") // TODO: добавление фото, обновление фото
     public ResponseEntity<Void> updateUser(@PathVariable Long userId,
                                               @Valid @RequestBody UpdateUserDto userDto) {
         userService.updateUser(userId, userDto);
@@ -39,5 +42,14 @@ public class UserController {
     public ResponseEntity<ApiResponse> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
         return new ResponseEntity<>(new ApiResponse("user was successfully deleted"), HttpStatus.OK);
+    }
+
+    @PostMapping("/{userId}/photo")
+    public ResponseEntity<ApiResponse> addPhoto(@PathVariable("userId") Long userId,
+                                                HttpServletRequest httpServletRequest) throws IOException {
+        final String message = String.format("Success adding photo to user with id = %s", userId);
+        userService.addPhotoToUser(userId, httpServletRequest.getInputStream());
+        ApiResponse apiResponse = new ApiResponse(message);
+        return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
 }
