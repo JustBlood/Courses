@@ -8,8 +8,6 @@ import ru.just.mentorcatalogservice.dto.MentorDto;
 import ru.just.mentorcatalogservice.dto.StudentDto;
 import ru.just.mentorcatalogservice.service.MentorService;
 
-import java.util.List;
-
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/internal/mentor")
@@ -22,12 +20,12 @@ public class MentorController {
         return ResponseEntity.ok(mentorService.createMentor(createMentorDto));
     }
     // добавить студента ментору
-    @PutMapping("/{mentorId}/students")
+    @PatchMapping("/{mentorId}/students/add")
     public ResponseEntity<Void> addStudentToMentor(@PathVariable Long mentorId, @RequestBody StudentDto studentDto) {
         mentorService.addStudentToMentor(mentorId, studentDto);
         return ResponseEntity.ok().build();
     }
-    // получить всех студентов ментора
+    // учится ли студент у ментора?
     @GetMapping("/{mentorId}/students/{studentId}/is-student")
     public ResponseEntity<Boolean> isStudentHasMentor(@PathVariable Long mentorId, @PathVariable Long studentId) {
         return ResponseEntity.ok(mentorService.isStudentHasMentor(studentId, mentorId));
