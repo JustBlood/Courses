@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ru.just</groupId>
-    <artifactId>security-lib</artifactId>
+    <artifactId>security-starter</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>security-lib</name>
     <description>security-lib</description>

@@ -68,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>ru.just</groupId>
-            <artifactId>security-lib</artifactId>
+            <artifactId>security-starter</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>

@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: personal-account-service
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      replication-factor: 1
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: courses
+      bootstrap-servers: localhost:9092
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.just.dtolib.kafka.*"
+
+service-discovery:
+  users-service:
+    name: USERS-SERVICE
+topics:
+  user-update-topic: userUpdate
