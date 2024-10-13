@@ -1,17 +1,18 @@
 package ru.just.mentorcatalogservice.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.just.mentorcatalogservice.dto.CreateMentorDto;
-import ru.just.mentorcatalogservice.dto.MentorCardDto;
 import ru.just.mentorcatalogservice.dto.MentorDto;
 import ru.just.mentorcatalogservice.dto.StudentDto;
 import ru.just.mentorcatalogservice.dto.mapper.MentorMapper;
 import ru.just.mentorcatalogservice.model.Mentor;
 import ru.just.mentorcatalogservice.repository.MentorRepository;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MentorService {
@@ -30,11 +31,9 @@ public class MentorService {
         return mentorRepository.isMentorExists(userId);
     }
 
-    public Page<MentorCardDto> getMentorsCardsBySpecializationPart(String specialization, Pageable pageable) {
+    public Page<MentorDto> getMentorsCardsBySpecializationPart(String specialization, Pageable pageable) {
         Page<Mentor> mentors = mentorRepository.findMentorsBySpecialization(specialization, pageable);
-        final Page<MentorCardDto> cards = mentors.map(mentorMapper::toCardDto);
-        // todo: заполнить карточки данными с сервиса пользователей
-        return cards;
+        return mentors.map(mentorMapper::toDto);
     }
 
     public boolean isStudentHasMentor(Long studentId, Long mentorId) {

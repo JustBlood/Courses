@@ -61,6 +61,16 @@
             <artifactId>mapstruct</artifactId>
             <version>1.5.4.Final</version>
         </dependency>
+        <dependency>
+            <groupId>ru.just</groupId>
+            <artifactId>dto-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>ru.just</groupId>
+            <artifactId>security-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>

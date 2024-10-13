@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: mentor-catalog-service
+
+service-discovery:
+  users-service:
+    name: USERS-SERVICE

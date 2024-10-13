@@ -2,12 +2,12 @@ package ru.just.mentorcatalogservice.dto;
 
 import lombok.Data;
 
-import java.util.Set;
+import java.util.List;
 
 @Data
 public class MentorDto {
     private Long userId;
-    private Set<String> specializations;
+    private List<String> specializations;
     private String shortAboutMe;
     private String longAboutMe;
     private Long studentsCount;
