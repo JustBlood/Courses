@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.dtolib.audit.ChangeType;
 import ru.just.dtolib.kafka.users.UserAction;
+import ru.just.dtolib.users.UsersInfoByIdsDto;
 import ru.just.userservice.audit.UserChangeEvent;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -15,8 +16,10 @@ import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 import ru.just.userservice.repository.UserChangeEventRepository;
 import ru.just.userservice.repository.UserRepository;
+import ru.just.userservice.security.ThreadLocalTokenService;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -25,6 +28,11 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final UserChangeEventRepository userChangeEventRepository;
+    private final ThreadLocalTokenService tokenService;
+
+    public Optional<UserDto> getUserByIdFromToken() {
+        return getUserById(tokenService.getUserId());
+    }
 
     public Optional<UserDto> getUserById(Long userId) {
         return userRepository.findActiveUserById(userId);
@@ -67,15 +75,27 @@ public class UserService {
         saveUserChangeEvent(userAction.getUserId(), userAction.getUserId(), changeType);
     }
 
+    public void updateUser(UpdateUserDto userDto) {
+        updateUser(tokenService.getUserId(), userDto);
+    }
+
     public void updateUser(Long userId, UpdateUserDto userDto) {
         userRepository.updateUserById(userId, userDto);
         saveUserChangeEvent(userId, userId, ChangeType.UPDATE);
     }
 
+    public void addPhotoToUser(ServletInputStream inputStream) {
+        addPhotoToUser(tokenService.getUserId(), inputStream);
+    }
+
     public void addPhotoToUser(Long userId, ServletInputStream inputStream) {
-        // TODO: save to s3 logic
+        // TODO: send to media-service logic
         String photoUrl = "";
 
         userRepository.saveUserPhoto(userId, photoUrl);
+    }
+
+    public List<UserDto> getUsersByIds(UsersInfoByIdsDto usersInfoByIdsDto) {
+        return userRepository.findAllByIds(usersInfoByIdsDto);
     }
 }

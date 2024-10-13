@@ -12,8 +12,8 @@ public class CardService {
     private final MentorService mentorService;
 
     public Page<MentorCardDto> getMentorCardsPage(String specialization, Pageable pageable) {
-        // todo: запрос в Пользователей на данные пользователя
         // todo: запрос в БД для инфы о менторе
+        // todo: запрос в Пользователей на данные пользователя
         Page<MentorCardDto> mentorDtos = mentorService.getMentorsCardsBySpecializationPart(specialization, pageable);
         return mentorDtos;
     }

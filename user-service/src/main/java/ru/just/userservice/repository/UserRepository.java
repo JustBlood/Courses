@@ -3,13 +3,17 @@ package ru.just.userservice.repository;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Result;
 import org.springframework.stereotype.Repository;
 import ru.just.dtolib.kafka.users.UserAction;
+import ru.just.dtolib.users.UsersInfoByIdsDto;
+import ru.just.model.public_.tables.records.UsersRecord;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 
+import java.util.List;
 import java.util.Optional;
 
 import static ru.just.model.public_.tables.Users.USERS;
@@ -87,5 +91,12 @@ public class UserRepository {
         jooq.update(USERS)
                 .set(USERS.PHOTO_URL, photoUrl)
                 .where(USERS.USER_ID.eq(userId)).execute();
+    }
+
+    public List<UserDto> findAllByIds(UsersInfoByIdsDto usersInfoByIdsDto) {
+        final Result<UsersRecord> records = jooq.selectFrom(USERS)
+                .where(USERS.USER_ID.in(usersInfoByIdsDto.getUserIds()))
+                .fetch();
+        return records.stream().map(this::mapUserToDto).toList();
     }
 }

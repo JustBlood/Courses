@@ -32,6 +32,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 import ru.just.userservice.security.SecurityService;
+import ru.just.userservice.security.ThreadLocalTokenService;
 
 import java.time.Duration;
 
@@ -83,9 +84,11 @@ public class UserServiceConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AuthenticationManager manager,
-                                                   SecurityService securityService) throws Exception {
+                                                   SecurityService securityService,
+                                                   ThreadLocalTokenService tokenService
+                                                   ) throws Exception {
         final PreAuthenticatedAuthenticationProvider provider = getPreAuthenticatedAuthenticationProvider();
-        final AuthenticationFilter jwtAuthenticationFilter = getAuthenticationFilter(manager, securityService);
+        final AuthenticationFilter jwtAuthenticationFilter = getAuthenticationFilter(manager, securityService, tokenService);
         return http
                 .authorizeHttpRequests(authorizeHttpRequests ->
                         authorizeHttpRequests
@@ -105,15 +108,16 @@ public class UserServiceConfig {
         return provider;
     }
 
-    private static AuthenticationFilter getAuthenticationFilter(AuthenticationManager manager, SecurityService securityService) {
+    private static AuthenticationFilter getAuthenticationFilter(AuthenticationManager manager, SecurityService securityService, ThreadLocalTokenService tokenService) {
         AuthenticationFilter jwtAuthenticationFilter = new AuthenticationFilter(manager, request -> {
             var authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
             if (authorization != null && authorization.startsWith(BEARER_PREFIX)) {
                 String rawToken = authorization.replace(BEARER_PREFIX, "");
-                if (!securityService.isValidToken(rawToken)) {
+                if (!securityService.isValidToken(rawToken)) { // todo: на удаление
                     return null;
                 }
                 final DecodedJWT decodedJWT = JWT.decode(rawToken);
+                tokenService.setToken(decodedJWT);
                 return new PreAuthenticatedAuthenticationToken(decodedJWT.getSubject(),
                         rawToken,
                         decodedJWT.getClaim(AUTHORITIES_CLAIM)
