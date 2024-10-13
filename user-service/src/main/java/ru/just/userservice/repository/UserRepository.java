@@ -5,6 +5,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
 import org.springframework.stereotype.Repository;
+import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
 import ru.just.dtolib.users.UsersInfoByIdsDto;
 import ru.just.model.public_.tables.records.UsersRecord;
@@ -84,6 +85,14 @@ public class UserRepository {
                 .set(USERS.LAST_NAME, userDto.getLastName())
                 .set(USERS.USERNAME, userDto.getUsername())
                 .set(USERS.PHONE, userDto.getPhone())
+                .where(USERS.USER_ID.eq(userId)).execute();
+    }
+
+    public void updateUserById(Long userId, UpdateUserAction userAction) {
+        jooq.update(USERS)
+                .set(USERS.FIRST_NAME, userAction.getFirstName())
+                .set(USERS.LAST_NAME, userAction.getLastName())
+                .set(USERS.PHONE, userAction.getPhone())
                 .where(USERS.USER_ID.eq(userId)).execute();
     }
 

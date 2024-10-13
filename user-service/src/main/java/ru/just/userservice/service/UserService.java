@@ -7,8 +7,10 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.dtolib.audit.ChangeType;
+import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
 import ru.just.dtolib.users.UsersInfoByIdsDto;
+import ru.just.securitylib.service.ThreadLocalTokenService;
 import ru.just.userservice.audit.UserChangeEvent;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -16,7 +18,6 @@ import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 import ru.just.userservice.repository.UserChangeEventRepository;
 import ru.just.userservice.repository.UserRepository;
-import ru.just.userservice.security.ThreadLocalTokenService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -60,7 +61,7 @@ public class UserService {
         userRepository.updateUserStatus(user.getId(), UserStatus.DELETED);
         saveUserChangeEvent(userId, userId, ChangeType.DELETE);
     }
-
+    // todo: вынести в kafka-worker какой-нибудь
     @Transactional
     @KafkaListener(topics = {"${topics.user-actions-topic}"})
     public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
@@ -73,6 +74,14 @@ public class UserService {
             userRepository.deleteById(userAction.getUserId());
         }
         saveUserChangeEvent(userAction.getUserId(), userAction.getUserId(), changeType);
+    }
+    // todo: вынести в kafka-worker какой-нибудь
+    @Transactional
+    @KafkaListener(topics = {"${topics.user-update-topic}"})
+    public void handleUpdateUserAction(ConsumerRecord<String, UpdateUserAction> consumerRecord) {
+        final UpdateUserAction updateUserAction = consumerRecord.value();
+        userRepository.updateUserById(updateUserAction.getId(), updateUserAction);
+        saveUserChangeEvent(updateUserAction.getId(), updateUserAction.getId(), ChangeType.UPDATE);
     }
 
     public void updateUser(UpdateUserDto userDto) {

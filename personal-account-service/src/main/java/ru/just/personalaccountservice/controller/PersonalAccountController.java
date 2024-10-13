@@ -10,6 +10,8 @@ import ru.just.personalaccountservice.dto.UpdateUserDto;
 import ru.just.personalaccountservice.dto.UserDto;
 import ru.just.personalaccountservice.service.PersonalAccountService;
 
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/v1/user/account/data")
 @RequiredArgsConstructor
@@ -18,8 +20,8 @@ public class PersonalAccountController {
 
     @GetMapping
     public ResponseEntity<UserDto> getUserData() {
-        UserDto userDto = personalAccountService.getUserData();
-        return ResponseEntity.ok(userDto);
+        Optional<UserDto> userDto = personalAccountService.getUserData();
+        return ResponseEntity.of(userDto);
     }
 
     @PatchMapping

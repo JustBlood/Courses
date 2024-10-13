@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.just.personalaccountservice.dto.UpdateUserDto;
 import ru.just.personalaccountservice.dto.UserDto;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class PersonalAccountService {
@@ -21,10 +23,8 @@ public class PersonalAccountService {
         mediaIntegrationService.saveFile(photoUrl, httpServletRequest);
     }
 
-    public UserDto getUserData() {
+    public Optional<UserDto> getUserData() {
         // запрос в users-service на получение данных о пользователе + кеширование 10 минут можно
-        Long userId = null;
-        // userId = SecurityContextHolder.getContext().getAuthentication().getPrincipal(); // todo: получение userid из Токена
-        return userIntegrationService.getUserData(userId);
+        return userIntegrationService.getUserData();
     }
 }

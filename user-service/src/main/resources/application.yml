@@ -37,6 +37,7 @@ server:
     enabled-protocols: TLSv1.2
 topics:
   user-actions-topic: userActions
+  user-update-topic: userUpdate
 logging:
   level:
     org.springframework.security: trace
