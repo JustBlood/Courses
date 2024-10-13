@@ -31,8 +31,8 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
+import ru.just.securitylib.service.ThreadLocalTokenService;
 import ru.just.userservice.security.SecurityService;
-import ru.just.userservice.security.ThreadLocalTokenService;
 
 import java.time.Duration;
 
@@ -117,7 +117,7 @@ public class UserServiceConfig {
                     return null;
                 }
                 final DecodedJWT decodedJWT = JWT.decode(rawToken);
-                tokenService.setToken(decodedJWT);
+                tokenService.setDecodedToken(decodedJWT);
                 return new PreAuthenticatedAuthenticationToken(decodedJWT.getSubject(),
                         rawToken,
                         decodedJWT.getClaim(AUTHORITIES_CLAIM)

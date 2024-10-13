@@ -1,13 +1,11 @@
-package ru.just.userservice.security;
+package ru.just.securitylib.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.springframework.stereotype.Service;
 
-@Service
 public class ThreadLocalTokenService {
     ThreadLocal<DecodedJWT> jwtToken = new ThreadLocal<>();
 
-    public DecodedJWT getToken() {
+    public DecodedJWT getDecodedToken() {
         return jwtToken.get();
     }
 
@@ -18,7 +16,7 @@ public class ThreadLocalTokenService {
         return null;
     }
 
-    public void setToken(DecodedJWT jwtTokem) {
-        jwtToken.set(jwtTokem);
+    public void setDecodedToken(DecodedJWT jwtToken) {
+        this.jwtToken.set(jwtToken);
     }
 }
