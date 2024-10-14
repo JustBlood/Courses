@@ -1,8 +1,8 @@
 package ru.just.personalaccountservice.service;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.personalaccountservice.dto.UpdateUserDto;
 import ru.just.personalaccountservice.dto.UserDto;
 
@@ -18,9 +18,8 @@ public class PersonalAccountService {
         userIntegrationService.sendUpdateUserDataMessage(updateUserDto);
     }
 
-    public void updateProfilePhoto(HttpServletRequest httpServletRequest) {
-        String photoUrl = "url";
-        mediaIntegrationService.saveFile(photoUrl, httpServletRequest);
+    public String updateProfilePhoto(MultipartFile file) {
+        return mediaIntegrationService.saveUserPhoto(file);
     }
 
     public Optional<UserDto> getUserData() {

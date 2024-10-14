@@ -23,5 +23,7 @@ eureka:
 service-discovery:
   users-service:
     name: USERS-SERVICE
+  media-service:
+    name: MEDIA-SERVICE
 topics:
   user-update-topic: userUpdate
