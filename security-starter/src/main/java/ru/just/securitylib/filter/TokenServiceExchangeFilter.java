@@ -24,5 +24,6 @@ public class TokenServiceExchangeFilter extends OncePerRequestFilter {
         bearerToken = bearerToken.replace(BEARER_PREFIX, "");
         final DecodedJWT decodedJWT = JWT.decode(bearerToken);
         tokenService.setDecodedToken(decodedJWT);
+        filterChain.doFilter(request, response);
     }
 }

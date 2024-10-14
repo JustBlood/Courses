@@ -1,0 +1,17 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+  application:
+    name: MEDIA-SERVICE
+
+server:
+  port: 8084
+
+minio:
+  # endpoint: http://minio:9000
+  accessKey: admin
+  secretKey: adminadmin
+  buckets:
+    users-data: users
+    courses-data: courses

@@ -41,6 +41,23 @@ services:
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       POSTGRES_DB: security_service # todo: volumes
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: adminadmin
+      MINIO_ADDRESS: ':9000'
+      MINIO_CONSOLE_ADDRESS: ':9001'
+    volumes:
+      - ./data:/data # Volume для хранения данных
+      - ./init-policies:/docker-entrypoint-init.d/
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    entrypoint: /bin/sh -c "/docker-entrypoint-init.d/init-policies.sh & minio server /data"
+
 #                         ======================= SERVICES ==============================
 
   courses_service:
@@ -81,6 +98,17 @@ services:
     ports:
       - "8083:8083"
 
+  media_service:
+    container_name: media_service
+    restart: always
+    build: ./media-service
+    networks:
+      - spring
+    depends_on:
+      - minio
+    ports:
+      - "8084:8084"
+
   kafka-zookeeper:
     image: confluentinc/cp-zookeeper:latest
     restart: always
@@ -114,4 +142,3 @@ services:
 networks:
   postgres:
   spring:
-
