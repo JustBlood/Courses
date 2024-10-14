@@ -2,6 +2,7 @@ package ru.just.mediaservice.repository;
 
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.StatObjectArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,21 @@ public class MediaRepository {
             );
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public boolean checkFileExists(String avatarPath) {
+        try {
+            minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(usersBucket)
+                            .object(avatarPath)
+                            .build()
+            );
+            return true;
+        } catch (Exception e) {
+            log.debug("Object with path {} not found", avatarPath, e);
+            return false;
         }
     }
 }
