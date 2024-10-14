@@ -1,6 +1,6 @@
 spring:
   application:
-    name: personal-account-service
+    name: PERSONAL-ACCOUNT-SERVICE
   kafka:
     bootstrap-servers: localhost:9092
     streams:
@@ -13,6 +13,12 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "ru.just.dtolib.kafka.*"
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
 
 service-discovery:
   users-service:

@@ -1,7 +1,13 @@
 spring:
   application:
-    name: mentor-catalog-service
+    name: MENTOR-CATALOG-SERVICE
 
 service-discovery:
   users-service:
     name: USERS-SERVICE
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
