@@ -25,8 +25,8 @@ public class UserIntegrationService {
     private final ThreadLocalTokenService tokenService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${service-discovery.users-service.name}")
-    private String usersServiceName;
+    @Value("http://${service-discovery.users-service.name}/api/v1/users")
+    private String usersServiceUri;
     @Value("${topics.user-update-topic}")
     private String userUpdateTopic;
 
@@ -42,10 +42,9 @@ public class UserIntegrationService {
     }
 
     public Optional<UserDto> getUserData() {
-        final String uriTemplate = String.format("https://%s/api/v1/users/byId", usersServiceName);
-        final HttpHeaders headers = buildHeaders();
+        final String uriTemplate = usersServiceUri + "/byId";
         final RequestEntity<Void> requestEntity = RequestEntity.get(uriTemplate)
-                .headers(headers)
+                .headers(buildHeaders())
                 .build();
 
         try {

@@ -41,6 +41,16 @@ services:
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       POSTGRES_DB: security_service # todo: volumes
 
+  mentor_catalog_service_db:
+    image: postgres
+    restart: unless-stopped
+    networks:
+      - postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      POSTGRES_DB: mentor_catalog_service # todo: volumes
+
   minio:
     image: minio/minio
     container_name: minio
@@ -60,6 +70,15 @@ services:
 
 #                         ======================= SERVICES ==============================
 
+  eureka_server:
+    container_name: eureka-server
+    restart: always
+    build: ./eureka-server
+    networks:
+      - spring
+    ports:
+      - "8761:8761"
+
   courses_service:
     container_name: courses_service
     restart: always
@@ -76,6 +95,14 @@ services:
     container_name: user_service
     restart: always
     build: ./user-service
+    environment:
+      DB_CONTAINER: mentor_catalog_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      EUREKA_URI: http://eureka-server:8761/eureka
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9000
+      REDIS_HOST: users_service_redis
+      REDIS_PORT: 6379
     networks:
       - postgres
       - spring
@@ -108,6 +135,39 @@ services:
       - minio
     ports:
       - "8084:8084"
+
+  mentor_catalog_service:
+    container_name: mentor_catalog_service
+    restart: always
+    build: ./mentor-catalog-service
+    environment:
+      DB_CONTAINER: mentor_catalog_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      EUREKA_URI: http://eureka-server:8761/eureka
+    networks:
+      - spring
+      - postgres
+    depends_on:
+      - mentor_catalog_service_db
+    ports:
+      - "8085:8085"
+
+  personal_account_service:
+    container_name: personal_account_service
+    restart: always
+    build: ./personal-account-service
+    environment:
+      DB_CONTAINER: personal_account_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      EUREKA_URI: http://eureka-server:8761/eureka
+    networks:
+      - spring
+      - postgres
+    ports:
+      - "8086:8086"
 
   kafka-zookeeper:
     image: confluentinc/cp-zookeeper:latest

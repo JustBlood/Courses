@@ -12,6 +12,6 @@ public class MentorCardDto {
     private String shortAboutMe;
     private String longAboutMe;
     private List<String> specializations;
-    private Long studentsCount;
+    private Integer studentsCount;
     private String avatarUrl;
 }

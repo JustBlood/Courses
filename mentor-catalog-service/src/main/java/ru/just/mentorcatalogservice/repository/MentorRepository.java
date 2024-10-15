@@ -12,8 +12,6 @@ import ru.just.mentorcatalogservice.dto.StudentDto;
 import ru.just.mentorcatalogservice.model.Mentor;
 import ru.just.mentorcatalogservice.repository.mapper.MentorResultSetExtractor;
 
-import java.sql.ResultSet;
-
 @Repository
 @RequiredArgsConstructor
 public class MentorRepository {
@@ -25,15 +23,14 @@ public class MentorRepository {
         mapSqlParameterSource.addValue("specialization", specialization);
         mapSqlParameterSource.addValue("offset", pageable.getOffset());
         mapSqlParameterSource.addValue("limit", pageable.getPageSize());
-        // TODO: убрать нахуй это sql в ресурсы
+        // TODO: убрать нахуй этот sql в ресурсы и переработать
         final String sql = """
                 select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me", m.long_about_me as "long_about_me", m.avatar_url as "avatar_url", st.id as "student_id", s.name as "specialization_name"
-                from mentor m join specialization s on m.id = s.mentor_id join student as st on m.id = st.mentor_id
+                from mentor m join specialization s on m.id = s.mentor_id join mentor_student as st on m.id = st.mentor_id
                 where m.id IN (SELECT m2.id FROM mentor m2 ORDER BY m2.id OFFSET :offset LIMIT :limit)
                     AND s.name ILIKE :specialization
                 """;
-        Page<Mentor> mentors = namedTemplate.query(sql, mapSqlParameterSource, mentorResultSetExtractor);
-        return mentors;
+        return namedTemplate.query(sql, mapSqlParameterSource, mentorResultSetExtractor);
     }
 
     public MentorDto createMentor(CreateMentorDto createMentorDto) {
@@ -41,7 +38,7 @@ public class MentorRepository {
     }
 
     public void addStudentToMentor(Long mentorId, StudentDto studentDto) {
-        String sql = "INSERT INTO student_mentor (id, mentor_id) VALUES(:studentId, :mentor_id)";
+        String sql = "INSERT INTO mentor_student (id, mentor_id) VALUES(:studentId, :mentor_id)";
         final MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource();
         mapSqlParameterSource.addValue("studentId", studentDto.getStudentId());
         mapSqlParameterSource.addValue("mentorId", mentorId);
@@ -53,7 +50,7 @@ public class MentorRepository {
         final MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource();
         mapSqlParameterSource.addValue("studentId", studentId);
         mapSqlParameterSource.addValue("mentorId", mentorId);
-        final String query = "SELECT COUNT(*) FROM student AS s JOIN mentor AS m on s.mentor_id = m.id WHERE s.id = :studentId AND m.id = :mentorId LIMIT 1";
+        final String query = "SELECT COUNT(*) FROM mentor_student WHERE student_id = :studentId AND mentor_id = :mentorId LIMIT 1";
         Integer count = namedTemplate.queryForObject(query, mapSqlParameterSource, Integer.class);
         return count != null && count > 1;
     }

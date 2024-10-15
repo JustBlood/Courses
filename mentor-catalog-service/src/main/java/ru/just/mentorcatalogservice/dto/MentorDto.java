@@ -10,6 +10,5 @@ public class MentorDto {
     private List<String> specializations;
     private String shortAboutMe;
     private String longAboutMe;
-    private Long studentsCount;
-    private String avatarUrl;
+    private Integer studentsCount;
 }

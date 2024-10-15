@@ -4,7 +4,6 @@ spring:
       max-file-size: 100MB
   application:
     name: MEDIA-SERVICE
-
 server:
   port: 8084
 
@@ -14,9 +13,8 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
 
-
 minio:
-  # endpoint: http://minio:9000
+  endpoint: http://minio:9000
   accessKey: admin
   secretKey: adminadmin
   buckets:

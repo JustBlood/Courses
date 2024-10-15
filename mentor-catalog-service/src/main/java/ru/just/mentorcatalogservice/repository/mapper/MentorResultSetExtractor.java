@@ -6,12 +6,11 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.stereotype.Component;
 import ru.just.mentorcatalogservice.model.Mentor;
-import ru.just.mentorcatalogservice.model.Specialization;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import static ru.just.mentorcatalogservice.model.Mentor.Column.*;
@@ -31,16 +30,15 @@ public class MentorResultSetExtractor implements ResultSetExtractor<Page<Mentor>
                 mentor = Mentor.builder()
                         .id(mentorId)
                         .userId(rs.getLong(USER_ID))
-                        .avatarUrl(rs.getString(AVATAR_URL))
                         .shortAboutMe(rs.getString(SHORT_ABOUT_ME))
                         .longAboutMe(rs.getString(LONG_ABOUT_ME))
-                        .specializations(new HashSet<>())
-                        .studentsIds(new HashSet<>())
+                        .specializations(new ArrayList<>())
+                        .studentsIds(new ArrayList<>())
                         .build();
                 extractedMentors.put(mentorId, mentor);
             }
 
-            mentor.getSpecializations().add(new Specialization(null, rs.getString(SPECIALIZATION_NAME)));
+            mentor.getSpecializations().add(rs.getString(SPECIALIZATION_NAME));
             mentor.getStudentsIds().add(rs.getLong(STUDENT_ID));
         }
 

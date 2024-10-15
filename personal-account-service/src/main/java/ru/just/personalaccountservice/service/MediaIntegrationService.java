@@ -22,14 +22,14 @@ public class MediaIntegrationService {
     private final RestTemplate restTemplate;
     private final ThreadLocalTokenService tokenService;
 
-    @Value("${service-discovery.media-service.name}")
-    private String mediaServiceName;
+    @Value("http://${service-discovery.media-service.name}/api/v1/media")
+    private String mediaServiceUri;
 
     public String saveUserPhoto(MultipartFile file) {
         if (!"image/png".equals(file.getContentType())) {
             throw new IllegalArgumentException("photo should be png file");
         }
-        final String uriTemplate = String.format("http://%s/api/v1/media/upload/avatar", mediaServiceName);
+        final String uriTemplate = mediaServiceUri + "/upload/avatar";
         RequestEntity<MultipartFile> saveFileRequest = RequestEntity
                 .post(uriTemplate)
                 .contentType(MediaType.valueOf(file.getContentType()))

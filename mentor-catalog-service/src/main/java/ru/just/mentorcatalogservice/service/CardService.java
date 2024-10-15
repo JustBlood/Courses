@@ -51,8 +51,8 @@ public class CardService {
             cardDto.setFirstName(currentUserDto.getFirstName());
             cardDto.setLastName(currentUserDto.getLastName());
             cardDto.setUsername(currentUserDto.getUsername());
+            cardDto.setAvatarUrl(currentUserDto.getPhotoUrl());
             cardDto.setSpecializations(mentor.getSpecializations());
-            cardDto.setAvatarUrl(mentor.getAvatarUrl());
             cardDto.setShortAboutMe(mentor.getShortAboutMe());
             cardDto.setLongAboutMe(mentor.getLongAboutMe());
             cardDto.setStudentsCount(mentor.getStudentsCount());
