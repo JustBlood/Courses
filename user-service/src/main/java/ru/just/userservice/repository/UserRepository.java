@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
 import ru.just.dtolib.users.UsersInfoByIdsDto;
-import ru.just.model.public_.tables.records.UsersRecord;
+import ru.just.model.tables.records.UsersRecord;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
@@ -17,7 +17,7 @@ import ru.just.userservice.dto.UserStatus;
 import java.util.List;
 import java.util.Optional;
 
-import static ru.just.model.public_.tables.Users.USERS;
+import static ru.just.model.tables.Users.USERS;
 
 @RequiredArgsConstructor
 @Repository

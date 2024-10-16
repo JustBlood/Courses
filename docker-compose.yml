@@ -96,11 +96,11 @@ services:
     restart: always
     build: ./user-service
     environment:
-      DB_CONTAINER: mentor_catalog_service_db
+      DB_CONTAINER: user_service_db
       DB_USERNAME: postgres
       DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       EUREKA_URI: http://eureka-server:8761/eureka
-      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9000
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
       REDIS_HOST: users_service_redis
       REDIS_PORT: 6379
     networks:
@@ -194,7 +194,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'kafka-zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092,PLAINTEXT_INTERNAL://broker:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
