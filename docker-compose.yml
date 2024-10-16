@@ -63,6 +63,8 @@ services:
     volumes:
       - ./data:/data # Volume для хранения данных
       - ./init-policies:/docker-entrypoint-init.d/
+    networks:
+      - spring
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -116,12 +118,17 @@ services:
     container_name: security_service
     restart: always
     build: ./security-service
+    environment:
+      DB_CONTAINER: security_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      EUREKA_URI: http://eureka-server:8761/eureka
     networks:
       - postgres
       - spring
     depends_on:
-      security_service_db:
-        condition: service_healthy
+      - security_service_db
     ports:
       - "8083:8083"
 
@@ -129,6 +136,9 @@ services:
     container_name: media_service
     restart: always
     build: ./media-service
+    environment:
+      MINIO_URL: http://minio:9000
+      EUREKA_URI: http://eureka-server:8761/eureka
     networks:
       - spring
     depends_on:

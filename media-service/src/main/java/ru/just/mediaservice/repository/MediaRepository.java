@@ -18,7 +18,7 @@ public class MediaRepository {
     @Value("${minio.buckets.users-data}")
     private String usersBucket;
 
-    public void saveFile(String objectFullPathName, MultipartFile file) {
+    public String saveFile(String objectFullPathName, MultipartFile file) {
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -27,6 +27,7 @@ public class MediaRepository {
                             .stream(file.getInputStream(), file.getSize(), -1)
                             .build()
             );
+            return "/" + usersBucket + objectFullPathName;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

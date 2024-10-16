@@ -15,7 +15,7 @@ public class MinioConfiguration {
     private final MinioProperties minioProperties;
 
     @Bean
-    public MinioClient minioClientDev() throws Exception {
+    public MinioClient minioClient() throws Exception {
         MinioClient client = MinioClient.builder()
                 .endpoint(minioProperties.getEndpoint())
                 .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())

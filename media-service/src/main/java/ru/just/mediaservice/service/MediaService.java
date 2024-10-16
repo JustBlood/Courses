@@ -16,8 +16,7 @@ public class MediaService {
     private final ThreadLocalTokenService tokenService;
 
     public String saveFile(String objectFullPathName, MultipartFile file) {
-        mediaRepository.saveFile(objectFullPathName, file);
-        return null;
+        return mediaRepository.saveFile(objectFullPathName, file);
     }
 
     public String uploadAvatarPhoto(MultipartFile file) {
