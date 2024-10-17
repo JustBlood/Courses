@@ -28,7 +28,7 @@ spring:
           filters:
             - JwtAuthenticationFilter
         - id: minio-route
-          uri: http://minio:9000
+          uri: ${MINIO_URL:http://localhost:9000}
           predicates:
             - Path=/media/**
           filters:
