@@ -10,6 +10,17 @@ services:
     environment:
       - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
       - REDIS_PORT=6379
+
+  api_gateway_redis:
+    image: redis:7.2.4-alpine
+    restart: always
+    networks:
+      - postgres
+    ports:
+      - "6380:6380"
+    environment:
+      - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
+      - REDIS_PORT=6380
   #                         ======================= DB ==============================
   courses_service_db:
     image: postgres
@@ -56,6 +67,7 @@ services:
     container_name: minio
     command: server /data
     environment:
+      MINIO_SERVER_URL: "http://localhost:9000/"
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: adminadmin
       MINIO_ADDRESS: ':9000'
@@ -80,6 +92,21 @@ services:
       - spring
     ports:
       - "8761:8761"
+
+  api-gateway:
+    container_name: api-gateway
+    restart: always
+    build: ./api-gateway
+    networks:
+      - spring
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka
+      REDIS_HOST: api_gateway_redis
+      REDIS_PORT: 6380
+    depends_on:
+      - api_gateway_redis
+    ports:
+      - "8080:8080"
 
   courses_service:
     container_name: courses_service
@@ -110,7 +137,6 @@ services:
       - spring
     depends_on:
       - user_service_db
-      - users_service_redis
     ports:
       - "8082:8082"
 

@@ -1,12 +1,9 @@
 package ru.just.userservice.config;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import jakarta.servlet.http.HttpServletResponse;
 import org.jooq.DSLContext;
-import org.jooq.impl.DefaultConfiguration;
+import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultDSLContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
@@ -16,39 +13,24 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationFilter;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
-import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
-import ru.just.securitylib.service.ThreadLocalTokenService;
-import ru.just.userservice.security.SecurityService;
 
+import javax.sql.DataSource;
 import java.time.Duration;
 
 @Configuration
 @EnableCaching
 public class UserServiceConfig {
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final String AUTHORITIES_CLAIM = "authorities";
     @Value("${spring.data.redis.host}")
     private String redisHost;
     @Value("${spring.data.redis.port}")
     private int redisPort;
 
     @Bean
-    public DSLContext dslContext() {
-        return new DefaultDSLContext(new DefaultConfiguration());
+    public DSLContext dslContext(DataSource ds) {
+        return new DefaultDSLContext(ds, SQLDialect.POSTGRES);
     }
 
     @Bean
