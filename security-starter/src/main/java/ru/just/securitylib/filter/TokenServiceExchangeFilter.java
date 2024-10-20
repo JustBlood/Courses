@@ -21,9 +21,11 @@ public class TokenServiceExchangeFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
-        bearerToken = bearerToken.replace(BEARER_PREFIX, "");
-        final DecodedJWT decodedJWT = JWT.decode(bearerToken);
-        tokenService.setDecodedToken(decodedJWT);
+        if (bearerToken != null) {
+            bearerToken = bearerToken.replace(BEARER_PREFIX, "");
+            final DecodedJWT decodedJWT = JWT.decode(bearerToken);
+            tokenService.setDecodedToken(decodedJWT);
+        }
         filterChain.doFilter(request, response);
     }
 }

@@ -33,6 +33,12 @@ spring:
             - Path=/media/**
           filters:
             - StripPrefix=1
+        - id: websocket-route
+          uri: ws://COMMUNICATION-SERVICE  # Целевой WebSocket-сервис (например, chat-service)
+          predicates:
+            - Path=/ws/chat/**  # Путь для WebSocket-соединений
+          filters:
+            - StripPrefix=1      # Убираем /ws
   application:
     name: API-GATEWAY
   data:

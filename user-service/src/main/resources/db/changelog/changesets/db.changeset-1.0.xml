@@ -30,7 +30,7 @@
                                 'DELETED'::varchar]::text[])" nullable="false" />
             </column>
             <column name="photo_url" type="VARCHAR(256)" >
-                <constraints nullable="false" />
+                <constraints nullable="true" />
             </column>
         </createTable>
 

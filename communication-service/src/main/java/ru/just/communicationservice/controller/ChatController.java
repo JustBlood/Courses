@@ -1,14 +1,16 @@
 package ru.just.communicationservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.communicationservice.dto.ChatDto;
-import ru.just.communicationservice.dto.CreateChatDto;
 import ru.just.communicationservice.service.ChatService;
 
 import java.util.List;
+import java.util.UUID;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/api/v1/chats")
 @RequiredArgsConstructor
@@ -18,19 +20,21 @@ public class ChatController { // TODO: добавить логику работ�
 
     // Создать чат
     @PostMapping
-    public ResponseEntity<ChatDto> createChat(@RequestBody CreateChatDto createChatDto) {
-        return ResponseEntity.ok(chatService.createChat(createChatDto));
+    public ResponseEntity<ChatDto> createChat() {
+        return ResponseEntity.ok(chatService.createChat());
+    }
+
+    @PostMapping("/{chatId}/invite")
+    public ResponseEntity<Void> addUserToChat(@PathVariable UUID chatId,
+                                              @RequestParam("userId") Long userId
+    ) {
+        chatService.addUserToChat(chatId, userId);
+        return ResponseEntity.ok().build();
     }
 
     // Получить чаты пользователя
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<ChatDto>> getUserChats(@PathVariable String userId) {
-        return ResponseEntity.ok(chatService.getUserChats(userId));
-    }
-
-    // Получить чат по ID
-    @GetMapping("/{chatId}")
-    public ResponseEntity<ChatDto> getChat(@PathVariable String chatId) {
-        return ResponseEntity.ok(chatService.getChat(chatId));
+    @GetMapping("/user")
+    public ResponseEntity<List<ChatDto>> getUserChats(Pageable pageable) {
+        return ResponseEntity.ok(chatService.getUserChats(pageable));
     }
 }

@@ -2,6 +2,7 @@ package ru.just.userservice.service;
 
 import jakarta.servlet.ServletInputStream;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class UserService {
@@ -65,12 +67,15 @@ public class UserService {
     @Transactional
     @KafkaListener(topics = {"${topics.user-actions-topic}"})
     public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
+        log.info("Получено сообщение из user-actions топика");
         final UserAction userAction = userActionRecord.value();
         ChangeType changeType = userAction.getUserActionType().equals(UserAction.UserActionType.CREATED) ?
                 ChangeType.CREATE : ChangeType.DELETE;
         if (userAction.getUserActionType().equals(UserAction.UserActionType.CREATED)) {
+            log.info("Создание нового пользователя");
             userRepository.saveUserFromSecurityService(userAction);
         } else if (userAction.getUserActionType().equals(UserAction.UserActionType.DELETED)) {
+            log.info("Удаление пользователя");
             userRepository.deleteById(userAction.getUserId());
         }
         saveUserChangeEvent(userAction.getUserId(), userAction.getUserId(), changeType);

@@ -4,7 +4,7 @@ services:
     image: redis:7.2.4-alpine
     restart: always
     networks:
-      - postgres
+      - db
     ports:
       - "6379:6379"
     environment:
@@ -15,7 +15,7 @@ services:
     image: redis:7.2.4-alpine
     restart: always
     networks:
-      - postgres
+      - db
     ports:
       - "6380:6380"
     environment:
@@ -26,7 +26,7 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -36,7 +36,7 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -46,7 +46,7 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -56,11 +56,24 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       POSTGRES_DB: mentor_catalog_service # todo: volumes
+
+  communication_service_db:
+    image: mongo:6.0
+    container_name: communication_service_db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      MONGO_INITDB_DATABASE: communication
+    networks:
+      - db
+    ports:
+      - "27017:27017"
 
   minio:
     image: minio/minio
@@ -114,7 +127,7 @@ services:
     restart: always
     build: ./courses-service
     networks:
-      - postgres
+      - db
       - spring
     depends_on:
       - courses_service_db
@@ -134,7 +147,7 @@ services:
       REDIS_HOST: users_service_redis
       REDIS_PORT: 6379
     networks:
-      - postgres
+      - db
       - spring
     depends_on:
       - user_service_db
@@ -152,7 +165,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
       EUREKA_URI: http://eureka-server:8761/eureka
     networks:
-      - postgres
+      - db
       - spring
     depends_on:
       - security_service_db
@@ -184,7 +197,7 @@ services:
       EUREKA_URI: http://eureka-server:8761/eureka
     networks:
       - spring
-      - postgres
+      - db
     depends_on:
       - mentor_catalog_service_db
     ports:
@@ -202,9 +215,25 @@ services:
       EUREKA_URI: http://eureka-server:8761/eureka
     networks:
       - spring
-      - postgres
+      - db
     ports:
       - "8086:8086"
+
+  communication_service:
+    container_name: communication_service
+    restart: always
+    build: ./communication-service
+    environment:
+      MONGO_URI: mongodb://root:242171e6a6d3b0701e83f72d33432a8e9fa11068@communication_service_db:27017/communication?authSource=admin
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      EUREKA_URI: http://eureka-server:8761/eureka
+    depends_on:
+      - communication_service_db
+    networks:
+      - spring
+      - db
+    ports:
+      - "8087:8087"
 
   kafka-zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -236,6 +265,20 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: kafka-zookeeper:2181
+    networks:
+      - spring
+    depends_on:
+      - kafka-broker
+
 networks:
-  postgres:
+  db:
   spring:
