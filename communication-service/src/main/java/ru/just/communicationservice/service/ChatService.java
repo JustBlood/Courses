@@ -81,7 +81,7 @@ public class ChatService {
         chat.getMemberIds().add(invitingUserId);
         log.info("Запрос в users_service с токеном {}", tokenService.getDecodedToken().getToken());
 
-        final MessageEventDto.JoinMessageBody body = new MessageEventDto.JoinMessageBody(userDto.get().getId(), userDto.get().getUsername(), userDto.get().getPhotoUrl(), null);
+        final MessageEventDto.JoinMessageBody body = new MessageEventDto.JoinMessageBody(userDto.get().getId());
         messagingTemplate.convertAndSend("/topic/chat/" + chat, new MessageEventDto<>(body, body.getType()));
 
         chatRepository.save(chat);

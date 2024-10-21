@@ -25,10 +25,10 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
 
         String token = request.getURI().getQuery().split("=")[1];
-
+        log.debug("request headers: {}", request.getHeaders());
         // Проверяем наличие токена
         if (token == null || !token.startsWith("Bearer ")) {
-            log.debug("token is null or not Bearer");
+            log.warn("token is null or not Bearer");
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return false;
         }
@@ -37,7 +37,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         try {
             log.debug("received Bearer token in Authorization Header");
             if (!securityService.isValidToken(token.substring(7))) {
-                log.debug("Bearer token is not valid");
+                log.warn("Bearer token is not valid");
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return false;
             }
@@ -47,7 +47,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
             return false;
         }
         DecodedJWT jwt = JWT.decode(token.substring(7));
-        log.info("setting session attributes: userId: {}, jwt: {}", jwt.getSubject(), jwt.getToken());
+        log.debug("setting session attributes: userId: {}, jwt: {}", jwt.getSubject(), jwt.getToken());
         attributes.put("userId", jwt.getSubject());
         attributes.put("jwt", jwt.getToken());
         return true;

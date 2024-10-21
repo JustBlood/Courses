@@ -37,9 +37,9 @@ public class WsController {
         log.info("Атрибуты сессии {}", sessionAttributes);
 
         log.info("Берется userId");
-        Long userId = (Long) sessionAttributes.get("userId");
+        Long userId = Long.parseLong(sessionAttributes.get("userId").toString());
         messageService.saveMessage(chatId, userId, messageDto);
-        final MessageEventDto.ChatMessageBody chatMessageBody = new MessageEventDto.ChatMessageBody(messageDto.getContent());
+        final MessageEventDto.ChatMessageBody chatMessageBody = new MessageEventDto.ChatMessageBody(userId, messageDto.getContent());
         return new MessageEventDto<>(chatMessageBody, chatMessageBody.getType());
     }
 }

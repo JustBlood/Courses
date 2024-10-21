@@ -26,6 +26,7 @@ public class MessageEventDto<T extends MessageEventDto.MessageBody> {
     @Data
     @AllArgsConstructor
     public static class ChatMessageBody extends MessageBody {
+        private Long userId;
         private String message;
 
         @Override
@@ -39,9 +40,6 @@ public class MessageEventDto<T extends MessageEventDto.MessageBody> {
     @AllArgsConstructor
     public static class JoinMessageBody extends MessageBody {
         private Long userId;
-        private String username;
-        private String photoUrl;
-        private String profileUrl;
 
         @Override
         public MessageType getType() {
