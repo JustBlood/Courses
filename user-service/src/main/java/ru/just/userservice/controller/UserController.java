@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.response.ApiResponse;
-import ru.just.dtolib.users.UsersInfoByIdsDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
@@ -22,7 +21,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<UserDto>> getUsersInfoByIds(@Valid @RequestBody UsersInfoByIdsDto usersInfoByIdsDto) {
+    public ResponseEntity<List<UserDto>> getUsersInfoByIds(@RequestParam(name = "ids") List<Long> usersInfoByIdsDto) {
         return ResponseEntity.ok(userService.getUsersByIds(usersInfoByIdsDto));
     }
 

@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.dtolib.audit.ChangeType;
 import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
-import ru.just.dtolib.users.UsersInfoByIdsDto;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 import ru.just.userservice.audit.UserChangeEvent;
 import ru.just.userservice.dto.CreateUserDto;
@@ -109,7 +108,7 @@ public class UserService {
         userRepository.saveUserPhoto(userId, photoUrl);
     }
 
-    public List<UserDto> getUsersByIds(UsersInfoByIdsDto usersInfoByIdsDto) {
+    public List<UserDto> getUsersByIds(List<Long> usersInfoByIdsDto) {
         return userRepository.findAllByIds(usersInfoByIdsDto);
     }
 }

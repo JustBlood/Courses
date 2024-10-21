@@ -7,7 +7,6 @@ import org.jooq.Result;
 import org.springframework.stereotype.Repository;
 import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
-import ru.just.dtolib.users.UsersInfoByIdsDto;
 import ru.just.model.tables.records.UsersRecord;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -102,9 +101,9 @@ public class UserRepository {
                 .where(USERS.USER_ID.eq(userId)).execute();
     }
 
-    public List<UserDto> findAllByIds(UsersInfoByIdsDto usersInfoByIdsDto) {
+    public List<UserDto> findAllByIds(List<Long> usersInfoByIdsDto) {
         final Result<UsersRecord> records = jooq.selectFrom(USERS)
-                .where(USERS.USER_ID.in(usersInfoByIdsDto.getUserIds()))
+                .where(USERS.USER_ID.in(usersInfoByIdsDto))
                 .fetch();
         return records.stream().map(this::mapUserToDto).toList();
     }

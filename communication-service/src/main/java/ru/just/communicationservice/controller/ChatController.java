@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.communicationservice.dto.ChatDto;
+import ru.just.communicationservice.dto.integration.UserDto;
 import ru.just.communicationservice.service.ChatService;
 
 import java.util.List;
@@ -36,5 +37,10 @@ public class ChatController { // TODO: добавить логику работ�
     @GetMapping("/user")
     public ResponseEntity<List<ChatDto>> getUserChats(Pageable pageable) {
         return ResponseEntity.ok(chatService.getUserChats(pageable));
+    }
+
+    @GetMapping("/{chatId}/users")
+    public ResponseEntity<List<UserDto>> getChatUsers(@PathVariable UUID chatId) {
+        return ResponseEntity.ok(chatService.getChatUsers(chatId));
     }
 }
