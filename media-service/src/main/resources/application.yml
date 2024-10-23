@@ -20,3 +20,4 @@ minio:
   buckets:
     users-data: users
     courses-data: courses
+    chat-data: chat-attachments

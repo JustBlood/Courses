@@ -2,13 +2,14 @@ package ru.just.apigateway.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
 
@@ -21,18 +22,19 @@ public class UserServiceConfig {
     private int redisPort;
 
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    @LoadBalanced
+    public WebClient.Builder loadBalancedWebClientBuilder() {
+        return WebClient.builder();
     }
 
     @Bean
-    public JedisConnectionFactory jedisConnectionFactory() {
-        return new JedisConnectionFactory(new RedisStandaloneConfiguration(redisHost, redisPort));
+    public LettuceConnectionFactory redisConnectionFactory() {
+        return new LettuceConnectionFactory(new RedisStandaloneConfiguration(redisHost, redisPort));
     }
 
     @Bean
     public RedisCacheManager cacheManager() {
-        return RedisCacheManager.builder(jedisConnectionFactory())
+        return RedisCacheManager.builder(redisConnectionFactory())
                 .withCacheConfiguration("token-validity",
                         RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofMinutes(35)))

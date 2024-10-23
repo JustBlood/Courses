@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.communicationservice.dto.ChatDto;
 import ru.just.communicationservice.dto.integration.UserDto;
 import ru.just.communicationservice.service.ChatService;
@@ -11,7 +12,6 @@ import ru.just.communicationservice.service.ChatService;
 import java.util.List;
 import java.util.UUID;
 
-@CrossOrigin
 @RestController
 @RequestMapping("/api/v1/chats")
 @RequiredArgsConstructor
@@ -42,5 +42,14 @@ public class ChatController { // TODO: добавить логику работ�
     @GetMapping("/{chatId}/users")
     public ResponseEntity<List<UserDto>> getChatUsers(@PathVariable UUID chatId) {
         return ResponseEntity.ok(chatService.getChatUsers(chatId));
+    }
+
+    @PostMapping("/{chatId}/attachments/upload")
+    public ResponseEntity<Void> uploadAttachment(
+            @PathVariable UUID chatId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        chatService.uploadAttachment(chatId, file);
+        return ResponseEntity.ok().build();
     }
 }

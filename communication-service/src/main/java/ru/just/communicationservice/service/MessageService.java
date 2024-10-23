@@ -24,11 +24,11 @@ public class MessageService {
         return null;
     }
 
-    public void saveMessage(UUID chatId, Long senderId, MessageDto messageDto) {
+    public void saveMessage(UUID chatId, Long senderId, Message.MessageBody body) {
         Message message = new Message();
         message.setChatId(chatId);
         message.setSenderId(senderId);
-        message.setContent(messageDto.getContent());
+        message.setContent(body);
         message.setSentAt(LocalDateTime.now());
         messageRepository.save(message);
     }

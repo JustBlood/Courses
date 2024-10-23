@@ -27,26 +27,28 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
 
             // Проверяем наличие токена
             if (token == null || !token.startsWith("Bearer ")) {
-                log.debug("token is null or not Bearer");
+                log.warn("token is null or not Bearer");
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
 
             // Валидация токена через security-service
-            try {
-                log.debug("received Bearer token in Authorization Header");
-                if (!securityService.isValidToken(token.substring(7))) {
-                    log.debug("Bearer token is not valid");
-                    exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                    return exchange.getResponse().setComplete();
-                }
-            } catch (Exception e) {
-                log.error("Error while token validation", e);
-                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
-            }
-
-            return chain.filter(exchange);
+            log.debug("received Bearer token in Authorization Header");
+            return securityService.isValidToken(token.substring(7))
+                    .flatMap(isValid -> {
+                        if (!isValid) {
+                            log.warn("Bearer token is not valid");
+                            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                            return exchange.getResponse().setComplete();
+                        }
+                        // Если токен валиден, продолжаем цепочку фильтров
+                        return chain.filter(exchange);
+                    })
+                    .onErrorResume(e -> {
+                        log.error("Error while token validation", e);
+                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        return exchange.getResponse().setComplete();
+                    });
         };
     }
 

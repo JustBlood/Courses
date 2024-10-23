@@ -11,7 +11,8 @@ public class MessageEventDto<T extends MessageEventDto.MessageBody> {
     private MessageType type;
 
     public enum MessageType {
-        CHAT,
+        MESSAGE,
+        ATTACHMENT,
         JOIN,
         LEAVE,
         ERROR
@@ -31,7 +32,20 @@ public class MessageEventDto<T extends MessageEventDto.MessageBody> {
 
         @Override
         public MessageType getType() {
-            return MessageType.CHAT;
+            return MessageType.MESSAGE;
+        }
+    }
+
+    @EqualsAndHashCode(callSuper = false)
+    @Data
+    @AllArgsConstructor
+    public static class AttachmentMessageBody extends MessageBody {
+        private Long userId;
+        private String attachmentUrl;
+
+        @Override
+        public MessageType getType() {
+            return MessageType.ATTACHMENT;
         }
     }
 

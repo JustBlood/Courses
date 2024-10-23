@@ -10,6 +10,8 @@ service-discovery:
     name: USERS-SERVICE
   security-service:
     name: SECURITY-SERVICE
+  media-service:
+    name: MEDIA-SERVICE
 
 eureka:
   client:

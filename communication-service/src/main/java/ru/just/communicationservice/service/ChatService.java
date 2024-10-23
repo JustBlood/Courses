@@ -2,14 +2,19 @@ package ru.just.communicationservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.communicationservice.dto.ChatDto;
 import ru.just.communicationservice.dto.MessageEventDto;
 import ru.just.communicationservice.dto.integration.UserDto;
 import ru.just.communicationservice.model.Chat;
+import ru.just.communicationservice.model.Message;
 import ru.just.communicationservice.repository.ChatRepository;
+import ru.just.communicationservice.service.integration.MediaIntegrationService;
 import ru.just.communicationservice.service.integration.UserIntegrationService;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
@@ -23,9 +28,13 @@ import java.util.UUID;
 public class ChatService {
 
     private final ChatRepository chatRepository;
+    private final MessageService messageService;
     private final ThreadLocalTokenService tokenService;
     private final UserIntegrationService userIntegrationService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final MediaIntegrationService mediaIntegrationService;
+    @Lazy
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public ChatDto createChat() {
         Chat chat = new Chat();
@@ -81,9 +90,21 @@ public class ChatService {
         chat.getMemberIds().add(invitingUserId);
         log.info("Запрос в users_service с токеном {}", tokenService.getDecodedToken().getToken());
 
-        final MessageEventDto.JoinMessageBody body = new MessageEventDto.JoinMessageBody(userDto.get().getId());
-        messagingTemplate.convertAndSend("/topic/chat/" + chat, new MessageEventDto<>(body, body.getType()));
-
         chatRepository.save(chat);
+
+        final MessageEventDto.JoinMessageBody body = new MessageEventDto.JoinMessageBody(userDto.get().getId());
+        messagingTemplate.convertAndSend("/topic/chat/" + chatId, new MessageEventDto<>(body, body.getType()));
+    }
+
+    public void uploadAttachment(UUID chatId, MultipartFile file) {
+        String fullPathToAttachment = mediaIntegrationService.saveChatAttachmentPhoto(chatId, file);
+        final Long userId = tokenService.getUserId();
+        String presignedUrl = mediaIntegrationService.getPresignedUrlForAttachment(chatId, fullPathToAttachment);
+
+        final Message.AttachmentMessageBody messageBody = new Message.AttachmentMessageBody(presignedUrl, fullPathToAttachment);
+        messageService.saveMessage(chatId, tokenService.getUserId(), messageBody);
+
+        MessageEventDto.AttachmentMessageBody body = new MessageEventDto.AttachmentMessageBody(userId, presignedUrl);
+        messagingTemplate.convertAndSend("/topic/chat/" + chatId, new MessageEventDto<>(body, body.getType()));
     }
 }
