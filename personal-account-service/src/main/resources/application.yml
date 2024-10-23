@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: PERSONAL-ACCOUNT-SERVICE
+  datasource:
+    url: jdbc:postgresql://${DB_CONTAINER:localhost}:5432/personal_account_service
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    streams:
+      replication-factor: 1
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: courses
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ru.just.dtolib.kafka.*"
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+
+service-discovery:
+  users-service:
+    name: USERS-SERVICE
+  media-service:
+    name: MEDIA-SERVICE
+topics:
+  user-update-topic: userUpdate
+server:
+  port: 8086

@@ -1,0 +1,23 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+  application:
+    name: MEDIA-SERVICE
+server:
+  port: 8084
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+
+minio:
+  endpoint: ${MINIO_URL:http://localhost:9000}
+  accessKey: admin
+  secretKey: adminadmin
+  buckets:
+    users-data: users
+    courses-data: courses
+    chat-data: chat-attachments

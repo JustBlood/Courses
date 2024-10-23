@@ -1,0 +1,82 @@
+spring:
+  cloud:
+    gateway:
+#      globalcors:
+#        cors-configurations:
+#          '[/**]':
+#            allowedOrigins: "http://127.0.0.1:5502"
+#            allowedMethods:
+#              - GET
+#              - POST
+#              - PUT
+#              - PATCH
+#              - OPTIONS
+#            allowedHeaders: "*"
+#            allowCredentials: true
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: security-service-login-register
+          uri: lb://SECURITY-SERVICE
+          predicates:
+            - Path=/api/v1/auth/login, /api/v1/auth/register, /api/v1/auth/token/validate
+        - id: security-service-login-register
+          uri: lb://SECURITY-SERVICE
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: mentor-catalog-service
+          uri: lb://MENTOR-CATALOG-SERVICE
+          predicates:
+            - Path=/api/v1/mentors/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: personal-account-service
+          uri: lb://MENTOR-CATALOG-SERVICE
+          predicates:
+            - Path=/api/v1/user/account/data/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: minio-route
+          uri: ${MINIO_URL:http://localhost:9000}
+          predicates:
+            - Path=/media/**
+          filters:
+            - StripPrefix=1
+        - id: communication-service
+          uri: lb://COMMUNICATION-SERVICE
+          predicates:
+            - Path=/api/v1/chats/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: websocket-route
+          uri: lb://COMMUNICATION-SERVICE  # Целевой WebSocket-сервис (например, chat-service)
+          predicates:
+            - Path=/ws/chat/**  # Путь для WebSocket-соединений
+#          filters:
+#            - StripPrefix=1      # Убираем /ws
+  application:
+    name: API-GATEWAY
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+
+service-discovery:
+  security-service:
+    name: SECURITY-SERVICE
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    ru.just: DEBUG
+
+server:
+  port: 8080

@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: MENTOR-CATALOG-SERVICE
+  datasource:
+    url: jdbc:postgresql://${DB_CONTAINER:localhost}:5432/mentor_catalog_service
+    username: ${DB_NAME:postgres}
+    password: ${DB_PASSWORD:admin}
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog.xml
+
+service-discovery:
+  users-service:
+    name: USERS-SERVICE
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+server:
+  port: 8085
+logging:
+  level:
+    liquibase: debug

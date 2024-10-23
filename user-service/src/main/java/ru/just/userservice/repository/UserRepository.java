@@ -3,16 +3,20 @@ package ru.just.userservice.repository;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Result;
 import org.springframework.stereotype.Repository;
+import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
+import ru.just.model.tables.records.UsersRecord;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 
+import java.util.List;
 import java.util.Optional;
 
-import static ru.just.model.public_.tables.Users.USERS;
+import static ru.just.model.tables.Users.USERS;
 
 @RequiredArgsConstructor
 @Repository
@@ -36,6 +40,7 @@ public class UserRepository {
                 .withFirstName(record.get(USERS.FIRST_NAME))
                 .withLastName(record.get(USERS.LAST_NAME))
                 .withPhone(record.get(USERS.PHONE))
+                .withPhotoUrl(record.get(USERS.PHOTO_URL))
                 .withUserStatus(Enum.valueOf(UserStatus.class, record.get(USERS.STATUS)))
                 .withRegistrationDate(record.get(USERS.REGISTRATION_DATE));
     }
@@ -80,5 +85,26 @@ public class UserRepository {
                 .set(USERS.USERNAME, userDto.getUsername())
                 .set(USERS.PHONE, userDto.getPhone())
                 .where(USERS.USER_ID.eq(userId)).execute();
+    }
+
+    public void updateUserById(Long userId, UpdateUserAction userAction) {
+        jooq.update(USERS)
+                .set(USERS.FIRST_NAME, userAction.getFirstName())
+                .set(USERS.LAST_NAME, userAction.getLastName())
+                .set(USERS.PHONE, userAction.getPhone())
+                .where(USERS.USER_ID.eq(userId)).execute();
+    }
+
+    public void saveUserPhoto(Long userId, String photoUrl) {
+        jooq.update(USERS)
+                .set(USERS.PHOTO_URL, photoUrl)
+                .where(USERS.USER_ID.eq(userId)).execute();
+    }
+
+    public List<UserDto> findAllByIds(List<Long> usersInfoByIdsDto) {
+        final Result<UsersRecord> records = jooq.selectFrom(USERS)
+                .where(USERS.USER_ID.in(usersInfoByIdsDto))
+                .fetch();
+        return records.stream().map(this::mapUserToDto).toList();
     }
 }

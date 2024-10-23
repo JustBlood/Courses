@@ -29,6 +29,9 @@
                 <constraints checkConstraint="ANY (ARRAY['ACTIVE'::varchar,
                                 'DELETED'::varchar]::text[])" nullable="false" />
             </column>
+            <column name="photo_url" type="VARCHAR(256)" >
+                <constraints nullable="true" />
+            </column>
         </createTable>
 
         <createSequence sequenceName="user_change_event_id_seq" incrementBy="1" startValue="1" cacheSize="1" />

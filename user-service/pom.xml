@@ -16,7 +16,7 @@
     <properties>
         <java.version>21</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
-        <jooq.version>3.19.3</jooq.version>
+        <jooq.version>3.18.11</jooq.version>
     </properties>
     <dependencies>
         <dependency>
@@ -64,11 +64,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>com.auth0</groupId>
@@ -93,6 +93,15 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ru.just</groupId>
+            <artifactId>security-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
         </dependency>
     </dependencies>
 
@@ -126,6 +135,14 @@
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
                 <version>${jooq.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-sources</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
@@ -134,11 +151,25 @@
                         <password>admin</password>
                     </jdbc>
                     <generator>
+                        <database>
+                            <inputSchema>public</inputSchema>
+                        </database>
                         <target>
                             <packageName>ru.just.model</packageName>
                             <directory>target/generated-sources/jooq</directory>
                         </target>
                     </generator>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.liquibase</groupId>
+                <artifactId>liquibase-maven-plugin</artifactId>
+                <configuration>
+                    <searchPath>C:\Users\User\AllMine\prog\prog_java\mts\Courses\user-service\src\main\resources</searchPath>
+                    <changeLogFile>db/changelog/db.changelog.xml</changeLogFile>
+                    <url>jdbc:postgresql://localhost:5432/users_service</url>
+                    <username>postgres</username>
+                    <password>admin</password>
                 </configuration>
             </plugin>
         </plugins>

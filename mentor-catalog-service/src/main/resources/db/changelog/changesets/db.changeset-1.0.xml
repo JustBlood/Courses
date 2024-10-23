@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="1" author="Kirill Porozov">
+        <createSequence sequenceName="mentor_id_seq" startValue="1" incrementBy="1" />
+        <createTable tableName="mentor">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="mentor_id_seq">
+                <constraints primaryKey="true" primaryKeyName="mentor_id_pkey"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints unique="true" uniqueConstraintName="user_id_uq" />
+            </column>
+            <column name="short_about_me" type="VARCHAR(128)" defaultValue="">
+                <constraints nullable="false" />
+            </column>
+            <column name="long_about_me" type="VARCHAR(1024)" defaultValue="">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+
+        <createSequence sequenceName="specialization_id_seq" incrementBy="1" startValue="1" cacheSize="1" />
+        <createTable tableName="specialization">
+            <column name="id" type="BIGINT" defaultValueSequenceNext="specialization_id_seq">
+                <constraints primaryKey="true" primaryKeyName="specialization_id_pkey" />
+            </column>
+            <column name="name" type="VARCHAR(128)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+
+        <createTable tableName="mentor_specialization">
+            <column name="mentor_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="mentor_specialization_mentor_id_fkey"
+                             primaryKey="true" primaryKeyName="mentor_specialization_pkey" />
+            </column>
+            <column name="specialization_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="mentor_specialization_specialization_id_fkey"
+                             primaryKey="true" primaryKeyName="mentor_specialization_pkey" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="mentor_specialization" baseColumnNames="mentor_id"
+                                 constraintName="mentor_specialization_mentor_id_fkey"
+                                 referencedTableName="mentor"
+                                 referencedColumnNames="id" />
+        <addForeignKeyConstraint baseTableName="mentor_specialization" baseColumnNames="specialization_id"
+                                 constraintName="mentor_specialization_specialization_id_fkey"
+                                 referencedTableName="specialization"
+                                 referencedColumnNames="id" />
+
+        <createTable tableName="mentor_student">
+            <column name="mentor_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="mentor_student_mentor_id_fkey"
+                             primaryKey="true" primaryKeyName="mentor_student_pkey" />
+            </column>
+            <column name="student_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="mentor_student_pkey" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="mentor_student" baseColumnNames="mentor_id"
+                                 constraintName="mentor_student_mentor_id_fkey"
+                                 referencedTableName="mentor"
+                                 referencedColumnNames="id" />
+    </changeSet>
+</databaseChangeLog>

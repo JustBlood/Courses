@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: COMMUNICATION-SERVICE
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb://root:242171e6a6d3b0701e83f72d33432a8e9fa11068@localhost:27017/communication?authSource=admin}
+
+service-discovery:
+  users-service:
+    name: USERS-SERVICE
+  security-service:
+    name: SECURITY-SERVICE
+  media-service:
+    name: MEDIA-SERVICE
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+
+server:
+  port: 8087
+
+logging:
+  level:
+    ru.just: debug
+

@@ -4,9 +4,20 @@ services:
     image: redis:7.2.4-alpine
     restart: always
     networks:
-      - postgres
+      - db
     ports:
       - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
+      - REDIS_PORT=6379
+
+  api_gateway_redis:
+    image: redis:7.2.4-alpine
+    restart: always
+    networks:
+      - db
+    ports:
+      - "6380:6379"
     environment:
       - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
       - REDIS_PORT=6379
@@ -15,7 +26,7 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -25,7 +36,7 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
@@ -35,20 +46,88 @@ services:
     image: postgres
     restart: unless-stopped
     networks:
-      - postgres
+      - db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       POSTGRES_DB: security_service # todo: volumes
 
+  mentor_catalog_service_db:
+    image: postgres
+    restart: unless-stopped
+    networks:
+      - db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      POSTGRES_DB: mentor_catalog_service # todo: volumes
+
+  communication_service_db:
+    image: mongo:6.0
+    container_name: communication_service_db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      MONGO_INITDB_DATABASE: communication
+    networks:
+      - db
+    ports:
+      - "27017:27017"
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data
+    environment:
+      MINIO_SERVER_URL: "http://localhost:9000/"
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: adminadmin
+      MINIO_ADDRESS: ':9000'
+      MINIO_CONSOLE_ADDRESS: ':9001'
+    volumes:
+      - ./data:/data # Volume для хранения данных
+      - ./init-policies:/docker-entrypoint-init.d/
+    networks:
+      - spring
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    entrypoint: /bin/sh -c "/docker-entrypoint-init.d/init-policies.sh & minio server /data"
+
 #                         ======================= SERVICES ==============================
+
+  eureka_server:
+    container_name: eureka-server
+    restart: always
+    build: ./eureka-server
+    networks:
+      - spring
+    ports:
+      - "8761:8761"
+
+  api-gateway:
+    container_name: api-gateway
+    restart: always
+    build: ./api-gateway
+    networks:
+      - spring
+    environment:
+      MINIO_URL: http://minio:9000
+      EUREKA_URI: http://eureka-server:8761/eureka
+      REDIS_HOST: api_gateway_redis
+      REDIS_PORT: 6380
+    depends_on:
+      - api_gateway_redis
+    ports:
+      - "8080:8080"
 
   courses_service:
     container_name: courses_service
     restart: always
     build: ./courses-service
     networks:
-      - postgres
+      - db
       - spring
     depends_on:
       - courses_service_db
@@ -59,12 +138,19 @@ services:
     container_name: user_service
     restart: always
     build: ./user-service
+    environment:
+      DB_CONTAINER: user_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      EUREKA_URI: http://eureka-server:8761/eureka
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      REDIS_HOST: users_service_redis
+      REDIS_PORT: 6379
     networks:
-      - postgres
+      - db
       - spring
     depends_on:
       - user_service_db
-      - users_service_redis
     ports:
       - "8082:8082"
 
@@ -72,14 +158,82 @@ services:
     container_name: security_service
     restart: always
     build: ./security-service
+    environment:
+      DB_CONTAINER: security_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      EUREKA_URI: http://eureka-server:8761/eureka
     networks:
-      - postgres
+      - db
       - spring
     depends_on:
-      security_service_db:
-        condition: service_healthy
+      - security_service_db
     ports:
       - "8083:8083"
+
+  media_service:
+    container_name: media_service
+    restart: always
+    build: ./media-service
+    environment:
+      MINIO_URL: http://minio:9000
+      EUREKA_URI: http://eureka-server:8761/eureka
+    networks:
+      - spring
+    depends_on:
+      - minio
+    ports:
+      - "8084:8084"
+
+  mentor_catalog_service:
+    container_name: mentor_catalog_service
+    restart: always
+    build: ./mentor-catalog-service
+    environment:
+      DB_CONTAINER: mentor_catalog_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      EUREKA_URI: http://eureka-server:8761/eureka
+    networks:
+      - spring
+      - db
+    depends_on:
+      - mentor_catalog_service_db
+    ports:
+      - "8085:8085"
+
+  personal_account_service:
+    container_name: personal_account_service
+    restart: always
+    build: ./personal-account-service
+    environment:
+      DB_CONTAINER: personal_account_service_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      EUREKA_URI: http://eureka-server:8761/eureka
+    networks:
+      - spring
+      - db
+    ports:
+      - "8086:8086"
+
+  communication_service:
+    container_name: communication_service
+    restart: always
+    build: ./communication-service
+    environment:
+      MONGO_URI: mongodb://root:242171e6a6d3b0701e83f72d33432a8e9fa11068@communication_service_db:27017/communication?authSource=admin
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
+      EUREKA_URI: http://eureka-server:8761/eureka
+    depends_on:
+      - communication_service_db
+    networks:
+      - spring
+      - db
+    ports:
+      - "8087:8087"
 
   kafka-zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -106,12 +260,43 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'kafka-zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092,PLAINTEXT_INTERNAL://broker:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
-networks:
-  postgres:
-  spring:
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: kafka-zookeeper:2181
+    networks:
+      - spring
+    depends_on:
+      - kafka-broker
 
+  mongo-express:
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=communication_service_db
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_OPTIONS_NO_DELAY=true
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+      - ME_CONFIG_MONGODB_AUTH_USERNAME=root
+      - ME_CONFIG_MONGODB_AUTH_PASSWORD=242171e6a6d3b0701e83f72d33432a8e9fa11068
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+    networks:
+      - db
+      - spring
+    ports:
+      - "8888:8081"
+
+networks:
+  db:
+  spring:

@@ -1,43 +1,46 @@
 package ru.just.userservice.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.response.ApiResponse;
-import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
+import java.io.IOException;
+import java.util.List;
+
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/users/admin")
+@RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable Long userId) {
-        return ResponseEntity.of(userService.getUserById(userId));
+    @GetMapping
+    public ResponseEntity<List<UserDto>> getUsersInfoByIds(@RequestParam(name = "ids") List<Long> usersInfoByIdsDto) {
+        return ResponseEntity.ok(userService.getUsersByIds(usersInfoByIdsDto));
     }
 
-    @PostMapping
-    public ResponseEntity<UserDto> saveUser(@Valid @RequestBody CreateUserDto createUserDto) {
-        UserDto userDto = userService.createUser(createUserDto);
-        return new ResponseEntity<>(userDto, HttpStatus.CREATED);
+    @GetMapping("/byId")
+    public ResponseEntity<UserDto> getUserInfoById() {
+        return ResponseEntity.of(userService.getUserByIdFromToken());
     }
 
-    @PutMapping("/{userId}")
-    public ResponseEntity<Void> updateUser(@PathVariable Long userId,
-                                              @Valid @RequestBody UpdateUserDto userDto) {
-        userService.updateUser(userId, userDto);
+    @PutMapping("/byId")
+    public ResponseEntity<Void> updateUserInfo(@Valid @RequestBody UpdateUserDto userDto) {
+        userService.updateUser(userDto);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<ApiResponse> deleteUser(@PathVariable Long userId) {
-        userService.deleteUser(userId);
-        return new ResponseEntity<>(new ApiResponse("user was successfully deleted"), HttpStatus.OK);
+    @PostMapping("/photo")
+    public ResponseEntity<ApiResponse> addPhoto(HttpServletRequest httpServletRequest) throws IOException {
+        final String message = "Success adding photo to user";
+        userService.addPhotoToUser(httpServletRequest.getInputStream());
+        ApiResponse apiResponse = new ApiResponse(message);
+        return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
 }
