@@ -70,7 +70,8 @@ public class SecurityConfig {
                         authorizeHttpRequests
                                 .requestMatchers("/api/v1/auth/register",
                                         "/api/v1/auth/login",
-                                        "api/v1/auth/token/validate").permitAll()
+                                        "api/v1/auth/token/validate",
+                                        "/security-service/v1/api-docs").permitAll()
                                 .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(sessionManagement -> sessionManagement

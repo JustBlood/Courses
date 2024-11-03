@@ -23,6 +23,11 @@ spring:
       properties:
         spring.json.trusted.packages: 'ru.just.dtolib.kafka.*'
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /security-service/v1/api-docs
+
 eureka:
   client:
     enabled: true

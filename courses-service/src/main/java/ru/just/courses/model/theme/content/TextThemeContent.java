@@ -13,12 +13,12 @@ import java.sql.Clob;
 @Entity
 @Table(name = "theme_text_content")
 public class TextThemeContent extends ThemeContent {
-    public TextThemeContent(Clob text, Long themeId) {
-        super(themeId);
-        this.text = text;
-    }
-
     @Lob @Basic(fetch = FetchType.LAZY)
     @Column(nullable = false)
     private Clob text;
+
+    public TextThemeContent(Clob text, Long themeId, Integer ordinalNumber) {
+        super(themeId, ordinalNumber);
+        this.text = text;
+    }
 }

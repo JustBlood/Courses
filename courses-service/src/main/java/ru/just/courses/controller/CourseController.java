@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.courses.dto.CourseDto;
 import ru.just.courses.dto.CreateCourseDto;
+import ru.just.courses.dto.UpdateCourseDto;
 import ru.just.courses.service.CourseService;
 import ru.just.dtolib.response.ApiResponse;
 
@@ -36,7 +37,7 @@ public class CourseController {
     }
 
     @PutMapping("/{courseId}")
-    public ResponseEntity<ApiResponse> updateCourse(@PathVariable("courseId") Long courseId, @Valid @RequestBody CreateCourseDto courseDto) {
+    public ResponseEntity<ApiResponse> updateCourse(@PathVariable("courseId") Long courseId, @Valid @RequestBody UpdateCourseDto courseDto) {
         service.updateCourse(courseId, courseDto);
         final String message = String.format(SUCCESS_OPERATION_MESSAGE_TEMPLATE, "updating", courseId);
         ApiResponse apiResponse = new ApiResponse(message);
@@ -49,11 +50,5 @@ public class CourseController {
         final String message = String.format(SUCCESS_OPERATION_MESSAGE_TEMPLATE, "deleting", courseId);
         ApiResponse apiResponse = new ApiResponse(message);
         return new ResponseEntity<>(apiResponse, HttpStatus.OK);
-    }
-
-    @PostMapping("/{courseId}/assign")
-    public ResponseEntity<ApiResponse> assignUser(@PathVariable Long courseId, @RequestParam Long userId) {
-        service.assignUser(courseId, userId);
-        return new ResponseEntity<>(new ApiResponse("User successfully assign to course"), HttpStatus.CREATED);
     }
 }

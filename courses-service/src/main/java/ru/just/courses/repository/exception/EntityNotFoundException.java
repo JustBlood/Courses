@@ -1,4 +1,4 @@
-package ru.just.courses.repository.exceptions;
+package ru.just.courses.repository.exception;
 
 public class EntityNotFoundException extends RuntimeException {
     public EntityNotFoundException(String message) {

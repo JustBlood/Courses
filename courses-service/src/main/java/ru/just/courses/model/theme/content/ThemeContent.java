@@ -15,4 +15,5 @@ import lombok.Setter;
 public abstract class ThemeContent {
     @Id @JoinColumn(name = "theme_id")
     private Long themeId;
+    private Integer ordinalNumber;
 }

@@ -9,6 +9,11 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog.xml
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /mentor-catalog-service/v1/api-docs
+
 service-discovery:
   users-service:
     name: USERS-SERVICE

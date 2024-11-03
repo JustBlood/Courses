@@ -14,6 +14,7 @@ public class ModuleDto extends Dto<Module> {
     private Long id;
     private String title;
     private String description;
+    private Integer ordinalNumber;
     private Long courseId;
 
     @Override
@@ -22,6 +23,7 @@ public class ModuleDto extends Dto<Module> {
         title = entity.getTitle();
         description = entity.getDescription();
         courseId = entity.getCourse().getId();
+        ordinalNumber = entity.getOrdinalNumber();
         return this;
     }
 
@@ -31,6 +33,7 @@ public class ModuleDto extends Dto<Module> {
                 .withId(id)
                 .withTitle(title)
                 .withDescription(description)
+                .withOrdinalNumber(ordinalNumber)
                 .withCourse(new Course().withId(courseId));
     }
 }
