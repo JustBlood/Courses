@@ -7,6 +7,7 @@ import ru.just.courses.dto.CreateModuleDto;
 import ru.just.courses.dto.ModuleDto;
 import ru.just.courses.model.Module;
 import ru.just.courses.repository.ModuleRepository;
+import ru.just.courses.repository.exception.EntityNotFoundException;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.NoSuchElementException;
@@ -27,13 +28,19 @@ public class ModuleService {
     }
 
     public void deleteModuleById(Long moduleId) {
+        checkCourseAuthor(moduleId);
         final Optional<Module> moduleOptional = moduleRepository.findById(moduleId);
         if (moduleOptional.isEmpty()) {
             throw new NoSuchElementException("module with specified id doesn't exists");
         }
-        if (!moduleOptional.get().getCourse().getAuthorId().equals(tokenService.getUserId())) {
+        moduleRepository.deleteById(moduleId);
+    }
+
+    public void checkCourseAuthor(Long moduleId) {
+        Module module = moduleRepository.findById(moduleId)
+                .orElseThrow(() -> new EntityNotFoundException("Module with specified id not found"));
+        if (!module.getCourse().getAuthorId().equals(tokenService.getUserId())) {
             throw new MethodNotAllowedException("You are not a course author");
         }
-        moduleRepository.deleteById(moduleId);
     }
 }

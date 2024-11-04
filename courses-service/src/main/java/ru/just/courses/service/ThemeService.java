@@ -8,10 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.courses.controller.exception.MethodNotAllowedException;
 import ru.just.courses.dto.CreateThemeDto;
 import ru.just.courses.dto.ThemeDto;
-import ru.just.courses.model.Module;
 import ru.just.courses.model.theme.Theme;
 import ru.just.courses.model.theme.content.TextThemeContent;
-import ru.just.courses.repository.ModuleRepository;
 import ru.just.courses.repository.TextThemeContentRepository;
 import ru.just.courses.repository.ThemeRepository;
 import ru.just.courses.repository.exception.EntityNotFoundException;
@@ -21,14 +19,13 @@ import ru.just.securitylib.service.ThreadLocalTokenService;
 import java.io.*;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
 public class ThemeService {
     private final ThemeRepository themeRepository;
-    private final ModuleRepository moduleRepository;
+    private final ModuleService moduleService;
     private final TextThemeContentRepository textContentRepository;
     private final ThreadLocalTokenService tokenService;
     private final EntityManager entityManager;
@@ -38,23 +35,19 @@ public class ThemeService {
     }
 
     public ThemeDto createTheme(CreateThemeDto dto) {
-        final Optional<Module> moduleOptional = moduleRepository.findById(dto.getModuleId());
-        if (moduleOptional.isEmpty()) {
-            throw new NoSuchElementException("module with specified id doesn't exists");
-        }
-        checkCourseAuthor(dto.toEntity().withModule(moduleOptional.get()));
+        moduleService.checkCourseAuthor(dto.getModuleId());
 
         final Theme theme = themeRepository.save(dto.toEntity());
         return new ThemeDto().fromEntity(theme);
     }
 
     public void deleteById(Long themeId) {
-        checkCourseAuthor(themeRepository.findById(themeId).orElseThrow(() -> new EntityNotFoundException("Theme with specified id not found")));
+        checkCourseAuthor(themeId);
         themeRepository.deleteById(themeId);
     }
 
     public void addTextContentToTheme(Long themeId, InputStream inputStream, long length, Integer ordinalNumber) {
-        checkCourseAuthor(themeRepository.findById(themeId).orElseThrow(() -> new EntityNotFoundException("Theme with specified id not found")));
+        checkCourseAuthor(themeId);
         Session session = entityManager.unwrap(Session.class);
         BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
         Clob text = session.getLobHelper().createClob(br, length);
@@ -81,7 +74,9 @@ public class ThemeService {
         }
     }
 
-    private void checkCourseAuthor(Theme theme) {
+    public void checkCourseAuthor(Long themeId) {
+        Theme theme = themeRepository.findById(themeId)
+                .orElseThrow(() -> new EntityNotFoundException("Theme with specified id not found"));
         if (!theme.getModule().getCourse().getAuthorId().equals(tokenService.getUserId())) {
             throw new MethodNotAllowedException("You are not a course author");
         }

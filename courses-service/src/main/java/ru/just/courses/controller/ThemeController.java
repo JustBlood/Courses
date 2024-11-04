@@ -55,9 +55,4 @@ public class ThemeController {
         StreamingResponseBody streamingResponseBody = out -> themeService.writeTextThemeContentToResponse(themeId, out);
         return new ResponseEntity<>(streamingResponseBody, HttpStatus.OK);
     }
-
-//    @PostMapping(value = "{themeId}/exercises/test") // TODO: доделать
-//    public ResponseEntity<ApiResponse> createTestExercise(@PathVariable("themeId") Long themeId) {
-//
-//    }
 }

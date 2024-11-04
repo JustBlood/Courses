@@ -1,8 +1,5 @@
 package ru.just.courses.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,17 +11,13 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TestExerciseDto extends Dto<TestExercise> {
-    @NotNull(message = "unique ordinal number in theme for exercise should be specified")
+public class PatchTestExerciseDto extends Dto<TestExercise> {
     private Integer ordinalNumber;
-    @NotNull(message = "possible answers should be specified")
-    @Size(min = 2, message = "possible answers size should be greater then 1")
     private List<String> possibleAnswers;
-    @NotBlank(message = "answer should be specified")
     private String answer;
 
     @Override
-    public TestExerciseDto fromEntity(TestExercise entity) {
+    public Dto<TestExercise> fromEntity(TestExercise entity) {
         possibleAnswers = entity.getPossibleAnswers();
         ordinalNumber = entity.getOrdinalNumber();
         answer = entity.getAnswer();
