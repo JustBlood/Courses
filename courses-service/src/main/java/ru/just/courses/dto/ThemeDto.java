@@ -16,7 +16,7 @@ public class ThemeDto extends Dto<Theme> {
     private String title;
     private String description;
     private Long moduleId;
-    private Integer themeOrder;
+    private Integer ordinalNumber;
     private ContentType contentType;
 
     @Override
@@ -25,7 +25,7 @@ public class ThemeDto extends Dto<Theme> {
         title = entity.getTitle();
         description = entity.getDescription();
         moduleId = entity.getModule().getId();
-        themeOrder = entity.getThemeOrder();
+        ordinalNumber = entity.getOrdinalNumber();
         contentType = entity.getContentType();
         return this;
     }
@@ -37,7 +37,7 @@ public class ThemeDto extends Dto<Theme> {
                 .withTitle(title)
                 .withDescription(description)
                 .withModule(new Module().withId(moduleId))
-                .withThemeOrder(themeOrder)
+                .withOrdinalNumber(ordinalNumber)
                 .withContentType(contentType);
     }
 }

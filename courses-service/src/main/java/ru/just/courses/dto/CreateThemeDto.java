@@ -22,7 +22,7 @@ public class CreateThemeDto extends Dto<Theme> {
     @NotNull(message = "module should be specified")
     private Long moduleId;
     @NotNull(message = "theme order in module should be specified")
-    private Integer themeOrder;
+    private Integer ordinalNumber;
     @NotNull(message = "content type should be specified")
     @EnumValue(enumClass = ContentType.class, message = "incorrect content type. You can use: TEXT, VIDEO, AUDIO")
     private String contentType;
@@ -32,7 +32,7 @@ public class CreateThemeDto extends Dto<Theme> {
         title = entity.getTitle();
         description = entity.getDescription();
         moduleId = entity.getModule().getId();
-        themeOrder = entity.getThemeOrder();
+        ordinalNumber = entity.getOrdinalNumber();
         contentType = entity.getContentType().name();
         return this;
     }
@@ -43,7 +43,7 @@ public class CreateThemeDto extends Dto<Theme> {
                 .withTitle(title)
                 .withDescription(description)
                 .withModule(new Module().withId(moduleId))
-                .withThemeOrder(themeOrder)
+                .withOrdinalNumber(ordinalNumber)
                 .withContentType(ContentType.valueOf(contentType));
     }
 }

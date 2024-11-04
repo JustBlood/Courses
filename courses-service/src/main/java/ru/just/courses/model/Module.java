@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "module")
+@Table(name = "module", uniqueConstraints = {@UniqueConstraint(columnNames = {"course_id", "ordinal_number"})})
 public class Module {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "id_seq")
@@ -26,6 +26,8 @@ public class Module {
     private String description;
     @ManyToOne(optional = false)
     private Course course; //todo: index
+    @Column(name = "ordinal_number", nullable = false)
+    private Integer ordinalNumber;
     @OneToMany(mappedBy = "module")
     private List<Theme> themes;
     @OneToMany(mappedBy = "module")

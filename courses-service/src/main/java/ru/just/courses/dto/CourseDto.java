@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.just.courses.model.course.Course;
-import ru.just.courses.model.user.User;
 import ru.just.dtolib.base.Dto;
 
 import java.time.ZonedDateTime;
@@ -25,7 +24,7 @@ public class CourseDto extends Dto<Course> {
     @Override
     public CourseDto fromEntity(Course entity) {
         id = entity.getId();
-        author_id = entity.getAuthor().getUserId();
+        author_id = entity.getAuthorId();
         title = entity.getTitle();
         description = entity.getDescription();
         completionTimeInHours = entity.getCompletionTimeInHours();
@@ -41,7 +40,7 @@ public class CourseDto extends Dto<Course> {
                 .withDescription(description)
                 .withCompletionTimeInHours(completionTimeInHours)
                 .withCreatedAt(createdAt)
-                .withAuthor(new User().withUserId(author_id));
+                .withAuthorId(author_id);
     }
 
 }

@@ -4,11 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import ru.just.courses.model.Module;
 import ru.just.courses.model.audit.CourseChangeEvent;
-import ru.just.courses.model.user.User;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Set;
 
 @Getter
 @Setter
@@ -25,20 +23,14 @@ public class Course {
     private String title;
     @Column(length = 2048)
     private String description;
-    @ManyToOne
-    private User author; // todo: index
+    @Column(nullable = false)
+    private Long authorId; // todo: index
     @Column(nullable = false, updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
     private Integer completionTimeInHours; // todo: index
+    private Boolean completionPercentForCertificate;
     @OneToMany(mappedBy = "course", orphanRemoval = true,  cascade = CascadeType.ALL)
     private List<Module> modules;
-    @ManyToMany
-    private Set<User> users;
     @OneToMany(mappedBy = "course")
     private List<CourseChangeEvent> courseChangeEvents;
-
-    public void addLesson(Module module) {
-        module.setCourse(this);
-        this.modules.add(module);
-    }
 }

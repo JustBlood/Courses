@@ -55,8 +55,19 @@ spring:
           uri: lb://COMMUNICATION-SERVICE  # Целевой WebSocket-сервис (например, chat-service)
           predicates:
             - Path=/ws/chat/**  # Путь для WebSocket-соединений
-#          filters:
-#            - StripPrefix=1      # Убираем /ws
+        - id: security-service-openapi
+          uri: lb://SECURITY-SERVICE
+          predicates:
+            - Path=/security-service/v1/api-docs
+        - id: mentor-catalog-service-openapi
+          uri: lb://MENTOR-CATALOG-SERVICE
+          predicates:
+            - Path=/mentor-catalog-service/v1/api-docs
+        - id: communication-service-openapi
+          uri: lb://COMMUNICATION-SERVICE
+          predicates:
+            - Path=/communication-service/v1/api-docs
+
   application:
     name: API-GATEWAY
   data:
@@ -80,3 +91,18 @@ logging:
 
 server:
   port: 8080
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      -   name: security-service
+          url: /security-service/v1/api-docs
+      -   name: mentor-catalog-service
+          url: /mentor-catalog-service/v1/api-docs
+      -   name: communication-service
+          url: /communication-service/v1/api-docs

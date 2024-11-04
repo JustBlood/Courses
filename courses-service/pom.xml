@@ -39,6 +39,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ru.just</groupId>
+            <artifactId>security-starter</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!-- logging sql -->
         <dependency>
             <groupId>com.github.gavlyukovskiy</groupId>

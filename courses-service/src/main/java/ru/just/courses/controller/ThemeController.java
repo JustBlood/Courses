@@ -1,8 +1,8 @@
 package ru.just.courses.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,16 +13,13 @@ import ru.just.courses.dto.ThemeDto;
 import ru.just.courses.service.ThemeService;
 import ru.just.dtolib.response.ApiResponse;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.io.InputStream;
 
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/themes")
 public class ThemeController {
     private final ThemeService themeService;
-    private final ExecutorService asyncStreamingDataExecutor = Executors.newCachedThreadPool();
 
     @GetMapping("/{themeId}")
     public ResponseEntity<ThemeDto> getThemeById(@PathVariable Long themeId) {
@@ -42,21 +39,20 @@ public class ThemeController {
         return new ResponseEntity<>(apiResponse, HttpStatus.OK);
     }
 
-    @PostMapping(value = "/content/text/{themeId}", consumes = MediaType.TEXT_PLAIN_VALUE)
+    @PostMapping(value = "{themeId}/content/text")
     public ResponseEntity<ApiResponse> createTextThemeContent(@PathVariable("themeId") Long themeId,
-                                                              @RequestParam(name = "charactersLength") Integer textLength,
-                                                              HttpServletRequest httpServletRequest) throws IOException {
+                                                              @RequestParam("ordinalNumber") Integer ordinalNumber,
+                                                              @RequestBody InputStream inputStream,
+                                                              @RequestHeader(name = HttpHeaders.CONTENT_LENGTH, defaultValue = "-1L") String contentLength) {
         final String message = String.format("Success adding text content to theme with id = %s", themeId);
-        themeService.addTextContentToTheme(themeId, httpServletRequest.getInputStream(), textLength);
+        themeService.addTextContentToTheme(themeId, inputStream, Long.parseLong(contentLength), ordinalNumber);
         ApiResponse apiResponse = new ApiResponse(message);
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
 
-    @GetMapping(value = "/content/text/{themeId}", produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping(value = "{themeId}/content/text", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<StreamingResponseBody> getThemeTextContent(@PathVariable("themeId") Long themeId) {
-        StreamingResponseBody streamingResponseBody = out -> {
-            themeService.writeTextThemeContentToResponse(themeId, out);
-        };
+        StreamingResponseBody streamingResponseBody = out -> themeService.writeTextThemeContentToResponse(themeId, out);
         return new ResponseEntity<>(streamingResponseBody, HttpStatus.OK);
     }
 }

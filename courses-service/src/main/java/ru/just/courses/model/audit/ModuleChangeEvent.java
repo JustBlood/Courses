@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.just.courses.model.Module;
-import ru.just.courses.model.user.User;
 import ru.just.dtolib.audit.ChangeType;
 
 import java.time.LocalDateTime;
@@ -25,9 +24,7 @@ public class ModuleChangeEvent {
     private Long id;
     @Enumerated(EnumType.STRING)
     private ChangeType changeType;
-    @ManyToOne
-    @JoinColumn(name = "author_id")
-    private User author;
+    private Long authorId;
     @Column(nullable = false)
     private LocalDateTime changeTime = LocalDateTime.now();
     @ManyToOne

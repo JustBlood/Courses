@@ -4,10 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import ru.just.courses.model.course.Course;
-import ru.just.courses.model.user.User;
 import ru.just.dtolib.base.Dto;
 
 import java.time.ZonedDateTime;
@@ -22,17 +20,14 @@ public class CreateCourseDto extends Dto<Course> {
     private String description;
     private ZonedDateTime createdAt = ZonedDateTime.now();
     @NotNull(message = "course completion time must be specified")
-    private Integer completionTime;
-    @NotNull(message = "author id must be specified")
-    private Long authorId;
+    private Integer completionTimeInHours;
 
     @Override
     public CreateCourseDto fromEntity(Course entity) {
         title = entity.getTitle();
         description = entity.getDescription();
         createdAt = entity.getCreatedAt();
-        completionTime = entity.getCompletionTimeInHours();
-        authorId = entity.getAuthor().getUserId();
+        completionTimeInHours = entity.getCompletionTimeInHours();
         return this;
     }
 
@@ -42,7 +37,6 @@ public class CreateCourseDto extends Dto<Course> {
                 .withTitle(title)
                 .withDescription(description)
                 .withCreatedAt(createdAt)
-                .withCompletionTimeInHours(completionTime)
-                .withAuthor(new User().withUserId(authorId));
+                .withCompletionTimeInHours(completionTimeInHours);
     }
 }

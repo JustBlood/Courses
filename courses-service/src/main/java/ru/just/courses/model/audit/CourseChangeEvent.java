@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import ru.just.courses.model.course.Course;
-import ru.just.courses.model.user.User;
 import ru.just.dtolib.audit.ChangeType;
 
 import java.time.ZonedDateTime;
@@ -21,9 +20,7 @@ public class CourseChangeEvent {
     private Long id;
     @Enumerated(EnumType.STRING)
     private ChangeType changeType;
-    @ManyToOne
-    @JoinColumn(name = "author_id")
-    private User author;
+    private Long authorId;
     @Column(nullable = false)
     private ZonedDateTime changeTime = ZonedDateTime.now();
     @ManyToOne

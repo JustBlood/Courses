@@ -17,6 +17,8 @@ public class CreateModuleDto extends Dto<Module> {
     private String title;
     @NotNull(message = "description should not be null")
     private String description;
+    @NotNull(message = "ordinalNumber should not be null")
+    private Integer ordinalNumber;
     @NotNull(message = "course id should be specified")
     private Long courseId;
 
@@ -25,6 +27,7 @@ public class CreateModuleDto extends Dto<Module> {
         title = entity.getTitle();
         description = entity.getDescription();
         courseId = entity.getCourse().getId();
+        ordinalNumber = entity.getOrdinalNumber();
         return this;
     }
 
@@ -33,6 +36,7 @@ public class CreateModuleDto extends Dto<Module> {
         return new Module()
                 .withTitle(title)
                 .withDescription(description)
+                .withOrdinalNumber(ordinalNumber)
                 .withCourse(new Course().withId(courseId));
     }
 }
