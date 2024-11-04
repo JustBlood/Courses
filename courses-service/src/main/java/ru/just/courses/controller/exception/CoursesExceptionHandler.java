@@ -43,4 +43,9 @@ public class CoursesExceptionHandler {
     public ResponseEntity<ApiError> methodNotAllowedExceptionHandler(MethodNotAllowedException ex) {
         return new ResponseEntity<>(new ApiError(LocalDateTime.now(), ex.getMessage()), HttpStatus.FORBIDDEN);
     }
+
+    @ExceptionHandler(value = {BadArgumentsException.class})
+    public ResponseEntity<ApiError> badArgumentsExceptionHandler(BadArgumentsException ex) {
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), ex.getMessage()), HttpStatus.CONFLICT);
+    }
 }

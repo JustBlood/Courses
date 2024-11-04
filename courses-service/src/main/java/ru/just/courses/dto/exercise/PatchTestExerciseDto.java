@@ -1,4 +1,4 @@
-package ru.just.courses.dto;
+package ru.just.courses.dto.exercise;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

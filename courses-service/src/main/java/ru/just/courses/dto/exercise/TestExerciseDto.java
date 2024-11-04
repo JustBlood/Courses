@@ -1,4 +1,4 @@
-package ru.just.courses.dto;
+package ru.just.courses.dto.exercise;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
