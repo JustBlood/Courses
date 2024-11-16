@@ -1,4 +1,4 @@
-package ru.just.courses.model.theme.exercise;
+package ru.just.courses.model.theme.lesson;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -13,17 +13,17 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(columnNames = {"theme_id", "ordinal_number"})})
-public class MultiTestExercise extends Exercise {
+public class TestLesson extends Lesson {
+    private String condition;
     @Convert(converter = StringListAttributeConverter.class)
     @Column(name = "possible_answers", nullable = false)
     private List<String> possibleAnswers;
-    @Convert(converter = StringListAttributeConverter.class)
-    @Column(name = "correctAnswers", nullable = false)
-    private List<String> correctAnswers;
+    private String answer;
 
-    public MultiTestExercise(Integer ordinalNumber, List<String> possibleAnswers, List<String> correctAnswers) {
-        super(null, null, ordinalNumber);
+    public TestLesson(Integer ordinalNumber, String condition, List<String> possibleAnswers, String answer) {
+        super(null, null, ordinalNumber, LessonType.TEST);
+        this.condition = condition;
         this.possibleAnswers = possibleAnswers;
-        this.correctAnswers = correctAnswers;
+        this.answer = answer;
     }
 }

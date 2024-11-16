@@ -7,8 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.With;
 import ru.just.courses.model.Module;
 import ru.just.courses.model.audit.ThemeChangeEvent;
-import ru.just.courses.model.theme.content.ThemeContent;
-import ru.just.courses.model.theme.exercise.Exercise;
+import ru.just.courses.model.theme.lesson.Lesson;
 
 import java.util.List;
 import java.util.Set;
@@ -36,9 +35,7 @@ public class Theme {
     @Column(nullable = false) @Enumerated(value = EnumType.STRING)
     private ContentType contentType;
     @OneToMany
-    private Set<ThemeContent> themeContents;
-    @OneToMany
-    private Set<Exercise> exercises;
+    private Set<Lesson> lessons;
     @OneToMany(mappedBy = "theme")
     private List<ThemeChangeEvent> themeChangeEvents;
 }

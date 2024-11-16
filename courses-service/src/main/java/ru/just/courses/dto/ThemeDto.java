@@ -3,10 +3,12 @@ package ru.just.courses.dto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import ru.just.courses.dto.lesson.ShortLessonDto;
 import ru.just.courses.model.Module;
-import ru.just.courses.model.theme.ContentType;
 import ru.just.courses.model.theme.Theme;
 import ru.just.dtolib.base.Dto;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -17,7 +19,7 @@ public class ThemeDto extends Dto<Theme> {
     private String description;
     private Long moduleId;
     private Integer ordinalNumber;
-    private ContentType contentType;
+    private List<ShortLessonDto> lessons;
 
     @Override
     public ThemeDto fromEntity(Theme entity) {
@@ -26,7 +28,7 @@ public class ThemeDto extends Dto<Theme> {
         description = entity.getDescription();
         moduleId = entity.getModule().getId();
         ordinalNumber = entity.getOrdinalNumber();
-        contentType = entity.getContentType();
+        lessons = entity.getLessons().stream().map(lesson -> new ShortLessonDto().fromEntity(lesson)).toList();
         return this;
     }
 
@@ -37,7 +39,6 @@ public class ThemeDto extends Dto<Theme> {
                 .withTitle(title)
                 .withDescription(description)
                 .withModule(new Module().withId(moduleId))
-                .withOrdinalNumber(ordinalNumber)
-                .withContentType(contentType);
+                .withOrdinalNumber(ordinalNumber);
     }
 }
