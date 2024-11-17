@@ -34,7 +34,9 @@ public class LessonDto {
     @Setter
     @NoArgsConstructor
     @SuperBuilder
-    public static class HtmlLessonDto extends LessonDto { } // контент html получается по другому ендпоинту потоковой передачей
+    public static class HtmlLessonDto extends LessonDto {
+        private String html;
+    } // контент html получается по другому ендпоинту потоковой передачей
 
     @Getter
     @Setter

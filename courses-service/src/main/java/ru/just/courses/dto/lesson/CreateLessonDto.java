@@ -34,9 +34,11 @@ public class CreateLessonDto {
     @Setter
     @NoArgsConstructor
     public static class HtmlLessonDto extends CreateLessonDto {
+        private String html;
+
         @Override
         public HtmlLesson getModel() {
-            final HtmlLesson htmlLesson = new HtmlLesson(getOrdinalNumber());
+            final HtmlLesson htmlLesson = new HtmlLesson(getOrdinalNumber(), html);
             htmlLesson.setTheme(new Theme().withId(getThemeId()));
             return htmlLesson;
         }
@@ -51,7 +53,7 @@ public class CreateLessonDto {
 
         @Override
         public CodeLesson getModel() {
-            final CodeLesson testLesson = new CodeLesson(getOrdinalNumber(), getCondition(), getCodeTests());
+            final CodeLesson testLesson = new CodeLesson(getOrdinalNumber(), condition, codeTests);
             testLesson.setTheme(new Theme().withId(getThemeId()));
             return testLesson;
         }
@@ -67,7 +69,7 @@ public class CreateLessonDto {
 
         @Override
         public TestLesson getModel() {
-            final TestLesson testLesson = new TestLesson(getOrdinalNumber(), getCondition(), getPossibleAnswers(), getAnswer());
+            final TestLesson testLesson = new TestLesson(getOrdinalNumber(), condition, possibleAnswers, answer);
             testLesson.setTheme(new Theme().withId(getThemeId()));
             return testLesson;
         }
@@ -83,7 +85,7 @@ public class CreateLessonDto {
 
         @Override
         public MultiTestLesson getModel() {
-            final MultiTestLesson testLesson = new MultiTestLesson(getOrdinalNumber(), getPossibleAnswers(), getCorrectAnswers());
+            final MultiTestLesson testLesson = new MultiTestLesson(getOrdinalNumber(), possibleAnswers, correctAnswers);
             testLesson.setTheme(new Theme().withId(getThemeId()));
             return testLesson;
         }
