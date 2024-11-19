@@ -3,6 +3,7 @@ package ru.just.progressservice.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import ru.just.progressservice.dto.*;
 import ru.just.progressservice.mapper.CourseProgressMapper;
 import ru.just.progressservice.mapper.LessonProgressMapper;
@@ -15,6 +16,7 @@ import ru.just.progressservice.repository.UserLessonProgressRepository;
 import ru.just.progressservice.repository.UserModuleProgressRepository;
 import ru.just.progressservice.repository.UserThemeProgressRepository;
 import ru.just.progressservice.service.integration.CourseServiceClient;
+import ru.just.progressservice.service.integration.TaskCheckerServiceClient;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.time.ZonedDateTime;
@@ -27,8 +29,11 @@ public class ProgressService {
     private final UserModuleProgressRepository moduleProgressRepository;
     private final UserThemeProgressRepository themeProgressRepository;
     private final UserLessonProgressRepository lessonProgressRepository;
+    private final TransactionTemplate transactionTemplate;
 
     private final CourseServiceClient courseServiceClient;
+    private final TaskCheckerServiceClient taskCheckerServiceClient;
+
     private final CourseProgressMapper courseProgressMapper;
     private final LessonProgressMapper lessonProgressMapper;
     private final ThreadLocalTokenService tokenService;
@@ -89,18 +94,23 @@ public class ProgressService {
 
 
     // Завершение урока
-    public void completeLesson(Long lessonId) {
-        UserLessonProgress lessonProgress = lessonProgressRepository.findByLessonIdAndUserId(lessonId, tokenService.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("Lesson progress not found"));
+    public TaskResult completeLesson(Long lessonId, TaskDto taskDto) {
+        // проверка задания в task-checker
+        TaskResult taskResult = taskCheckerServiceClient.solveLesson(taskDto);
 
-        if (!lessonProgress.getCompleted()) {
-            lessonProgress.setCompleted(true);
-            lessonProgress.setCompletedAt(ZonedDateTime.now());
-            lessonProgressRepository.save(lessonProgress);
+        transactionTemplate.executeWithoutResult(transactionStatus -> {
+            UserLessonProgress lessonProgress = lessonProgressRepository.findByLessonIdAndUserId(lessonId, tokenService.getUserId())
+                    .orElseThrow(() -> new EntityNotFoundException("Lesson progress not found"));
+            if (!lessonProgress.getCompleted() && taskResult.isCorrect()) {
+                lessonProgress.setCompleted(true);
+                lessonProgress.setCompletedAt(ZonedDateTime.now());
+                lessonProgressRepository.save(lessonProgress);
 
-            // Обновляем прогресс иерархии
-            updateProgressHierarchy(lessonProgress);
-        }
+                // Обновляем прогресс иерархии
+                updateProgressHierarchy(lessonProgress);
+            }
+        });
+        return taskResult;
     }
 
     // Получение следующего урока
@@ -113,6 +123,7 @@ public class ProgressService {
                 .orElseThrow(() -> new EntityNotFoundException("No lessons available"));
     }
 
+    // TODO: заменить на 1 запрос / как-то оптимизировать
     private void updateProgressHierarchy(UserLessonProgress lessonProgress) {
         // Обновляем прогресс темы
         UserThemeProgress themeProgress = lessonProgress.getThemeProgress();
@@ -144,7 +155,59 @@ public class ProgressService {
     }
 
     public void assignUser(Long courseId, Long userId) {
-        // TODO
+        // Проверяем существование курса через Feign-клиент к CourseService
+        // todo: в 1 запрос эту херню бы
+        // todo: проверить, что текущий юзер = ментор и владелец курса
+        if (!tokenService.getUserId().equals(courseServiceClient.getCourseById(courseId).getAuthorId())) {
+            throw new IllegalStateException("Текущий пользователь - не создатель курса");
+        }
+        List<ModuleDto> moduleDtos = courseServiceClient.getModules(courseId);
+        List<ThemeDto> themeDtos = courseServiceClient.getThemes(courseId);
+
+        // Проверяем, не записан ли пользователь уже на курс
+        if (courseProgressRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new IllegalStateException("User is already assigned to this course");
+        }
+
+        // Создаем новую запись о прогрессе курса
+        UserCourseProgress courseProgress = new UserCourseProgress();
+        courseProgress.setUserId(userId);
+        courseProgress.setCourseId(courseId);
+        courseProgress.setTotalLessons(themeDtos.stream().map(t -> t.getLessons().size()).reduce(Integer::sum).orElseThrow());
+        courseProgress.setCompletedLessons(0);
+        courseProgress.setCreatedAt(ZonedDateTime.now());
+
+        courseProgressRepository.save(courseProgress);
+
+        // Создаем прогресс модулей и тем
+        moduleDtos.forEach(module -> {
+            UserModuleProgress moduleProgress = new UserModuleProgress();
+            moduleProgress.setCourseProgress(courseProgress);
+            moduleProgress.setModuleId(module.getId());
+            moduleProgress.setTotalThemes(themeDtos.size());
+            moduleProgress.setCompletedThemes(0);
+
+            moduleProgressRepository.save(moduleProgress);
+
+            themeDtos.forEach(theme -> {
+                UserThemeProgress themeProgress = new UserThemeProgress();
+                themeProgress.setModuleProgress(moduleProgress);
+                themeProgress.setThemeId(theme.getId());
+                themeProgress.setTotalLessons(theme.getLessons().size());
+                themeProgress.setCompletedLessons(0);
+
+                themeProgressRepository.save(themeProgress);
+
+                theme.getLessons().forEach(lesson -> {
+                    UserLessonProgress lessonProgress = new UserLessonProgress();
+                    lessonProgress.setThemeProgress(themeProgress);
+                    lessonProgress.setLessonId(lesson.getLessonId());
+                    lessonProgress.setCompleted(false);
+
+                    lessonProgressRepository.save(lessonProgress);
+                });
+            });
+        });
     }
 }
 

@@ -10,15 +10,15 @@ import ru.just.progressservice.dto.ThemeDto;
 
 import java.util.List;
 
-@FeignClient(name = "course-service", path = "/api/v1/courses")
+@FeignClient(name = "course-service", path = "/api/v1")
 public interface CourseServiceClient {
-    @GetMapping("/{courseId}")
+    @GetMapping("/courses/{courseId}")
     CourseDto getCourseById(@PathVariable Long courseId);
 
-    @GetMapping("/{courseId}/modules")
+    @GetMapping("/modules/byCourse/{courseId}")
     List<ModuleDto> getModules(@PathVariable Long courseId);
 
-    @GetMapping("/{courseId}/themes")
+    @GetMapping("themes/byCourse/{courseId}")
     List<ThemeDto> getThemes(@PathVariable Long courseId);
 
     @GetMapping("/lessons/{lessonId}")

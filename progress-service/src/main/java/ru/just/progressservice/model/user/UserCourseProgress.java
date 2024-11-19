@@ -32,6 +32,9 @@ public class UserCourseProgress {
     @Column
     private ZonedDateTime completedAt;
 
+    @Column
+    private ZonedDateTime createdAt;
+
     @OneToMany(mappedBy = "courseProgress")
     private List<UserModuleProgress> moduleProgresses;
 }

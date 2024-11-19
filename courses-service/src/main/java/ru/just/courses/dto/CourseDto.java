@@ -19,12 +19,12 @@ public class CourseDto extends Dto<Course> {
     private String description;
     private Integer completionTimeInHours;
     private ZonedDateTime createdAt;
-    private Long author_id;
+    private Long authorId;
 
     @Override
     public CourseDto fromEntity(Course entity) {
         id = entity.getId();
-        author_id = entity.getAuthorId();
+        authorId = entity.getAuthorId();
         title = entity.getTitle();
         description = entity.getDescription();
         completionTimeInHours = entity.getCompletionTimeInHours();
@@ -40,7 +40,7 @@ public class CourseDto extends Dto<Course> {
                 .withDescription(description)
                 .withCompletionTimeInHours(completionTimeInHours)
                 .withCreatedAt(createdAt)
-                .withAuthorId(author_id);
+                .withAuthorId(authorId);
     }
 
 }

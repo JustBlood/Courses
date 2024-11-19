@@ -10,11 +10,18 @@ import ru.just.courses.dto.ModuleDto;
 import ru.just.courses.service.ModuleService;
 import ru.just.dtolib.response.ApiResponse;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/modules")
 @RestController
 public class ModuleController {
     private final ModuleService moduleService;
+
+    @GetMapping("/byCourse/{courseId}")
+    public ResponseEntity<List<ModuleDto>> getModulesByCourseId(@PathVariable Long courseId) {
+        return ResponseEntity.of(moduleService.getModulesByCourseId(courseId));
+    }
 
     @GetMapping("/{moduleId}")
     public ResponseEntity<ModuleDto> getModuleById(@PathVariable Long moduleId) {

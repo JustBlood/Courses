@@ -5,10 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.response.ApiResponse;
-import ru.just.progressservice.dto.CourseProgressDto;
-import ru.just.progressservice.dto.ExtendedCourseProgressDto;
-import ru.just.progressservice.dto.LessonDto;
-import ru.just.progressservice.dto.LessonProgressDto;
+import ru.just.progressservice.dto.*;
 import ru.just.progressservice.service.ProgressService;
 
 import java.util.List;
@@ -41,9 +38,8 @@ public class ProgressController {
     }
 
     @PatchMapping("/lessons/{lessonId}/complete")
-    public ResponseEntity<Void> completeLesson(@PathVariable Long lessonId) {
-        progressService.completeLesson(lessonId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<TaskResult> completeLesson(@PathVariable Long lessonId, @RequestBody TaskDto taskDto) {
+        return ResponseEntity.ok(progressService.completeLesson(lessonId, taskDto));
     }
 
     @GetMapping("/courses/{courseId}/next")

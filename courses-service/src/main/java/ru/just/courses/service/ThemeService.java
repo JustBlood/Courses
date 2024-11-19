@@ -10,7 +10,9 @@ import ru.just.courses.repository.ThemeRepository;
 import ru.just.courses.repository.exception.EntityNotFoundException;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -41,5 +43,10 @@ public class ThemeService {
         if (!theme.getModule().getCourse().getAuthorId().equals(tokenService.getUserId())) {
             throw new MethodNotAllowedException("You are not a course author");
         }
+    }
+
+    public Optional<List<ThemeDto>> getThemesByCourseId(Long courseId) {
+        return themeRepository.findAllByModule_Course_Id(courseId)
+                .map(l -> l.stream().map(t -> new ThemeDto().fromEntity(t)).collect(Collectors.toList()));
     }
 }

@@ -17,5 +17,5 @@ public class CourseDto {
     private String description;
     private Integer completionTimeInHours;
     private ZonedDateTime createdAt;
-    private Long author_id;
+    private Long authorId;
 }

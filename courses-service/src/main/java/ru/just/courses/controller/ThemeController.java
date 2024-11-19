@@ -10,11 +10,18 @@ import ru.just.courses.dto.ThemeDto;
 import ru.just.courses.service.ThemeService;
 import ru.just.dtolib.response.ApiResponse;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/themes")
 public class ThemeController {
     private final ThemeService themeService;
+
+    @GetMapping("/byCourse/{courseId}")
+    public ResponseEntity<List<ThemeDto>> getThemesByCourseId(@PathVariable Long courseId) {
+        return ResponseEntity.of(themeService.getThemesByCourseId(courseId));
+    }
 
     @GetMapping("/{themeId}")
     public ResponseEntity<ThemeDto> getThemeById(@PathVariable Long themeId) {

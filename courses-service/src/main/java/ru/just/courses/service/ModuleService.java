@@ -10,8 +10,10 @@ import ru.just.courses.repository.ModuleRepository;
 import ru.just.courses.repository.exception.EntityNotFoundException;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -42,5 +44,10 @@ public class ModuleService {
         if (!module.getCourse().getAuthorId().equals(tokenService.getUserId())) {
             throw new MethodNotAllowedException("You are not a course author");
         }
+    }
+
+    public Optional<List<ModuleDto>> getModulesByCourseId(Long courseId) {
+        return moduleRepository.findAllByCourseId(courseId)
+                .map(l -> l.stream().map(m -> new ModuleDto().fromEntity(m)).collect(Collectors.toList()));
     }
 }
