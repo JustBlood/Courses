@@ -19,6 +19,9 @@ public class UserThemeProgress {
     @Column(nullable = false)
     private Long themeId;
 
+    @Column
+    private Integer ordinalNumber;
+
     @Column(nullable = false)
     private Long userId;
 

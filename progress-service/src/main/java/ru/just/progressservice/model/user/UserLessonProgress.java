@@ -19,6 +19,9 @@ public class UserLessonProgress {
     @Column(nullable = false)
     private Long lessonId;
 
+    @Column
+    private Integer ordinalNumber;
+
     @Column(nullable = false)
     private Long userId;
 

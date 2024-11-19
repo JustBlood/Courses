@@ -87,7 +87,7 @@ public class ProgressService {
 
     public LessonDto getLastVisitedLesson(Long courseId) {
         UserLessonProgress lastLesson = lessonProgressRepository.findLastVisitedLesson(tokenService.getUserId(), courseId)
-                .orElseThrow(() -> new EntityNotFoundException("No lessons visited"));
+                .orElseThrow(() -> new EntityNotFoundException("No visited lessons"));
 
         return courseServiceClient.getLessonById(lastLesson.getLessonId()); // Пример интеграции с CourseService
     }
@@ -186,6 +186,9 @@ public class ProgressService {
             moduleProgress.setModuleId(module.getId());
             moduleProgress.setTotalThemes(themeDtos.size());
             moduleProgress.setCompletedThemes(0);
+            moduleProgress.setUserId(userId);
+            moduleProgress.setCompleted(false);
+            moduleProgress.setOrdinalNumber(module.getOrdinalNumber());
 
             moduleProgressRepository.save(moduleProgress);
 
@@ -195,6 +198,9 @@ public class ProgressService {
                 themeProgress.setThemeId(theme.getId());
                 themeProgress.setTotalLessons(theme.getLessons().size());
                 themeProgress.setCompletedLessons(0);
+                themeProgress.setUserId(userId);
+                themeProgress.setOrdinalNumber(theme.getOrdinalNumber());
+                themeProgress.setCompleted(false);
 
                 themeProgressRepository.save(themeProgress);
 
@@ -202,6 +208,8 @@ public class ProgressService {
                     UserLessonProgress lessonProgress = new UserLessonProgress();
                     lessonProgress.setThemeProgress(themeProgress);
                     lessonProgress.setLessonId(lesson.getLessonId());
+                    lessonProgress.setCompleted(false);
+                    lessonProgress.setUserId(userId);
                     lessonProgress.setCompleted(false);
 
                     lessonProgressRepository.save(lessonProgress);

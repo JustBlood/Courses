@@ -19,6 +19,9 @@ public class UserModuleProgress {
     @Column(nullable = false)
     private Long moduleId;
 
+    @Column
+    private Integer ordinalNumber;
+
     @Column(nullable = false)
     private Long userId;
 
