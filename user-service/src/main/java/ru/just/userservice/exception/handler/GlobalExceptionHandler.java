@@ -1,11 +1,11 @@
-package ru.just.userservice.controller.exception.handler;
+package ru.just.userservice.exception.handler;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.just.dtolib.error.ApiError;
-import ru.just.userservice.controller.exception.EntityNotFoundException;
+import ru.just.userservice.exception.EntityNotFoundException;
 
 import java.time.LocalDateTime;
 

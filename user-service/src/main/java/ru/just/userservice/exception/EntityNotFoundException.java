@@ -1,4 +1,4 @@
-package ru.just.userservice.controller.exception;
+package ru.just.userservice.exception;
 
 public class EntityNotFoundException extends RuntimeException {
     public EntityNotFoundException(String message) {
