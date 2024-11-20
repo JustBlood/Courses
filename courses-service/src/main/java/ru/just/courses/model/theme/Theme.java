@@ -34,7 +34,7 @@ public class Theme {
     private Integer ordinalNumber;
     @Column(nullable = false) @Enumerated(value = EnumType.STRING)
     private ContentType contentType;
-    @OneToMany
+    @OneToMany(mappedBy = "theme")
     private Set<Lesson> lessons;
     @OneToMany(mappedBy = "theme")
     private List<ThemeChangeEvent> themeChangeEvents;

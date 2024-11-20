@@ -22,6 +22,6 @@ public interface CourseServiceClient {
     List<ThemeDto> getThemes(@PathVariable Long courseId);
 
     @GetMapping("/lessons/{lessonId}")
-    LessonDto getLessonById(Long lessonId);
+    LessonDto getLessonById(@PathVariable Long lessonId);
 }
 

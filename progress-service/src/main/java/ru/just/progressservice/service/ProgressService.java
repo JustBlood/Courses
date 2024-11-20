@@ -7,6 +7,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import ru.just.progressservice.dto.*;
 import ru.just.progressservice.mapper.CourseProgressMapper;
 import ru.just.progressservice.mapper.LessonProgressMapper;
+import ru.just.progressservice.mapper.TaskDtoConverter;
 import ru.just.progressservice.model.user.UserCourseProgress;
 import ru.just.progressservice.model.user.UserLessonProgress;
 import ru.just.progressservice.model.user.UserModuleProgress;
@@ -34,6 +35,7 @@ public class ProgressService {
     private final CourseServiceClient courseServiceClient;
     private final TaskCheckerServiceClient taskCheckerServiceClient;
 
+    private final TaskDtoConverter taskDtoConverter;
     private final CourseProgressMapper courseProgressMapper;
     private final LessonProgressMapper lessonProgressMapper;
     private final ThreadLocalTokenService tokenService;
@@ -94,8 +96,11 @@ public class ProgressService {
 
 
     // Завершение урока
-    public TaskResult completeLesson(Long lessonId, TaskDto taskDto) {
+    public TaskResult completeLesson(Long lessonId, UserAnswerDto answerDto) {
         // проверка задания в task-checker
+        var lessonDto = courseServiceClient.getLessonById(lessonId);
+        var taskDto = taskDtoConverter.convertToTaskDto(lessonDto, answerDto);
+
         TaskResult taskResult = taskCheckerServiceClient.solveLesson(taskDto);
 
         transactionTemplate.executeWithoutResult(transactionStatus -> {

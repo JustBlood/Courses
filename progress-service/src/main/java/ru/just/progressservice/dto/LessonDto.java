@@ -44,8 +44,6 @@ public class LessonDto {
     public static class CodeLessonDto extends LessonDto {
         private String condition;
         private List<CodeTest> codeTests;
-
-        public record CodeTest(String input, String output) { }
     }
 
     @Getter

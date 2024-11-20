@@ -32,14 +32,15 @@ public class ProgressController {
         return ResponseEntity.ok(progressService.getExtendedCourseProgress(courseId));
     }
 
+    // FIXME: возвращать не LessonDto, а его укороченный аналог, ибо тут мы отдаем пользователю урок (без ответа надо)
     @GetMapping("/course/{courseId}/last-visited")
     public ResponseEntity<LessonDto> getLastVisitedLesson(@PathVariable Long courseId) {
         return ResponseEntity.ok(progressService.getLastVisitedLesson(courseId));
     }
 
     @PatchMapping("/lessons/{lessonId}/complete")
-    public ResponseEntity<TaskResult> completeLesson(@PathVariable Long lessonId, @RequestBody TaskDto taskDto) {
-        return ResponseEntity.ok(progressService.completeLesson(lessonId, taskDto));
+    public ResponseEntity<TaskResult> completeLesson(@PathVariable Long lessonId, @RequestBody UserAnswerDto answerDto) {
+        return ResponseEntity.ok(progressService.completeLesson(lessonId, answerDto));
     }
 
     @GetMapping("/courses/{courseId}/next")

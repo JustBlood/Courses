@@ -29,9 +29,6 @@ public abstract class TaskResult {
     @Setter
     @NoArgsConstructor
     public static class TestTaskResult extends TaskResult {
-        public TestTaskResult(boolean correct) {
-            super(correct, TaskType.TEST);
-        }
     }
 
     @Getter
@@ -50,8 +47,8 @@ public abstract class TaskResult {
     @Getter
     @Setter
     public static class CodeTaskResult extends TaskResult {
-        private List<TaskDto.CodeTaskDto.CodeTest> correctTests;
-        private List<TaskDto.CodeTaskDto.CodeTest> firstIncorrectTest;
+        private List<CodeTest> correctTests;
+        private List<CodeTest> firstIncorrectTest;
 
         public CodeTaskResult() {
             super(false, TaskType.CODE);

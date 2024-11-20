@@ -8,6 +8,7 @@ import ru.just.courses.model.Module;
 import ru.just.courses.model.theme.Theme;
 import ru.just.dtolib.base.Dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -28,7 +29,9 @@ public class ThemeDto extends Dto<Theme> {
         description = entity.getDescription();
         moduleId = entity.getModule().getId();
         ordinalNumber = entity.getOrdinalNumber();
-        lessons = entity.getLessons().stream().map(lesson -> new ShortLessonDto().fromEntity(lesson)).toList();
+        lessons = entity.getLessons() == null
+                ? new ArrayList<>()
+                : entity.getLessons().stream().map(lesson -> new ShortLessonDto().fromEntity(lesson)).toList();
         return this;
     }
 

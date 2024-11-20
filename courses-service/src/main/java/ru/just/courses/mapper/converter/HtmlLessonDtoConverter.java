@@ -13,6 +13,7 @@ public class HtmlLessonDtoConverter implements LessonConverter<HtmlLesson, Lesso
                 .lessonId(lesson.getLessonId())
                 .type(lesson.getType())
                 .ordinalNumber(lesson.getOrdinalNumber())
+                .html(lesson.getHtml())
                 .build();
     }
 

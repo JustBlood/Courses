@@ -13,7 +13,7 @@ public interface UserLessonProgressRepository extends JpaRepository<UserLessonPr
     @Query("SELECT lp FROM UserLessonProgress lp WHERE lp.themeProgress.moduleProgress.courseProgress.id = :courseProgressId AND lp.completed = false ORDER BY lp.themeProgress.moduleProgress.ordinalNumber, lp.themeProgress.ordinalNumber, lp.ordinalNumber ASC")
     Optional<UserLessonProgress> findNextLesson(@Param("courseProgressId") Long courseProgressId);
 
-    @Query("SELECT lp FROM UserLessonProgress lp WHERE lp.themeProgress.moduleProgress.courseProgress.courseId = :courseId AND lp.userId = :userId")
+    @Query("SELECT lp FROM UserLessonProgress lp WHERE lp.themeProgress.moduleProgress.courseProgress.courseId = :courseId AND lp.userId = :userId AND lp.completed = false ORDER BY lp.themeProgress.moduleProgress.ordinalNumber, lp.themeProgress.ordinalNumber, lp.ordinalNumber ASC LIMIT 1")
     Optional<UserLessonProgress> findLastVisitedLesson(@Param("userId") Long userId, @Param("courseId") Long courseId);
 }
 

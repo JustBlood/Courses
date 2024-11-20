@@ -12,9 +12,15 @@ import ru.just.courses.model.theme.Theme;
 @Setter
 @Getter
 @Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = InheritanceType.JOINED)
+@Table(
+        name = "lesson",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "theme_id_ordinal_number_uq", columnNames = {"theme_id", "ordinal_number"})
+        }
+)
 public abstract class Lesson {
-    @Id @GeneratedValue(strategy = GenerationType.TABLE)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long lessonId;
     @ManyToOne @JoinColumn(name = "theme_id")
     private Theme theme;
