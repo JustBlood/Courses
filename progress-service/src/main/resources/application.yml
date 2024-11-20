@@ -19,8 +19,7 @@ eureka:
 server:
   port: 8089
 
-
 springdoc:
   api-docs:
     enabled: true
-    path: /task-checker-service/v1/api-docs
+    path: /progress-service/v1/api-docs

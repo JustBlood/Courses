@@ -21,3 +21,8 @@ minio:
     users-data: users
     courses-data: courses
     chat-data: chat-attachments
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /media-service/v1/api-docs

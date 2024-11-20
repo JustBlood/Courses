@@ -41,3 +41,8 @@ logging:
   level:
     org.springframework.security: trace
     liquibase: debug
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /users-service/v1/api-docs

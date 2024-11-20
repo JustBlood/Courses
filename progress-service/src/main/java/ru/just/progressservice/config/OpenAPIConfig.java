@@ -1,4 +1,4 @@
-package ru.just.taskcheckerservice.config;
+package ru.just.progressservice.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.Components;

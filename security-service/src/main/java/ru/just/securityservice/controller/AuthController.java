@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.just.dtolib.jwt.Tokens;
 import ru.just.dtolib.response.ApiResponse;
 import ru.just.securityservice.dto.CreateUserDto;
+import ru.just.securityservice.dto.LoginDto;
 import ru.just.securityservice.dto.UserDto;
 import ru.just.securityservice.service.AuthService;
 import ru.just.securityservice.service.SecurityService;
@@ -26,11 +27,15 @@ public class AuthController {
     private final UserService userService;
     private final SecurityService securityService;
 
-    @GetMapping
+    @GetMapping("/greeting")
     public ResponseEntity<String> getGreeting(@AuthenticationPrincipal UserDetails user) {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body("Hello, %s!".formatted(user.getUsername()));
+    }
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginDto loginDto) {
+        return ResponseEntity.ok("");
     }
 
     @PostMapping("/register")

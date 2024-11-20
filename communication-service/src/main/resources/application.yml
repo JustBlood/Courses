@@ -9,6 +9,12 @@ springdoc:
   api-docs:
     enabled: true
     path: /communication-service/v1/api-docs
+  swagger-ui:
+    csrf:
+      enabled: false
+
+api-gateway:
+  host: localhost:8080
 
 service-discovery:
   users-service:

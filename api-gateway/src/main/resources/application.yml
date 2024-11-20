@@ -27,6 +27,12 @@ spring:
             - Path=/api/v1/auth/**
           filters:
             - JwtAuthenticationFilter
+        - id: users-service
+          uri: lb://USERS-SERVICE
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - JwtAuthenticationFilter
         - id: mentor-catalog-service
           uri: lb://MENTOR-CATALOG-SERVICE
           predicates:
@@ -51,10 +57,35 @@ spring:
             - Path=/api/v1/chats/**
           filters:
             - JwtAuthenticationFilter
+        - id: courses-service
+          uri: lb://COURSES-SERVICE
+          predicates:
+            - Path=/api/v1/courses/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: media-service
+          uri: lb://MEDIA-SERVICE
+          predicates:
+            - Path=/api/v1/media/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: progress-service
+          uri: lb://PROGRESS-SERVICE
+          predicates:
+            - Path=/api/v1/progress/**
+          filters:
+            - JwtAuthenticationFilter
+        - id: task-checker-service
+          uri: lb://TASK-CHECKER-SERVICE
+          predicates:
+            - Path=/api/v1/task-checker/**
+          filters:
+            - JwtAuthenticationFilter
         - id: websocket-route
           uri: lb://COMMUNICATION-SERVICE  # Целевой WebSocket-сервис (например, chat-service)
           predicates:
             - Path=/ws/chat/**  # Путь для WebSocket-соединений
+        # OPENAPI PATHS
         - id: security-service-openapi
           uri: lb://SECURITY-SERVICE
           predicates:
@@ -67,6 +98,30 @@ spring:
           uri: lb://COMMUNICATION-SERVICE
           predicates:
             - Path=/communication-service/v1/api-docs
+        - id: users-service-openapi
+          uri: lb://USERS-SERVICE
+          predicates:
+            - Path=/users-service/v1/api-docs
+        - id: courses-service-openapi
+          uri: lb://COURSES-SERVICE
+          predicates:
+            - Path=/courses-service/v1/api-docs
+        - id: media-service-openapi
+          uri: lb://MEDIA-SERVICE
+          predicates:
+            - Path=/media-service/v1/api-docs
+        - id: personal-account-service-openapi
+          uri: lb://PERSONAL-ACCOUNT-SERVICE
+          predicates:
+            - Path=/personal-account-service/v1/api-docs
+        - id: progress-service-openapi
+          uri: lb://PROGRESS-SERVICE
+          predicates:
+            - Path=/progress-service/v1/api-docs
+        - id: task-checker-service-openapi
+          uri: lb://TASK-CHECKER-SERVICE
+          predicates:
+            - Path=/task-checker-service/v1/api-docs
 
   application:
     name: API-GATEWAY
@@ -100,9 +155,21 @@ springdoc:
     enabled: true
     config-url: /v3/api-docs/swagger-config
     urls:
-      -   name: security-service
-          url: /security-service/v1/api-docs
-      -   name: mentor-catalog-service
-          url: /mentor-catalog-service/v1/api-docs
-      -   name: communication-service
-          url: /communication-service/v1/api-docs
+      - name: security-service
+        url: /security-service/v1/api-docs
+      - name: mentor-catalog-service
+        url: /mentor-catalog-service/v1/api-docs
+      - name: communication-service
+        url: /communication-service/v1/api-docs
+      - name: courses-service
+        url: /courses-service/v1/api-docs
+      - name: media-service
+        url: /media-service/v1/api-docs
+      - name: personal-account-service
+        url: /personal-account-service/v1/api-docs
+      - name: progress-service
+        url: /progress-service/v1/api-docs
+      - name: task-checker-service
+        url: /task-checker-service/v1/api-docs
+      - name: users-service
+        url: /users-service/v1/api-docs

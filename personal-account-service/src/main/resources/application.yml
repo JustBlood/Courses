@@ -32,3 +32,8 @@ topics:
   user-update-topic: userUpdate
 server:
   port: 8086
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /personal-account-service/v1/api-docs
