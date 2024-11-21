@@ -25,8 +25,8 @@ public class MentorRepository {
         mapSqlParameterSource.addValue("limit", pageable.getPageSize());
         // TODO: убрать нахуй этот sql в ресурсы и переработать
         final String sql = """
-                select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me", m.long_about_me as "long_about_me", m.avatar_url as "avatar_url", st.id as "student_id", s.name as "specialization_name"
-                from mentor m join specialization s on m.id = s.mentor_id join mentor_student as st on m.id = st.mentor_id
+                select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me", m.long_about_me as "long_about_me", st.student_id as "student_id", s.name as "specialization_name"
+                from mentor m join mentor_specialization ms on m.id = ms.mentor_id join specialization s on s.id = ms.specialization_id join mentor_student as st on m.id = st.mentor_id
                 where m.id IN (SELECT m2.id FROM mentor m2 ORDER BY m2.id OFFSET :offset LIMIT :limit)
                     AND s.name ILIKE :specialization
                 """;

@@ -10,7 +10,7 @@ import ru.just.mentorcatalogservice.service.MentorService;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/internal/mentor")
+@RequestMapping("/api/v1/mentors/internal")
 public class MentorController {
     private final MentorService mentorService;
 

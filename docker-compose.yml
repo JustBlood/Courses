@@ -62,6 +62,16 @@ services:
       POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       POSTGRES_DB: mentor_catalog_service # todo: volumes
 
+  progress_service_db:
+    image: postgres
+    restart: unless-stopped
+    networks:
+      - db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      POSTGRES_DB: progress_service # todo: volumes
+
   communication_service_db:
     image: mongo:6.0
     container_name: communication_service_db
@@ -112,11 +122,13 @@ services:
     build: ./api-gateway
     networks:
       - spring
+      - db
     environment:
       MINIO_URL: http://minio:9000
       EUREKA_URI: http://eureka-server:8761/eureka
       REDIS_HOST: api_gateway_redis
-      REDIS_PORT: 6380
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
     depends_on:
       - api_gateway_redis
     ports:
@@ -139,7 +151,7 @@ services:
     restart: always
     build: ./user-service
     environment:
-      DB_CONTAINER: user_service_db
+      DB_CONTAINER: user_service_db:5432
       DB_USERNAME: postgres
       DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
       EUREKA_URI: http://eureka-server:8761/eureka
@@ -234,6 +246,35 @@ services:
       - db
     ports:
       - "8087:8087"
+
+  task_checker_service:
+    container_name: task_checker_service
+    restart: always
+    build: ./task-checker-service
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka
+    networks:
+      - spring
+      - db
+    ports:
+      - "8088:8088"
+
+  progress_service:
+    container_name: progress_service
+    restart: always
+    build: ./progress-service
+    environment:
+      DB_CONTAINER: progress_service_db:5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: 242171e6a6d3b0701e83f72d33432a8e9fa11068
+      EUREKA_URI: http://eureka-server:8761/eureka
+    depends_on:
+      - progress_service_db
+    networks:
+      - spring
+      - db
+    ports:
+      - "8089:8089"
 
   kafka-zookeeper:
     image: confluentinc/cp-zookeeper:latest

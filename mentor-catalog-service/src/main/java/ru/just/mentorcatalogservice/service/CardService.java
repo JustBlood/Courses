@@ -40,7 +40,7 @@ public class CardService {
         // todo: запрос в Пользователей на данные пользователя
         final Page<MentorDto> mentors = mentorService.getMentorsCardsBySpecializationPart(specialization, pageable);
 
-        Map<Long, UserDto> userInfoById = getUsersInfoFromUsersServices();
+        Map<Long, UserDto> userInfoById = getUsersInfoFromUsersServices(mentors.stream().map(MentorDto::getUserId).collect(Collectors.toList()));
         return buildMentorCardDtos(mentors, userInfoById);
     }
 
@@ -61,8 +61,13 @@ public class CardService {
         });
     }
 
-    private Map<Long,UserDto> getUsersInfoFromUsersServices() {
-        final String uriTemplate = String.format("https://%s/api/v1/users", usersServiceName);
+    private Map<Long,UserDto> getUsersInfoFromUsersServices(List<Long> userIds) {
+        final String uriTemplate = String.format("http://%s/api/v1/users?ids=%s",
+                usersServiceName,
+                userIds.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(","))
+        );
         final HttpHeaders headers = buildHeaders();
         final RequestEntity<Void> requestEntity = RequestEntity.get(uriTemplate)
                 .headers(headers)

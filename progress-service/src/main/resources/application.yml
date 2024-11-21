@@ -2,8 +2,8 @@ spring:
   application:
     name: progress-service
   datasource:
-    url: jdbc:postgresql://${DB_CONTAINER:localhost}:5432/progress-service
-    username: ${DB_NAME:postgres}
+    url: jdbc:postgresql://${DB_CONTAINER:localhost:5432}/progress_service
+    username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:admin}
   jpa:
     hibernate:
