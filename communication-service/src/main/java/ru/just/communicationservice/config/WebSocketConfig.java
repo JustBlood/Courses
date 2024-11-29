@@ -31,7 +31,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Регистрируем конечную точку WebSocket
         registry.addEndpoint("/ws/chat")
                 .addInterceptors(webSocketAuthInterceptor)
-                .setAllowedOriginPatterns("http://127.0.0.1:5502")
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 

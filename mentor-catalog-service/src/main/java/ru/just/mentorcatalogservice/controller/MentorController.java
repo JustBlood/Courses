@@ -14,7 +14,7 @@ import ru.just.mentorcatalogservice.service.MentorService;
 public class MentorController {
     private final MentorService mentorService;
 
-    // добавить ментора в систему
+    // добавить ментора в систему TODO: права доступа
     @PostMapping
     public ResponseEntity<MentorDto> createMentor(@RequestBody CreateMentorDto createMentorDto) {
         return ResponseEntity.ok(mentorService.createMentor(createMentorDto));

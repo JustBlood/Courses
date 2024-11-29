@@ -1,18 +1,6 @@
 spring:
   cloud:
     gateway:
-#      globalcors:
-#        cors-configurations:
-#          '[/**]':
-#            allowedOrigins: "http://127.0.0.1:5502"
-#            allowedMethods:
-#              - GET
-#              - POST
-#              - PUT
-#              - PATCH
-#              - OPTIONS
-#            allowedHeaders: "*"
-#            allowCredentials: true
       discovery:
         locator:
           enabled: true
@@ -40,9 +28,9 @@ spring:
           filters:
             - JwtAuthenticationFilter
         - id: personal-account-service
-          uri: lb://MENTOR-CATALOG-SERVICE
+          uri: lb://PERSONAL-ACCOUNT-SERVICE
           predicates:
-            - Path=/api/v1/user/account/data/**
+            - Path=/api/v1/user/account/**
           filters:
             - JwtAuthenticationFilter
         - id: minio-route
@@ -84,7 +72,7 @@ spring:
         - id: websocket-route
           uri: lb://COMMUNICATION-SERVICE  # Целевой WebSocket-сервис (например, chat-service)
           predicates:
-            - Path=/ws/chat/**  # Путь для WebSocket-соединений
+            - Path=/ws/**  # Путь для WebSocket-соединений
         # OPENAPI PATHS
         - id: security-service-openapi
           uri: lb://SECURITY-SERVICE

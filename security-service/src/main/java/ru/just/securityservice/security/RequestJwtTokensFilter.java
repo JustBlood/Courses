@@ -45,13 +45,16 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain
+    ) throws ServletException, IOException {
         if (!requestMatcher.matches(request)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final SecurityContext securityContext = this.securityContextRepository.loadDeferredContext(request).get();
+        final SecurityContext securityContext = this.securityContextRepository
+                .loadDeferredContext(request).get();
         if (isUserNotAuthenticated(request, securityContext)) {
             throw new AccessDeniedException("User must be authenticated");
         }
@@ -69,8 +72,12 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
         var accessToken = securityService.generateAccess(decodedRefresh);
         final DecodedJWT decodedAccess = JWT.decode(accessToken);
 
-        refreshTokenService.deleteTokenByUserIdAndDeviceId(Long.parseLong(decodedRefresh.getSubject()), deviceId.get());
-        refreshTokenService.saveIssuedRefreshToken(Long.parseLong(decodedAccess.getSubject()), decodedRefresh);
+        refreshTokenService.deleteTokenByUserIdAndDeviceId(
+                Long.parseLong(decodedRefresh.getSubject()), deviceId.get()
+        );
+        refreshTokenService.saveIssuedRefreshToken(
+                Long.parseLong(decodedAccess.getSubject()), decodedRefresh
+        );
 
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -83,11 +90,15 @@ public class RequestJwtTokensFilter extends OncePerRequestFilter {
 
     private Optional<UUID> getDeviceId(HttpServletRequest request, Authentication authentication) {
         if (authentication instanceof PreAuthenticatedAuthenticationToken) {
-            return Optional.of(UUID.fromString(securityService.getVerifiedDecodedJwt(authentication.getCredentials().toString())
-                    .getClaim(DEVICE_ID_CLAIM).asString()));
+            return Optional.of(UUID.fromString(
+                    securityService.getVerifiedDecodedJwt(authentication.getCredentials().toString())
+                            .getClaim(DEVICE_ID_CLAIM).asString()
+            ));
         } else {
             try {
-                return Optional.of(objectMapper.readValue(request.getInputStream(), LoginDto.class).getDeviceId());
+                return Optional.of(objectMapper.readValue(
+                        request.getInputStream(), LoginDto.class
+                ).getDeviceId());
             } catch (IOException e) {
                 return Optional.empty();
             }

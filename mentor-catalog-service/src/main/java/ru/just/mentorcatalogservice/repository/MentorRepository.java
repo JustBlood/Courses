@@ -3,19 +3,28 @@ package ru.just.mentorcatalogservice.repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.just.mentorcatalogservice.dto.CreateMentorDto;
-import ru.just.mentorcatalogservice.dto.MentorDto;
 import ru.just.mentorcatalogservice.dto.StudentDto;
 import ru.just.mentorcatalogservice.model.Mentor;
 import ru.just.mentorcatalogservice.repository.mapper.MentorResultSetExtractor;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class MentorRepository {
     private final NamedParameterJdbcTemplate namedTemplate;
+    private final JdbcTemplate jdbcTemplate;
     private final MentorResultSetExtractor mentorResultSetExtractor;
 
     public Page<Mentor> findMentorsBySpecialization(String specialization, Pageable pageable) {
@@ -25,16 +34,56 @@ public class MentorRepository {
         mapSqlParameterSource.addValue("limit", pageable.getPageSize());
         // TODO: убрать нахуй этот sql в ресурсы и переработать
         final String sql = """
-                select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me", m.long_about_me as "long_about_me", st.student_id as "student_id", s.name as "specialization_name"
-                from mentor m join mentor_specialization ms on m.id = ms.mentor_id join specialization s on s.id = ms.specialization_id join mentor_student as st on m.id = st.mentor_id
-                where m.id IN (SELECT m2.id FROM mentor m2 ORDER BY m2.id OFFSET :offset LIMIT :limit)
-                    AND s.name ILIKE :specialization
+                  select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me", m.long_about_me as "long_about_me",
+                         (select count(*) from mentor_student mst where mst.mentor_id = m.id) as "students_count",
+                          STRING_AGG(s.name, ',') as "specializations"
+                  from mentor m
+                      join mentor_specialization ms on m.id = ms.mentor_id
+                      join specialization s on s.id = ms.specialization_id
+                  where m.id IN (SELECT m2.id FROM mentor m2 ORDER BY m2.id OFFSET :offset LIMIT :limit)
+                    and s.name ILIKE '%'||:specialization||'%'
+                  group by 1,2,3,4,5;
                 """;
         return namedTemplate.query(sql, mapSqlParameterSource, mentorResultSetExtractor);
     }
 
-    public MentorDto createMentor(CreateMentorDto createMentorDto) {
-        return null;
+    @Transactional
+    public Mentor createMentor(CreateMentorDto createMentorDto) {
+        String sql = "INSERT INTO mentor (user_id, short_about_me, long_about_me) VALUES(:userId, :shortAboutMe, :longAboutMe) RETURNING *";
+        MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource();
+        mapSqlParameterSource.addValue("userId", createMentorDto.getUserId());
+        mapSqlParameterSource.addValue("shortAboutMe", createMentorDto.getShortAboutMe());
+        mapSqlParameterSource.addValue("longAboutMe", createMentorDto.getLongAboutMe());
+        Mentor mentor = namedTemplate.queryForObject(sql, mapSqlParameterSource, new BeanPropertyRowMapper<>(Mentor.class));
+        mentor.setStudentsIds(new ArrayList<>());
+        final List<String> specializations = createMentorDto.getSpecializations().stream().toList();
+        mentor.setSpecializations(specializations);
+
+        insertNewSpecializations(specializations);
+
+        String insertMentorSpecializationSql = "INSERT INTO mentor_specialization(mentor_id, specialization_id) SELECT :mentorId, s.id FROM specialization AS s where s.name in (:mentorSpecializations)";
+        mapSqlParameterSource = new MapSqlParameterSource();
+        mapSqlParameterSource.addValue("mentorId", mentor.getId());
+        mapSqlParameterSource.addValue("mentorSpecializations", createMentorDto.getSpecializations());
+        namedTemplate.update(insertMentorSpecializationSql, mapSqlParameterSource);
+
+        return mentor;
+    }
+
+    private void insertNewSpecializations(List<String> specializations) {
+        String insertNewSpecializationsSql = "INSERT INTO specialization(name) VALUES (?) ON CONFLICT DO NOTHING";
+        jdbcTemplate.batchUpdate(insertNewSpecializationsSql, new BatchPreparedStatementSetter() {
+
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                ps.setString(1, specializations.get(i));
+            }
+
+            @Override
+            public int getBatchSize() {
+                return specializations.size();
+            }
+        });
     }
 
     public void addStudentToMentor(Long mentorId, StudentDto studentDto) {

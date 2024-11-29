@@ -27,7 +27,7 @@
                 <constraints primaryKey="true" primaryKeyName="specialization_id_pkey" />
             </column>
             <column name="name" type="VARCHAR(128)">
-                <constraints nullable="false" />
+                <constraints nullable="false" unique="true" uniqueConstraintName="specialization_name_uq"/>
             </column>
         </createTable>
 

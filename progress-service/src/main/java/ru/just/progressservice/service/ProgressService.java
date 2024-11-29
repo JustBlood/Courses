@@ -3,6 +3,7 @@ package ru.just.progressservice.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.just.progressservice.dto.*;
 import ru.just.progressservice.mapper.CourseProgressMapper;
@@ -159,37 +160,43 @@ public class ProgressService {
         courseProgressRepository.save(courseProgress);
     }
 
+    @Transactional
     public void assignUser(Long courseId, Long userId) {
-        // Проверяем существование курса через Feign-клиент к CourseService
-        // todo: в 1 запрос эту херню бы
-        // todo: проверить, что текущий юзер = ментор и владелец курса
+        // Check course exists using Feign-client to CourseService
         if (!tokenService.getUserId().equals(courseServiceClient.getCourseById(courseId).getAuthorId())) {
-            throw new IllegalStateException("Текущий пользователь - не создатель курса");
+            throw new IllegalStateException("Current user - isn't owner of course");
         }
         List<ModuleDto> moduleDtos = courseServiceClient.getModules(courseId);
         List<ThemeDto> themeDtos = courseServiceClient.getThemes(courseId);
 
-        // Проверяем, не записан ли пользователь уже на курс
+        // Check, if user isn't already assigned to this course
         if (courseProgressRepository.existsByUserIdAndCourseId(userId, courseId)) {
             throw new IllegalStateException("User is already assigned to this course");
         }
 
-        // Создаем новую запись о прогрессе курса
+        // Create new UserCourseProgress row
         UserCourseProgress courseProgress = new UserCourseProgress();
         courseProgress.setUserId(userId);
         courseProgress.setCourseId(courseId);
-        courseProgress.setTotalLessons(themeDtos.stream().map(t -> t.getLessons().size()).reduce(Integer::sum).orElseThrow());
+        courseProgress.setTotalLessons(themeDtos.stream()
+                .map(t -> t.getLessons().size())
+                .reduce(Integer::sum)
+                .orElseThrow()
+        );
         courseProgress.setCompletedLessons(0);
         courseProgress.setCreatedAt(ZonedDateTime.now());
 
         courseProgressRepository.save(courseProgress);
 
-        // Создаем прогресс модулей и тем
+        // Create progress for modules and themes
         moduleDtos.forEach(module -> {
             UserModuleProgress moduleProgress = new UserModuleProgress();
             moduleProgress.setCourseProgress(courseProgress);
             moduleProgress.setModuleId(module.getId());
-            moduleProgress.setTotalThemes(themeDtos.size());
+            final int themeCount = (int) themeDtos.stream()
+                    .filter(theme -> theme.getModuleId().equals(module.getId()))
+                    .count();
+            moduleProgress.setTotalThemes(themeCount);
             moduleProgress.setCompletedThemes(0);
             moduleProgress.setUserId(userId);
             moduleProgress.setCompleted(false);
@@ -197,30 +204,38 @@ public class ProgressService {
 
             moduleProgressRepository.save(moduleProgress);
 
-            themeDtos.forEach(theme -> {
-                UserThemeProgress themeProgress = new UserThemeProgress();
-                themeProgress.setModuleProgress(moduleProgress);
-                themeProgress.setThemeId(theme.getId());
-                themeProgress.setTotalLessons(theme.getLessons().size());
-                themeProgress.setCompletedLessons(0);
-                themeProgress.setUserId(userId);
-                themeProgress.setOrdinalNumber(theme.getOrdinalNumber());
-                themeProgress.setCompleted(false);
+            themeDtos.stream()
+                    .filter(theme -> theme.getModuleId().equals(module.getId()))
+                    .forEach(theme -> {
+                        final UserThemeProgress themeProgress =
+                                getUserThemeProgress(userId, theme, moduleProgress);
 
-                themeProgressRepository.save(themeProgress);
+                        themeProgressRepository.save(themeProgress);
 
-                theme.getLessons().forEach(lesson -> {
-                    UserLessonProgress lessonProgress = new UserLessonProgress();
-                    lessonProgress.setThemeProgress(themeProgress);
-                    lessonProgress.setLessonId(lesson.getLessonId());
-                    lessonProgress.setCompleted(false);
-                    lessonProgress.setUserId(userId);
-                    lessonProgress.setCompleted(false);
+                        theme.getLessons().forEach(lesson -> {
+                            UserLessonProgress lessonProgress = new UserLessonProgress();
+                            lessonProgress.setThemeProgress(themeProgress);
+                            lessonProgress.setLessonId(lesson.getLessonId());
+                            lessonProgress.setCompleted(false);
+                            lessonProgress.setUserId(userId);
+                            lessonProgress.setCompleted(false);
 
-                    lessonProgressRepository.save(lessonProgress);
-                });
+                            lessonProgressRepository.save(lessonProgress);
+                        });
             });
         });
+    }
+
+    private static UserThemeProgress getUserThemeProgress(Long userId, ThemeDto theme, UserModuleProgress moduleProgress) {
+        UserThemeProgress themeProgress = new UserThemeProgress();
+        themeProgress.setModuleProgress(moduleProgress);
+        themeProgress.setThemeId(theme.getId());
+        themeProgress.setTotalLessons(theme.getLessons().size());
+        themeProgress.setCompletedLessons(0);
+        themeProgress.setUserId(userId);
+        themeProgress.setOrdinalNumber(theme.getOrdinalNumber());
+        themeProgress.setCompleted(false);
+        return themeProgress;
     }
 }
 

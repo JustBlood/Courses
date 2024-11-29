@@ -9,9 +9,8 @@ import ru.just.mentorcatalogservice.model.Mentor;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static ru.just.mentorcatalogservice.model.Mentor.Column.*;
 
@@ -20,28 +19,27 @@ public class MentorResultSetExtractor implements ResultSetExtractor<Page<Mentor>
 
     @Override
     public Page<Mentor> extractData(ResultSet rs) throws SQLException, DataAccessException {
-        Map<Long, Mentor> extractedMentors = new HashMap<>();
-
+        List<Mentor> mentors = new ArrayList<>();
         while (rs.next()) {
             long mentorId = rs.getLong(ID);
 
-            Mentor mentor = extractedMentors.get(mentorId);
-            if (mentor == null) {
-                mentor = Mentor.builder()
-                        .id(mentorId)
-                        .userId(rs.getLong(USER_ID))
-                        .shortAboutMe(rs.getString(SHORT_ABOUT_ME))
-                        .longAboutMe(rs.getString(LONG_ABOUT_ME))
-                        .specializations(new ArrayList<>())
-                        .studentsIds(new ArrayList<>())
-                        .build();
-                extractedMentors.put(mentorId, mentor);
+            final long studentsCount = rs.getLong(STUDENTS_COUNT);
+            List<Long> fakeStudentIdsForCounting = new ArrayList<>();
+            for (int i = 0; i < studentsCount; i++) {
+                fakeStudentIdsForCounting.add(studentsCount);
             }
 
-            mentor.getSpecializations().add(rs.getString(SPECIALIZATION_NAME));
-            mentor.getStudentsIds().add(rs.getLong(STUDENT_ID));
+            Mentor mentor = Mentor.builder()
+                    .id(mentorId)
+                    .userId(rs.getLong(USER_ID))
+                    .shortAboutMe(rs.getString(SHORT_ABOUT_ME))
+                    .longAboutMe(rs.getString(LONG_ABOUT_ME))
+                    .specializations(Arrays.stream(rs.getString(SPECIALIZATIONS).split(",")).toList())
+                    .studentsIds(fakeStudentIdsForCounting)
+                    .build();
+            mentors.add(mentor);
         }
 
-        return new PageImpl<>(extractedMentors.values().stream().toList());
+        return new PageImpl<>(mentors);
     }
 }

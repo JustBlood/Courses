@@ -20,7 +20,7 @@ public class MentorService {
     private final MentorMapper mentorMapper;
 
     public MentorDto createMentor(CreateMentorDto createMentorDto) {
-        return mentorRepository.createMentor(createMentorDto);
+        return mentorMapper.toDto(mentorRepository.createMentor(createMentorDto));
     }
 
     public void addStudentToMentor(Long mentorId, StudentDto studentDto) {

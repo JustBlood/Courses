@@ -1,5 +1,7 @@
 package ru.just.communicationservice.service.integration;
 
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -42,9 +44,11 @@ public class UserIntegrationService {
         }
     }
 
-    private HttpHeaders buildHeaders(String jwt) {
+    private HttpHeaders buildHeaders(@Nullable String jwt) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+        if (jwt != null) {
+            headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+        }
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         return headers;
     }
@@ -53,7 +57,7 @@ public class UserIntegrationService {
 
         final String uriTemplate = usersServiceUri + "?ids=" + StringUtils.join(userIds, ",");
         final RequestEntity<Void> requestEntity = RequestEntity.get(uriTemplate)
-                .headers(buildHeaders(tokenService.getDecodedToken().getToken()))
+                .headers(buildHeaders(null))
                 .build();
         try {
             return restTemplate.exchange(requestEntity, new ParameterizedTypeReference<List<UserDto>>() {}).getBody();

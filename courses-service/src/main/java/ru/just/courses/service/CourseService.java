@@ -30,7 +30,9 @@ public class CourseService {
 
     public void updateCourse(Long courseId, UpdateCourseDto courseDto) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new NoSuchElementException("course with specified courseId doesn't exists"));
+                .orElseThrow(() -> new NoSuchElementException(
+                        "course with specified courseId doesn't exists"
+                ));
         if (!course.getAuthorId().equals(tokenService.getUserId())) {
             throw new MethodNotAllowedException("You are not a course author");
         }
@@ -57,7 +59,9 @@ public class CourseService {
     public CourseDto getCourseById(Long id) {
         CourseDto dto = new CourseDto();
         dto.fromEntity(courseRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("course with specified id doesn't exists")));
+                .orElseThrow(() -> new NoSuchElementException(
+                        "course with specified id doesn't exists"
+                )));
         return dto;
     }
 }
