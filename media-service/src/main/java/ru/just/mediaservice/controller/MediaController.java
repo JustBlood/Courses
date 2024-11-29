@@ -14,6 +14,12 @@ import java.util.UUID;
 public class MediaController {
     private final MediaService mediaService;
 
+    @PostMapping("/internal/generate/avatar/{userId}")
+    public ResponseEntity<String> generateAvatarPhoto(@PathVariable Long userId,
+                                                      @RequestParam("username") String username) {
+        return ResponseEntity.ok(mediaService.generateAvatarFor(userId, username));
+    }
+
     @PostMapping("/upload/avatar")
     public ResponseEntity<String> uploadAvatarPhoto(@RequestParam("file") MultipartFile file) {
         String fileUrl = mediaService.uploadAvatarPhoto(file);

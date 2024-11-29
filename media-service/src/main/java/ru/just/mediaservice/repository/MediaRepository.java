@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -26,11 +27,19 @@ public class MediaRepository {
 
     public String saveUserFile(String objectFullPathName, MultipartFile file) {
         try {
+            return saveUserFile(objectFullPathName, file.getInputStream(), file.getSize());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String saveUserFile(String objectFullPathName, InputStream is, long size) {
+        try {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(usersBucket)
                             .object(objectFullPathName)
-                            .stream(file.getInputStream(), file.getSize(), -1)
+                            .stream(is, size, -1)
                             .build()
             );
             return "/" + usersBucket + objectFullPathName;

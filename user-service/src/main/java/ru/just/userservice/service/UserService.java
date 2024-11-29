@@ -18,6 +18,7 @@ import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
 import ru.just.userservice.repository.UserChangeEventRepository;
 import ru.just.userservice.repository.UserRepository;
+import ru.just.userservice.service.integration.MediaService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,6 +32,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserChangeEventRepository userChangeEventRepository;
     private final ThreadLocalTokenService tokenService;
+    private final MediaService mediaService;
 
     public Optional<UserDto> getUserByIdFromToken() {
         return getUserById(tokenService.getUserId());
@@ -73,6 +75,8 @@ public class UserService {
         if (userAction.getUserActionType().equals(UserAction.UserActionType.CREATED)) {
             log.info("Создание нового пользователя");
             userRepository.saveUserFromSecurityService(userAction);
+            String avatarUrl = mediaService.generateAvatar(userAction.getUserId(), userAction.getLogin());
+            userRepository.saveUserPhoto(userAction.getUserId(), avatarUrl);
         } else if (userAction.getUserActionType().equals(UserAction.UserActionType.DELETED)) {
             log.info("Удаление пользователя");
             userRepository.deleteById(userAction.getUserId());

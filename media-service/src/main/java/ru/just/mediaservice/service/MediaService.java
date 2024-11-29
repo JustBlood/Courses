@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.just.mediaservice.repository.MediaRepository;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
+import java.io.ByteArrayInputStream;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,5 +54,12 @@ public class MediaService {
 
     public String getPresignedUrlForAttachment(String fullPathToAttachment) {
         return mediaRepository.getPresignedUrlForAttachment(fullPathToAttachment);
+    }
+
+    public String generateAvatarFor(Long userId, String username) {
+        var imageOutputStream = AvatarGenerator.generateAvatar(420, username);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(imageOutputStream.toByteArray());
+        String avatarPath = String.format(USERS_AVATAR_PATH_PATTERN, userId);
+        return mediaRepository.saveUserFile(avatarPath, inputStream, imageOutputStream.size());
     }
 }
