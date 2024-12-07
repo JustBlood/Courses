@@ -42,7 +42,7 @@ spring:
         - id: communication-service
           uri: lb://COMMUNICATION-SERVICE
           predicates:
-            - Path=/api/v1/chats/**
+            - Path=/api/v1/chats/**, /api/v1/messages/**
           filters:
             - JwtAuthenticationFilter
         - id: courses-service
