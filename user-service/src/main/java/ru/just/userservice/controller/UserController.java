@@ -1,17 +1,17 @@
 package ru.just.userservice.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.response.ApiResponse;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
-import java.io.IOException;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -36,10 +36,10 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/photo")
-    public ResponseEntity<ApiResponse> addPhoto(HttpServletRequest httpServletRequest) throws IOException {
+    @PostMapping(value = "/photo")
+    public ResponseEntity<ApiResponse> addPhoto(@RequestParam("avatar") MultipartFile avatar) {
         final String message = "Success adding photo to user";
-        userService.addPhotoToUser(httpServletRequest.getInputStream());
+        userService.addPhotoToUser(avatar);
         ApiResponse apiResponse = new ApiResponse(message);
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.response.ApiResponse;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -31,7 +32,7 @@ public class UserAdminController {
         return new ResponseEntity<>(userDto, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{userId}") // TODO: добавление фото, обновление фото
+    @PutMapping("/{userId}")
     public ResponseEntity<Void> updateUser(@PathVariable Long userId,
                                               @Valid @RequestBody UpdateUserDto userDto) {
         userService.updateUser(userId, userDto);
@@ -46,9 +47,9 @@ public class UserAdminController {
 
     @PostMapping("/{userId}/photo")
     public ResponseEntity<ApiResponse> addPhoto(@PathVariable("userId") Long userId,
-                                                HttpServletRequest httpServletRequest) throws IOException {
+                                                @RequestParam("avatar") MultipartFile avatar) {
         final String message = String.format("Success adding photo to user with id = %s", userId);
-        userService.addPhotoToUser(userId, httpServletRequest.getInputStream());
+        userService.addPhotoToUser(userId, avatar);
         ApiResponse apiResponse = new ApiResponse(message);
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }

@@ -45,4 +45,10 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(
                 new ApiError(LocalDateTime.now(), errorMsgBuilder.toString()), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(value = Exception.class)
+    public ResponseEntity<ApiError> handleException(Exception e) {
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()),
+                HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

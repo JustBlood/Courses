@@ -4,9 +4,12 @@ import jakarta.servlet.ServletInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.audit.ChangeType;
 import ru.just.dtolib.kafka.users.UpdateUserAction;
 import ru.just.dtolib.kafka.users.UserAction;
@@ -16,14 +19,13 @@ import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.dto.UserStatus;
+import ru.just.userservice.exception.EntityNotFoundException;
 import ru.just.userservice.repository.UserChangeEventRepository;
 import ru.just.userservice.repository.UserRepository;
 import ru.just.userservice.service.integration.MediaService;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -60,7 +62,7 @@ public class UserService {
     @Transactional
     public void deleteUser(Long userId) {
         final UserDto user = userRepository.findActiveUserById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User with specified id doesn't exists"));
+                .orElseThrow(() -> new EntityNotFoundException("User with specified id doesn't exists"));
         userRepository.updateUserStatus(user.getId(), UserStatus.DELETED);
         saveUserChangeEvent(userId, userId, ChangeType.DELETE);
     }
@@ -101,15 +103,16 @@ public class UserService {
         saveUserChangeEvent(userId, userId, ChangeType.UPDATE);
     }
 
-    public void addPhotoToUser(ServletInputStream inputStream) {
-        addPhotoToUser(tokenService.getUserId(), inputStream);
+    public void addPhotoToUser(MultipartFile avatar) {
+        addPhotoToUser(tokenService.getUserId(), avatar);
     }
 
-    public void addPhotoToUser(Long userId, ServletInputStream inputStream) {
-        // TODO: send to media-service logic
-        String photoUrl = "";
-
-        userRepository.saveUserPhoto(userId, photoUrl);
+    public void addPhotoToUser(Long userId, MultipartFile avatar) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.getDecodedToken().getToken());
+        headers.put(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE);
+        String avatarUrl = mediaService.uploadAvatarPhoto(headers, avatar);
+        userRepository.saveUserPhoto(userId, avatarUrl);
     }
 
     public List<UserDto> getUsersByIds(List<Long> usersInfoByIdsDto) {

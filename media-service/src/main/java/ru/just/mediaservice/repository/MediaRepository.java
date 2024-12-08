@@ -42,7 +42,7 @@ public class MediaRepository {
                             .stream(is, size, -1)
                             .build()
             );
-            return "/" + usersBucket + objectFullPathName;
+            return "/media/" + usersBucket + objectFullPathName;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

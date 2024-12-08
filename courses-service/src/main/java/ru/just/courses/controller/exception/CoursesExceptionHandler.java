@@ -48,4 +48,10 @@ public class CoursesExceptionHandler {
     public ResponseEntity<ApiError> badArgumentsExceptionHandler(BadArgumentsException ex) {
         return new ResponseEntity<>(new ApiError(LocalDateTime.now(), ex.getMessage()), HttpStatus.CONFLICT);
     }
+
+    @ExceptionHandler(value = Exception.class)
+    public ResponseEntity<ApiError> handleException(Exception e) {
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()),
+                HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

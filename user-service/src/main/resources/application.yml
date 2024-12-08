@@ -1,4 +1,9 @@
 spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
   application:
     name: USERS-SERVICE
   datasource:
@@ -39,6 +44,8 @@ topics:
   user-update-topic: userUpdate
 logging:
   level:
+    org.apache.kafka: ERROR
+    feign: DEBUG
     org.springframework.security: trace
     liquibase: debug
 
