@@ -29,6 +29,7 @@ jobs:
           target: /root/app
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
 
       # 4. Build and deploy on the server
       - name: Build and deploy on server
