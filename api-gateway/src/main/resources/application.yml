@@ -3,7 +3,7 @@ spring:
     gateway:
       globalcors:
         cors-configurations:
-          '[/**]':
+          '[/api/v1/**]':
             allowedOrigins: "*"
             allowedMethods: "*"
             allowedHeaders: "*"

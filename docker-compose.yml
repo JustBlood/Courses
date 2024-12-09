@@ -88,7 +88,6 @@ services:
   minio:
     image: minio/minio
     container_name: minio
-    command: server /data
     environment:
       MINIO_SERVER_URL: "http://localhost:9000/"
       MINIO_ROOT_USER: admin
@@ -162,6 +161,8 @@ services:
       - db
       - spring
     depends_on:
+      - kafka-broker
+      - kafka-zookeeper
       - user_service_db
     ports:
       - "8082:8082"
