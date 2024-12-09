@@ -32,7 +32,7 @@ jobs:
 
     # 4. Build and deploy on the server
     - name: Build and deploy on server
-      uses: appleboy/ssh-action@v0.5.6
+      uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
