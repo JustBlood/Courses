@@ -1,5 +1,6 @@
 package ru.just.securityservice.controller.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,9 +15,11 @@ import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(value = NoSuchElementException.class)
     public ResponseEntity<ApiError> handleNoSuchElementException(NoSuchElementException e) {
+        log.error("Unexprected error: ", e);
         return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()),
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }

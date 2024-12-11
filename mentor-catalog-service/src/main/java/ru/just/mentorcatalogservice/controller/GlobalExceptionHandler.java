@@ -1,5 +1,6 @@
 package ru.just.mentorcatalogservice.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.ObjectError;
@@ -12,10 +13,12 @@ import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)
     public ResponseEntity<ApiError> handleException(Exception e) {
+        log.error("Unexpected exception", e);
         return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.toString()),
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }
