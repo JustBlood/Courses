@@ -7,6 +7,8 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class UpdateUserAction {
     private Long id;
     private String firstName;
