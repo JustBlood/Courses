@@ -21,7 +21,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)
     public ResponseEntity<ApiError> handleException(Exception e) {
-        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.getMessage()),
+        return new ResponseEntity<>(new ApiError(LocalDateTime.now(), e.toString()),
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
