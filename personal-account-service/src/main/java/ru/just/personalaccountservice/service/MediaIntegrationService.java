@@ -1,59 +1,22 @@
 package ru.just.personalaccountservice.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
+import feign.HeaderMap;
+import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
-import ru.just.securitylib.service.ThreadLocalTokenService;
+import ru.just.personalaccountservice.config.FeignConfiguration;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class MediaIntegrationService {
-    private final RestTemplate restTemplate;
-    private final ThreadLocalTokenService tokenService;
+import java.util.Map;
 
-    @Value("http://${service-discovery.media-service.name}/api/v1/media")
-    private String mediaServiceUri;
+@FeignClient(name = "media-service", path = "/api/v1/media", configuration = FeignConfiguration.class)
+public interface MediaIntegrationService {
+    @PostMapping("/internal/generate/avatar/{userId}")
+    String generateAvatar(@PathVariable Long userId, @RequestParam("username") String username);
 
-    public String saveUserPhoto(MultipartFile file) {
-        if (!"image/png".equals(file.getContentType())) {
-            throw new IllegalArgumentException("photo should be png file");
-        }
-        final String uriTemplate = mediaServiceUri + "/upload/avatar";
-        RequestEntity<MultipartFile> saveFileRequest = RequestEntity
-                .post(uriTemplate)
-                .contentType(MediaType.valueOf(file.getContentType()))
-                .headers(buildHeaders())
-                .body(file);
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(saveFileRequest, String.class);
-            return response.getBody();
-        } catch (HttpClientErrorException clientException) {
-            log.error("Error in post photo request", clientException);
-            throw clientException;
-        } catch (HttpServerErrorException serverException) {
-            log.error("Media service can't handle request {}", saveFileRequest, serverException);
-            throw serverException;
-        } catch (RestClientException e) {
-            log.error("Unexpected error in post photo to media-service", e);
-            throw e;
-        }
-    }
-
-    private HttpHeaders buildHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, tokenService.getDecodedToken().getToken());
-        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return headers;
-    }
+    @PostMapping(value = "/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    String uploadAvatarPhoto(@HeaderMap Map<String, String> headers, @RequestPart(value = "file") MultipartFile file);
 }
