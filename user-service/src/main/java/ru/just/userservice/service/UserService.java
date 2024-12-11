@@ -1,11 +1,8 @@
 package ru.just.userservice.service;
 
-import jakarta.servlet.ServletInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +22,8 @@ import ru.just.userservice.repository.UserRepository;
 import ru.just.userservice.service.integration.MediaService;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -108,10 +106,7 @@ public class UserService {
     }
 
     public void addPhotoToUser(Long userId, MultipartFile avatar) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.getDecodedToken().getToken());
-        headers.put(HttpHeaders.CONTENT_TYPE, MediaType.MULTIPART_FORM_DATA_VALUE);
-        String avatarUrl = mediaService.uploadAvatarPhoto(headers, avatar);
+        String avatarUrl = mediaService.uploadAvatarPhoto(avatar);
         userRepository.saveUserPhoto(userId, avatarUrl);
     }
 
