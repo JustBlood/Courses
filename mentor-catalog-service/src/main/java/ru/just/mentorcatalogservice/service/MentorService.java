@@ -2,15 +2,29 @@ package ru.just.mentorcatalogservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 import ru.just.mentorcatalogservice.dto.CreateMentorDto;
 import ru.just.mentorcatalogservice.dto.MentorDto;
 import ru.just.mentorcatalogservice.dto.StudentDto;
 import ru.just.mentorcatalogservice.dto.mapper.MentorMapper;
+import ru.just.mentorcatalogservice.dto.user.UserDto;
 import ru.just.mentorcatalogservice.model.Mentor;
 import ru.just.mentorcatalogservice.repository.MentorRepository;
+import ru.just.securitylib.service.ThreadLocalTokenService;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -18,9 +32,18 @@ import ru.just.mentorcatalogservice.repository.MentorRepository;
 public class MentorService {
     private final MentorRepository mentorRepository;
     private final MentorMapper mentorMapper;
+    private final RestTemplate restTemplate;
+    private final ThreadLocalTokenService tokenService;
+
+    @Value("${service-discovery.users-service.name}")
+    private String usersServiceName;
 
     public MentorDto createMentor(CreateMentorDto createMentorDto) {
-        return mentorMapper.toDto(mentorRepository.createMentor(createMentorDto));
+        if (getUsersInfoFromUsersServices(createMentorDto.getUserId()).isEmpty()) {
+            throw new NoSuchElementException("Пользователя с предоствленным id не существует.");
+        }
+        final Mentor mentor = mentorRepository.createMentor(createMentorDto);
+        return mentorMapper.toDto(mentor);
     }
 
     public void addStudentToMentor(Long mentorId, StudentDto studentDto) {
@@ -38,5 +61,28 @@ public class MentorService {
 
     public boolean isStudentHasMentor(Long studentId, Long mentorId) {
         return mentorRepository.isStudentHasMentor(studentId, mentorId);
+    }
+    private List<UserDto> getUsersInfoFromUsersServices(Long userId) {
+        final String uriTemplate = String.format("http://%s/api/v1/users?ids=%s",
+                usersServiceName,
+                userId);
+        final HttpHeaders headers = buildHeaders();
+        final RequestEntity<Void> requestEntity = RequestEntity.get(uriTemplate)
+                .headers(headers)
+                .build();
+        try {
+            final List<UserDto> userDtos = restTemplate.exchange(requestEntity, new ParameterizedTypeReference<List<UserDto>>() {}).getBody();
+            return Objects.requireNonNullElse(userDtos, Collections.emptyList());
+        } catch (RestClientException e) {
+            log.error("Error while requesting user service get users info by ids", e);
+            throw new IllegalStateException();
+        }
+    }
+
+    private HttpHeaders buildHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.AUTHORIZATION, tokenService.getDecodedToken().getToken());
+        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        return headers;
     }
 }
