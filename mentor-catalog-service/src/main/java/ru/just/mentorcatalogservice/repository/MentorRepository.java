@@ -27,22 +27,32 @@ public class MentorRepository {
     private final JdbcTemplate jdbcTemplate;
     private final MentorResultSetExtractor mentorResultSetExtractor;
 
-    public Page<Mentor> findMentorsBySpecialization(String specialization, Pageable pageable) {
+    public Page<Mentor> findMentorsBySpecialization(List<String> specializations, Pageable pageable) {
         final MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource();
-        mapSqlParameterSource.addValue("specialization", specialization);
+        mapSqlParameterSource.addValue("specializations", specializations.stream().map(s -> "%" + s + "%").toList());
         mapSqlParameterSource.addValue("offset", pageable.getOffset());
         mapSqlParameterSource.addValue("limit", pageable.getPageSize());
         // TODO: убрать нахуй этот sql в ресурсы и переработать
-        final String sql = """
-                  select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me", m.long_about_me as "long_about_me",
-                         (select count(*) from mentor_student mst where mst.mentor_id = m.id) as "students_count",
-                          STRING_AGG(s.name, ',') as "specializations"
-                  from mentor m
-                      join mentor_specialization ms on m.id = ms.mentor_id
-                      join specialization s on s.id = ms.specialization_id
-                  where m.id IN (SELECT m2.id FROM mentor m2 ORDER BY m2.id OFFSET :offset LIMIT :limit)
-                    and s.name ILIKE '%'||:specialization||'%'
-                  group by 1,2,3,4,5;
+        final String sql =
+                """
+          select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me",
+                 m.long_about_me as "long_about_me",
+                 (select count(*) from mentor_student mst where mst.mentor_id = m.id) as "students_count",
+                 STRING_AGG(s.name, ',') as "specializations"
+          from mentor m
+              join mentor_specialization ms on m.id = ms.mentor_id
+              join specialization s on s.id = ms.specialization_id
+          where m.id IN (
+              SELECT m2.id
+              FROM mentor m2
+              join mentor_specialization ms2 on m2.id = ms2.mentor_id
+              join specialization s2 on s2.id = ms2.specialization_id
+              where s2.name ILIKE any (array[:specializations])  -- фильтрация по специализациям
+              order by m2.id
+              OFFSET :offset LIMIT :limit
+          )
+          group by m.id, m.user_id, m.short_about_me, m.long_about_me
+          order by m.id;
                 """;
         return namedTemplate.query(sql, mapSqlParameterSource, mentorResultSetExtractor);
     }

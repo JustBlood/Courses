@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -35,7 +36,7 @@ public class CardService {
     private String usersServiceName;
 
 
-    public Page<MentorCardDto> getMentorCardsPage(String specialization, Pageable pageable) {
+    public Page<MentorCardDto> getMentorCardsPage(List<String> specialization, Pageable pageable) {
         // todo: запрос в БД для инфы о менторе
         // todo: запрос в Пользователей на данные пользователя
         final Page<MentorDto> mentors = mentorService.getMentorsCardsBySpecializationPart(specialization, pageable);
@@ -45,20 +46,24 @@ public class CardService {
     }
 
     private Page<MentorCardDto> buildMentorCardDtos(Page<MentorDto> mentors, Map<Long, UserDto> userInfoById) {
-        return mentors.map(mentor -> {
-            MentorCardDto cardDto = new MentorCardDto();
-            final UserDto currentUserDto = userInfoById.get(mentor.getUserId());
-            cardDto.setFirstName(currentUserDto.getFirstName());
-            cardDto.setLastName(currentUserDto.getLastName());
-            cardDto.setUsername(currentUserDto.getUsername());
-            cardDto.setAvatarUrl(currentUserDto.getPhotoUrl());
-            cardDto.setSpecializations(mentor.getSpecializations());
-            cardDto.setShortAboutMe(mentor.getShortAboutMe());
-            cardDto.setLongAboutMe(mentor.getLongAboutMe());
-            cardDto.setStudentsCount(mentor.getStudentsCount());
+        final List<MentorCardDto> cards = mentors.stream()
+                .filter(mentor -> userInfoById.containsKey(mentor.getUserId()))
+                .map(mentor -> {
+                    MentorCardDto cardDto = new MentorCardDto();
+                    final UserDto currentUserDto = userInfoById.get(mentor.getUserId());
+                    cardDto.setFirstName(currentUserDto.getFirstName());
+                    cardDto.setLastName(currentUserDto.getLastName());
+                    cardDto.setUsername(currentUserDto.getUsername());
+                    cardDto.setAvatarUrl(currentUserDto.getPhotoUrl());
+                    cardDto.setSpecializations(mentor.getSpecializations());
+                    cardDto.setShortAboutMe(mentor.getShortAboutMe());
+                    cardDto.setLongAboutMe(mentor.getLongAboutMe());
+                    cardDto.setStudentsCount(mentor.getStudentsCount());
+                    cardDto.setUserId(mentor.getUserId());
 
-            return cardDto;
-        });
+                    return cardDto;
+                }).collect(Collectors.toList());
+        return new PageImpl<>(cards, mentors.getPageable(), cards.size());
     }
 
     private Map<Long,UserDto> getUsersInfoFromUsersServices(List<Long> userIds) {

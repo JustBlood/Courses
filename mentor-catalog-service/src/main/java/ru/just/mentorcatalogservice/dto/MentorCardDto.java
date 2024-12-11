@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class MentorCardDto {
+    private Long userId;
     private String username;
     private String firstName;
     private String lastName;

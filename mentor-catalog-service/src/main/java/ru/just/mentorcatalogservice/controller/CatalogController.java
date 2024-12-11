@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.just.mentorcatalogservice.dto.MentorCardDto;
 import ru.just.mentorcatalogservice.service.CardService;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/mentors/catalog")
 @RestController
@@ -20,7 +22,8 @@ public class CatalogController {
     // получить информацию о менторах для страницы карточек
     // инфа выдается вообще вся, но отображаться будет не фулл
     @GetMapping
-    public ResponseEntity<Page<MentorCardDto>> getMentorCards(@RequestParam String specialization, Pageable pageable) {
+    public ResponseEntity<Page<MentorCardDto>> getMentorCards(@RequestParam(required = false) List<String> specialization, Pageable pageable) {
+        if (specialization == null) specialization = List.of("");
         return ResponseEntity.ok(cardService.getMentorCardsPage(specialization, pageable));
     }
 }

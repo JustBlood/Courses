@@ -54,7 +54,7 @@ public class MentorService {
         return mentorRepository.isMentorExists(userId);
     }
 
-    public Page<MentorDto> getMentorsCardsBySpecializationPart(String specialization, Pageable pageable) {
+    public Page<MentorDto> getMentorsCardsBySpecializationPart(List<String> specialization, Pageable pageable) {
         Page<Mentor> mentors = mentorRepository.findMentorsBySpecialization(specialization, pageable);
         return mentors.map(mentorMapper::toDto);
     }
