@@ -14,7 +14,9 @@ public class FeignRequestInterceptor implements RequestInterceptor {
 
     @Override
     public void apply(RequestTemplate requestTemplate) {
-        requestTemplate.header(HttpHeaders.AUTHORIZATION, tokenService.getDecodedToken().getToken());
+        if (tokenService.getDecodedToken() != null) {
+            requestTemplate.header(HttpHeaders.AUTHORIZATION, tokenService.getDecodedToken().getToken());
+        }
     }
 }
 
