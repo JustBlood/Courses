@@ -2,15 +2,10 @@ package ru.just.userservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.audit.ChangeType;
-import ru.just.dtolib.kafka.users.UpdateUserAction;
-import ru.just.dtolib.kafka.users.UserAction;
-import ru.just.securitylib.service.ThreadLocalTokenService;
 import ru.just.userservice.audit.UserChangeEvent;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -24,6 +19,7 @@ import ru.just.userservice.service.integration.MediaService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor

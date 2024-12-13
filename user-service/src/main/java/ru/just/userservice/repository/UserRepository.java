@@ -15,6 +15,7 @@ import ru.just.userservice.dto.UserStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static ru.just.model.tables.Users.USERS;
 
@@ -40,7 +41,7 @@ public class UserRepository {
                 .withFirstName(record.get(USERS.FIRST_NAME))
                 .withLastName(record.get(USERS.LAST_NAME))
                 .withPhone(record.get(USERS.PHONE))
-                .withPhotoUrl(record.get(USERS.PHOTO_URL))
+                .withPhotoUrl(record.get(USERS.AVATAR_FILE_ID))
                 .withUserStatus(Enum.valueOf(UserStatus.class, record.get(USERS.STATUS)))
                 .withRegistrationDate(record.get(USERS.REGISTRATION_DATE));
     }
@@ -95,9 +96,9 @@ public class UserRepository {
                 .where(USERS.USER_ID.eq(userId)).execute();
     }
 
-    public void saveUserPhoto(Long userId, String photoUrl) {
+    public void saveUserPhoto(Long userId, UUID avatarId) {
         jooq.update(USERS)
-                .set(USERS.PHOTO_URL, photoUrl)
+                .set(USERS.AVATAR_FILE_ID, avatarId.toString())
                 .where(USERS.USER_ID.eq(userId)).execute();
     }
 

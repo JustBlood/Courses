@@ -2,18 +2,20 @@ package ru.just.userservice.service.integration;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
+import ru.just.dtolib.response.media.FileIdDto;
 import ru.just.userservice.config.FeignConfiguration;
+
+import java.util.UUID;
 
 @FeignClient(name = "media-service", path = "/api/v1/media", configuration = FeignConfiguration.class)
 public interface MediaService {
     @PostMapping("/internal/generate/avatar")
-    String generateAvatar(@PathVariable Long userId, @RequestParam("username") String username);
+    UUID generateAvatar(@RequestParam("username") String username);
 
     @PostMapping(value = "/internal/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    String uploadAvatarPhoto(@RequestPart(value = "file") MultipartFile file);
+    FileIdDto uploadAvatarPhoto(@RequestPart(value = "file") MultipartFile file);
 }
