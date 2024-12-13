@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import ru.just.communicationservice.model.Message;
 import ru.just.communicationservice.repository.ChatRepository;
 import ru.just.communicationservice.service.integration.MediaIntegrationService;
 import ru.just.communicationservice.service.integration.UserIntegrationService;
+import ru.just.dtolib.response.media.FileIdDto;
+import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.List;
@@ -49,13 +53,13 @@ public class ChatService {
         return chatDto;
     }
 
-    public List<UserDto> getChatUsers(UUID chatId) {
+    public Page<UserDto> getChatUsers(UUID chatId) {
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new IllegalArgumentException("Чата не существует"));
         List<Long> userIds = chat.getMemberIds();
-        return userIntegrationService.getUsersData(userIds);
+        return new PageImpl(userIntegrationService.getUsersData(userIds));
     }
 
-    public List<ChatDto> getUserChats(Pageable pageable) {
+    public Page<ChatDto> getUserChats(Pageable pageable) {
         Long userId = tokenService.getUserId();
         return chatRepository.findAllByMemberIdsContains(userId, pageable)
                 .map(chat -> {
@@ -63,7 +67,7 @@ public class ChatService {
                     chatDto.setChatId(chat.getId());
                     chatDto.setMembers(chat.getMemberIds());
                     return chatDto;
-                }).toList();
+                });
     }
 
     public boolean isUserInChat(Long userId, UUID chatId) {
@@ -97,14 +101,15 @@ public class ChatService {
     }
 
     public void uploadAttachment(UUID chatId, MultipartFile file) {
-        String fullPathToAttachment = mediaIntegrationService.saveChatAttachmentPhoto(chatId, file);
-        final Long userId = tokenService.getUserId();
-        String presignedUrl = mediaIntegrationService.getPresignedUrlForAttachment(chatId, fullPathToAttachment);
+        FileIdDto fileIdDto = mediaIntegrationService.saveChatAttachmentPhoto(file);
+        String presignedUrl = mediaIntegrationService.getPresignedUrlForAttachment(fileIdDto.getFileId());
 
-        final Message.AttachmentMessageBody messageBody = new Message.AttachmentMessageBody(presignedUrl, fullPathToAttachment);
+        final Message.AttachmentMessageBody messageBody = new Message.AttachmentMessageBody(presignedUrl,
+                fileIdDto.getFileId());
         messageService.saveMessage(chatId, tokenService.getUserId(), messageBody);
 
-        MessageEventDto.AttachmentMessageBody body = new MessageEventDto.AttachmentMessageBody(userId, presignedUrl);
+        MessageEventDto.AttachmentMessageBody body = new MessageEventDto.AttachmentMessageBody(
+                tokenService.getUserId(), presignedUrl);
         messagingTemplate.convertAndSend("/topic/chat/" + chatId, new MessageEventDto<>(body, body.getType()));
     }
 }
