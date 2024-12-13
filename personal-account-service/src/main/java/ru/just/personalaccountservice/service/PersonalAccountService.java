@@ -3,6 +3,8 @@ package ru.just.personalaccountservice.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import ru.just.dtolib.response.media.FileIdDto;
+import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.personalaccountservice.dto.UpdateUserDto;
 import ru.just.personalaccountservice.dto.UserDto;
 
@@ -18,11 +20,12 @@ public class PersonalAccountService {
         userIntegrationService.sendUpdateUserDataMessage(updateUserDto);
     }
 
-    public String updateProfilePhoto(MultipartFile file) {
+    public FileUrlDto updateProfilePhoto(MultipartFile file) {
         if (!"image/png".equals(file.getContentType())) {
             throw new IllegalArgumentException("photo should be png file");
         }
-        return mediaIntegrationService.uploadAvatarPhoto(file);
+        final FileIdDto fileIdDto = mediaIntegrationService.uploadAvatar(file);
+        return mediaIntegrationService.getAvatar(fileIdDto.getFileId());
     }
 
     public Optional<UserDto> getUserData() {

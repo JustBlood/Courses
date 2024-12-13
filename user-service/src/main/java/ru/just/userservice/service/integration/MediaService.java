@@ -11,11 +11,11 @@ import ru.just.userservice.config.FeignConfiguration;
 
 import java.util.UUID;
 
-@FeignClient(name = "media-service", path = "/api/v1/media", configuration = FeignConfiguration.class)
+@FeignClient(name = "media-service", path = "/api/v1/media/internal", configuration = FeignConfiguration.class)
 public interface MediaService {
-    @PostMapping("/internal/generate/avatar")
+    @PostMapping("/avatar/generate")
     UUID generateAvatar(@RequestParam("username") String username);
 
-    @PostMapping(value = "/internal/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/avatar/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     FileIdDto uploadAvatarPhoto(@RequestPart(value = "file") MultipartFile file);
 }

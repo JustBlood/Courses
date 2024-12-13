@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.response.ApiResponse;
+import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.personalaccountservice.dto.UpdateUserDto;
 import ru.just.personalaccountservice.dto.UserDto;
 import ru.just.personalaccountservice.service.PersonalAccountService;
@@ -31,8 +32,7 @@ public class PersonalAccountController {
     }
 
     @PostMapping("/photo")
-    public ResponseEntity<ApiResponse> updateProfilePhoto(@RequestParam("file") MultipartFile file) {
-        String photoUrl = personalAccountService.updateProfilePhoto(file);
-        return ResponseEntity.ok(new ApiResponse(photoUrl));
+    public ResponseEntity<FileUrlDto> updateProfilePhoto(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(personalAccountService.updateProfilePhoto(file));
     }
 }

@@ -16,13 +16,13 @@ import java.util.UUID;
 public class MediaController {
     private final MediaService mediaService;
 
-    @PostMapping("/generate/avatar")
+    @PostMapping("/avatar/generate")
     public ResponseEntity<FileIdDto> generateAvatarPhoto(@RequestParam("username") String username) {
         final UUID fileId = mediaService.generateAvatarFor(username);
         return ResponseEntity.ok(new FileIdDto(fileId));
     }
 
-    @PostMapping("/upload/avatar")
+    @PostMapping("/avatar/upload")
     public ResponseEntity<FileIdDto> uploadAvatarPhoto(@RequestParam("file") MultipartFile file) {
         UUID fileUrl = mediaService.uploadAvatarPhoto(file);
         return ResponseEntity.ok(new FileIdDto(fileUrl));
@@ -41,7 +41,7 @@ public class MediaController {
         return ResponseEntity.ok(mediaService.getPresignedUrlForAttachment(fileId));
     }
 
-    @GetMapping
+    @GetMapping("/avatar")
     public ResponseEntity<FileUrlDto> getPresignedUrlForUserAvatar(UUID fileId) {
         return ResponseEntity.ok(new FileUrlDto(mediaService.getPresignedAvatarUrl(fileId)));
     }
