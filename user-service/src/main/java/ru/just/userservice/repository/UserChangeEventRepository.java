@@ -9,6 +9,8 @@ import ru.just.userservice.audit.UserChangeEvent;
 
 import java.util.Optional;
 
+import static ru.just.model.Tables.USER_CHANGE_EVENT;
+
 @RequiredArgsConstructor
 @Repository
 public class UserChangeEventRepository {
@@ -19,6 +21,11 @@ public class UserChangeEventRepository {
     }
 
     public void save(UserChangeEvent withChangeType) {
-
+        jooq.insertInto(USER_CHANGE_EVENT)
+                .set(USER_CHANGE_EVENT.USER_ID, withChangeType.getUserId())
+                .set(USER_CHANGE_EVENT.USER_CHANGE_EVENT_ID, withChangeType.getId())
+                .set(USER_CHANGE_EVENT.CHANGE_TYPE, withChangeType.getChangeType().name())
+                .set(USER_CHANGE_EVENT.AUTHOR_ID, withChangeType.getAuthorId())
+                .execute();
     }
 }

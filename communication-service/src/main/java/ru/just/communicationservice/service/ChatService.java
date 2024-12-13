@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static java.lang.String.format;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -75,6 +77,9 @@ public class ChatService {
 
     public void removeUserFromChat(Long userId, UUID chatId) {
         Chat chat = chatRepository.findById(chatId).orElseThrow();
+        if (!chat.getAuthorId().equals(tokenService.getUserId()) || chat.getAuthorId().equals(userId)) {
+            throw new IllegalArgumentException(format("У вас нет прав на удаление пользователя %s из чата", userId));
+        }
         chat.getMemberIds().remove(userId);
         final MessageEventDto.LeaveMessageBody body = new MessageEventDto.LeaveMessageBody(userId);
         messagingTemplate.convertAndSend("/topic/chat/" + chat, new MessageEventDto<>(body, body.getType()));
@@ -85,7 +90,7 @@ public class ChatService {
         if (!isUserInChat(tokenService.getUserId(), chatId)) {
             throw new IllegalStateException("Current user not in specified chat");
         }
-        Optional<UserDto> userDto = userIntegrationService.getUserData(tokenService.getDecodedToken().getToken());
+        Optional<UserDto> userDto = userIntegrationService.getUserData(tokenService.getUserId());
         if (userDto.isEmpty()) {
             throw new IllegalArgumentException("Пользователя не существует");
         }

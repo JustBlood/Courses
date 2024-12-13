@@ -27,12 +27,7 @@ import java.util.UUID;
 public class UserService {
     private final UserRepository userRepository;
     private final UserChangeEventRepository userChangeEventRepository;
-    private final ThreadLocalTokenService tokenService;
     private final MediaService mediaService;
-
-    public Optional<UserDto> getUserByIdFromToken() {
-        return getUserById(tokenService.getUserId());
-    }
 
     public Optional<UserDto> getUserById(Long userId) {
         return userRepository.findActiveUserById(userId);
@@ -60,49 +55,15 @@ public class UserService {
         userRepository.updateUserStatus(user.getId(), UserStatus.DELETED);
         saveUserChangeEvent(userId, userId, ChangeType.DELETE);
     }
-    // todo: вынести в kafka-worker какой-нибудь
-    @Transactional
-    @KafkaListener(topics = {"${topics.user-actions-topic}"})
-    public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
-        log.info("Получено сообщение из user-actions топика");
-        final UserAction userAction = userActionRecord.value();
-        ChangeType changeType = userAction.getUserActionType().equals(UserAction.UserActionType.CREATED) ?
-                ChangeType.CREATE : ChangeType.DELETE;
-        if (userAction.getUserActionType().equals(UserAction.UserActionType.CREATED)) {
-            log.info("Создание нового пользователя");
-            userRepository.saveUserFromSecurityService(userAction);
-            String avatarUrl = mediaService.generateAvatar(userAction.getUserId(), userAction.getLogin());
-            userRepository.saveUserPhoto(userAction.getUserId(), avatarUrl);
-        } else if (userAction.getUserActionType().equals(UserAction.UserActionType.DELETED)) {
-            log.info("Удаление пользователя");
-            userRepository.deleteById(userAction.getUserId());
-        }
-        saveUserChangeEvent(userAction.getUserId(), userAction.getUserId(), changeType);
-    }
-    // todo: вынести в kafka-worker какой-нибудь
-    @Transactional
-    @KafkaListener(topics = {"${topics.user-update-topic}"})
-    public void handleUpdateUserAction(ConsumerRecord<String, UpdateUserAction> consumerRecord) {
-        final UpdateUserAction updateUserAction = consumerRecord.value();
-        userRepository.updateUserById(updateUserAction.getId(), updateUserAction);
-        saveUserChangeEvent(updateUserAction.getId(), updateUserAction.getId(), ChangeType.UPDATE);
-    }
 
-    public void updateUser(UpdateUserDto userDto) {
-        updateUser(tokenService.getUserId(), userDto);
-    }
-
+    @Transactional
     public void updateUser(Long userId, UpdateUserDto userDto) {
         userRepository.updateUserById(userId, userDto);
         saveUserChangeEvent(userId, userId, ChangeType.UPDATE);
     }
 
-    public void addPhotoToUser(MultipartFile avatar) {
-        addPhotoToUser(tokenService.getUserId(), avatar);
-    }
-
-    public void addPhotoToUser(Long userId, MultipartFile avatar) {
-        String avatarUrl = mediaService.uploadAvatarPhoto(avatar);
+    public void addAvatarToUser(Long userId, MultipartFile avatar) {
+        UUID avatarUrl = mediaService.uploadAvatarPhoto(avatar).getFileId();
         userRepository.saveUserPhoto(userId, avatarUrl);
     }
 

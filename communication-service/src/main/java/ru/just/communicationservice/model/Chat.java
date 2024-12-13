@@ -12,5 +12,6 @@ import java.util.UUID;
 public class Chat {
     @Id
     private UUID id;            // Идентификатор чата
+    private Long authorId;
     private List<Long> memberIds;
 }

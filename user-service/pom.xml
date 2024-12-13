@@ -114,11 +114,6 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
         <dependency>
-            <groupId>ru.just</groupId>
-            <artifactId>security-starter</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
         </dependency>

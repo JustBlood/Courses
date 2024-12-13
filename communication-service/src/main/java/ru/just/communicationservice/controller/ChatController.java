@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.just.communicationservice.dto.ChatDto;
 import ru.just.communicationservice.dto.integration.UserDto;
 import ru.just.communicationservice.service.ChatService;
+import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class ChatController { // TODO: добавить логику работы с webSocket
 
     private final ChatService chatService;
+    private final ThreadLocalTokenService tokenService;
 
     // Создать чат
     @PostMapping
@@ -30,6 +32,18 @@ public class ChatController { // TODO: добавить логику работ�
                                               @RequestParam("userId") Long userId
     ) {
         chatService.addUserToChat(chatId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{chatId}/remove")
+    public ResponseEntity<Void> removeUserFromChat(@PathVariable UUID chatId, @RequestParam("userId") Long userId) {
+        chatService.removeUserFromChat(userId, chatId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{chatId}/leave")
+    public ResponseEntity<Void> removeUserFromChat(@PathVariable UUID chatId) {
+        chatService.removeUserFromChat(tokenService.getUserId(), chatId);
         return ResponseEntity.ok().build();
     }
 

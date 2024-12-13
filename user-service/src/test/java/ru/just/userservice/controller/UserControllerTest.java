@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-class UserAdminControllerTest {
+class UserControllerTest {
 
     @LocalServerPort
     int port;

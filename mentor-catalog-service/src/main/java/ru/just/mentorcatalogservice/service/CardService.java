@@ -16,7 +16,6 @@ import org.springframework.web.client.RestTemplate;
 import ru.just.mentorcatalogservice.dto.MentorCardDto;
 import ru.just.mentorcatalogservice.dto.MentorDto;
 import ru.just.mentorcatalogservice.dto.user.UserDto;
-import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,15 +29,12 @@ import java.util.stream.Collectors;
 public class CardService {
     private final MentorService mentorService;
     private final RestTemplate restTemplate;
-    private final ThreadLocalTokenService tokenService;
 
     @Value("${service-discovery.users-service.name}")
     private String usersServiceName;
 
 
     public Page<MentorCardDto> getMentorCardsPage(List<String> specialization, Pageable pageable) {
-        // todo: запрос в БД для инфы о менторе
-        // todo: запрос в Пользователей на данные пользователя
         final Page<MentorDto> mentors = mentorService.getMentorsCardsBySpecializationPart(specialization, pageable);
 
         Map<Long, UserDto> userInfoById = getUsersInfoFromUsersServices(mentors.stream().map(MentorDto::getUserId).collect(Collectors.toList()));
@@ -67,7 +63,7 @@ public class CardService {
     }
 
     private Map<Long,UserDto> getUsersInfoFromUsersServices(List<Long> userIds) {
-        final String uriTemplate = String.format("http://%s/api/v1/users?ids=%s",
+        final String uriTemplate = String.format("http://%s/api/v1/users/internal?ids=%s",
                 usersServiceName,
                 userIds.stream()
                     .map(Object::toString)
@@ -91,7 +87,6 @@ public class CardService {
 
     private HttpHeaders buildHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, tokenService.getDecodedToken().getToken());
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         return headers;
     }

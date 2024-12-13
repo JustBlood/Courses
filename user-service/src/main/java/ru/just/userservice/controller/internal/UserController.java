@@ -1,6 +1,5 @@
 package ru.just.userservice.controller.internal;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,13 +12,18 @@ import ru.just.userservice.dto.UpdateUserDto;
 import ru.just.userservice.dto.UserDto;
 import ru.just.userservice.service.UserService;
 
-import java.io.IOException;
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/internal/users/admin")
-public class UserAdminController {
+@RequestMapping("/api/v1/users/internal")
+public class UserController {
     private final UserService userService;
+
+    @GetMapping
+    public ResponseEntity<List<UserDto>> getUsersInfoByIds(@RequestParam(name = "ids") List<Long> usersInfoByIdsDto) {
+        return ResponseEntity.ok(userService.getUsersByIds(usersInfoByIdsDto));
+    }
 
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Long userId) {
@@ -49,7 +53,7 @@ public class UserAdminController {
     public ResponseEntity<ApiResponse> addPhoto(@PathVariable("userId") Long userId,
                                                 @RequestParam("avatar") MultipartFile avatar) {
         final String message = String.format("Success adding photo to user with id = %s", userId);
-        userService.addPhotoToUser(userId, avatar);
+        userService.addAvatarToUser(userId, avatar);
         ApiResponse apiResponse = new ApiResponse(message);
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
