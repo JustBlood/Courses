@@ -11,9 +11,9 @@ import ru.just.userservice.config.FeignConfiguration;
 
 @FeignClient(name = "media-service", path = "/api/v1/media", configuration = FeignConfiguration.class)
 public interface MediaService {
-    @PostMapping("/internal/generate/avatar/{userId}")
+    @PostMapping("/internal/generate/avatar")
     String generateAvatar(@PathVariable Long userId, @RequestParam("username") String username);
 
-    @PostMapping(value = "/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/internal/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     String uploadAvatarPhoto(@RequestPart(value = "file") MultipartFile file);
 }

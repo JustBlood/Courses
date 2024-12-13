@@ -15,6 +15,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import ru.just.dtolib.response.media.FileIdDto;
+import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.UUID;
@@ -27,23 +29,22 @@ public class MediaIntegrationService {
     private final RestTemplate restTemplate;
     private final ThreadLocalTokenService tokenService;
 
-    @Value("http://${service-discovery.media-service.name}/api/v1/media")
+    @Value("http://${service-discovery.media-service.name}/api/v1/media/internal")
     private String mediaServiceUri;
 
-    public String saveChatAttachmentPhoto(UUID chatId, MultipartFile file) {
+    public FileIdDto saveChatAttachmentPhoto(MultipartFile file) {
         if (!"image/png".equals(file.getContentType())) {
             throw new IllegalArgumentException("photo should be png file");
         }
-        final String uriTemplate = mediaServiceUri + "/chats/{chatId}/attachments/upload";
+        final String uriTemplate = mediaServiceUri + "/chatAttachments/upload";
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         RequestEntity<MultiValueMap<String, Object>> saveAttachmentRequest = RequestEntity
-                .post(uriTemplate, chatId)
+                .post(uriTemplate)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .headers(buildHeaders())
                 .body(body);
         try {
-            ResponseEntity<String> response = restTemplate.exchange(saveAttachmentRequest, String.class);
+            ResponseEntity<FileIdDto> response = restTemplate.exchange(saveAttachmentRequest, FileIdDto.class);
             return response.getBody();
         } catch (HttpClientErrorException clientException) {
             log.error("Error in post photo request", clientException);
@@ -57,17 +58,10 @@ public class MediaIntegrationService {
         }
     }
 
-    private HttpHeaders buildHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + tokenService.getDecodedToken().getToken());
-        return headers;
-    }
-
-    public String getPresignedUrlForAttachment(UUID chatId, String fullPathToAttachment) {
-        final String uriTemplate = mediaServiceUri + "/chats/{chatId}/attachments?pathTo={pathTo}";
+    public String getPresignedUrlForAttachment(UUID fileId) {
+        final String uriTemplate = mediaServiceUri + "/chatAttachments?fileId={fileId}";
         RequestEntity<Void> getPresignedUrlRequest = RequestEntity
-                .get(uriTemplate, chatId, fullPathToAttachment)
-                .headers(buildHeaders())
+                .get(uriTemplate, fileId)
                 .build();
         try {
             ResponseEntity<String> response = restTemplate.exchange(getPresignedUrlRequest, String.class);

@@ -42,7 +42,7 @@ public class Message {
     @Data
     public static class AttachmentMessageBody extends MessageBody {
         String presignedUrl;
-        String fullPathToObject;
+        UUID fileId;
 
         @Override
         public MessageType getType() {
