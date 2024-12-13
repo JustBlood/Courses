@@ -19,7 +19,6 @@ import ru.just.communicationservice.repository.ChatRepository;
 import ru.just.communicationservice.service.integration.MediaIntegrationService;
 import ru.just.communicationservice.service.integration.UserIntegrationService;
 import ru.just.dtolib.response.media.FileIdDto;
-import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.List;
@@ -56,7 +55,7 @@ public class ChatService {
     public Page<UserDto> getChatUsers(UUID chatId) {
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new IllegalArgumentException("Чата не существует"));
         List<Long> userIds = chat.getMemberIds();
-        return new PageImpl(userIntegrationService.getUsersData(userIds));
+        return new PageImpl<>(userIntegrationService.getUsersData(userIds));
     }
 
     public Page<ChatDto> getUserChats(Pageable pageable) {
