@@ -1,48 +1,44 @@
 package ru.just.mediaservice.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.mediaservice.repository.MediaRepository;
-import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.io.ByteArrayInputStream;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class MediaService {
-    public static final String USERS_AVATAR_PATH_PATTERN = "/%d/avatar/photo.png";
-    public static final String CHAT_ATTACHMENTS_PATH_PATTERN = "/%s/attachments/%s.png";
     private final MediaRepository mediaRepository;
-    private final ThreadLocalTokenService tokenService;
 
-    public String saveFile(String objectFullPathName, MultipartFile file) {
-        return mediaRepository.saveUserFile(objectFullPathName, file);
+    @Value("${minio.buckets.users-data}")
+    private String usersBucket;
+    @Value("${minio.buckets.chat-data}")
+    private String chatAttachmentsBucket;
+
+    public UUID saveFile(String objectFullPathName, MultipartFile file) {
+        return mediaRepository.saveFile(objectFullPathName, file);
     }
 
-    public String uploadAvatarPhoto(MultipartFile file) {
+    public UUID uploadAvatarPhoto(MultipartFile file) {
         checkPngContentType(file);
 
-        String avatarPath = String.format(USERS_AVATAR_PATH_PATTERN, tokenService.getUserId());
-        return saveFile(avatarPath, file);
+        return saveFile(usersBucket, file);
     }
 
-    public Optional<String> getAvatarUrlForCurrentUser() {
-        String avatarPath = String.format(USERS_AVATAR_PATH_PATTERN, tokenService.getUserId());
-        if (mediaRepository.checkFileExists(avatarPath)) {
-            return Optional.of(avatarPath);
-        }
-        return Optional.empty();
+    @Cacheable(value = "presigned-url", key = "#fileId")
+    public String getPresignedAvatarUrl(UUID fileId) {
+        return mediaRepository.getPresignedUrlForFile(usersBucket, fileId);
     }
 
-    public String uploadChatAttachment(UUID chatId, MultipartFile file) {
+    public UUID uploadChatAttachment(MultipartFile file) {
         checkPngContentType(file);
 
-        String fullPath = String.format(CHAT_ATTACHMENTS_PATH_PATTERN, chatId, UUID.randomUUID());
-        mediaRepository.saveChatAttachment(fullPath, file);
-        return fullPath;
+        return mediaRepository.saveFile(chatAttachmentsBucket, file);
     }
 
     private static void checkPngContentType(MultipartFile file) {
@@ -52,14 +48,14 @@ public class MediaService {
         }
     }
 
-    public String getPresignedUrlForAttachment(String fullPathToAttachment) {
-        return mediaRepository.getPresignedUrlForAttachment(fullPathToAttachment);
+    @Cacheable(value = "presigned-url", key = "#fileId")
+    public String getPresignedUrlForAttachment(UUID fileId) {
+        return mediaRepository.getPresignedUrlForFile(chatAttachmentsBucket, fileId);
     }
 
-    public String generateAvatarFor(Long userId, String username) {
+    public UUID generateAvatarFor(String username) {
         var imageOutputStream = AvatarGenerator.generateAvatar(420, username);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageOutputStream.toByteArray());
-        String avatarPath = String.format(USERS_AVATAR_PATH_PATTERN, userId);
-        return mediaRepository.saveUserFile(avatarPath, inputStream, imageOutputStream.size());
+        return mediaRepository.saveFile(usersBucket, inputStream, imageOutputStream.size());
     }
 }

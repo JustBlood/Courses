@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ru.just.dtolib.response.media.FileIdDto;
+import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.mediaservice.service.MediaService;
 
 import java.util.UUID;
@@ -14,33 +16,27 @@ import java.util.UUID;
 public class MediaController {
     private final MediaService mediaService;
 
-    @PostMapping("/internal/generate/avatar/{userId}")
-    public ResponseEntity<String> generateAvatarPhoto(@PathVariable Long userId,
-                                                      @RequestParam("username") String username) {
-        return ResponseEntity.ok(mediaService.generateAvatarFor(userId, username));
-    }
-
     @PostMapping("/upload/avatar")
-    public ResponseEntity<String> uploadAvatarPhoto(@RequestParam("file") MultipartFile file) {
-        String fileUrl = mediaService.uploadAvatarPhoto(file);
-        return ResponseEntity.ok(fileUrl);
+    public ResponseEntity<FileIdDto> uploadAvatarPhoto(@RequestParam("file") MultipartFile file) {
+        UUID fileUrl = mediaService.uploadAvatarPhoto(file);
+        return ResponseEntity.ok(new FileIdDto(fileUrl));
     }
 
-    @PostMapping("/chats/{chatId}/attachments/upload")
-    public ResponseEntity<String> uploadChatAttachment(
-            @PathVariable UUID chatId,
+    @PostMapping("/chatAttachments")
+    public ResponseEntity<FileIdDto> uploadChatAttachment(
             @RequestParam("file") MultipartFile file
     ) {
-        return ResponseEntity.ok().body(mediaService.uploadChatAttachment(chatId, file));
+        final UUID fileId = mediaService.uploadChatAttachment(file);
+        return ResponseEntity.ok(new FileIdDto(fileId));
     }
 
-    @GetMapping("/chats/{chatId}/attachments")
-    public ResponseEntity<String> getPresignedUrlForAttachment(@RequestParam("pathTo") String fullPathToAttachment) {
-        return ResponseEntity.ok(mediaService.getPresignedUrlForAttachment(fullPathToAttachment));
+    @GetMapping("/chatAttachments")
+    public ResponseEntity<String> getPresignedUrlForAttachment(@RequestParam("fileId") UUID fileId) {
+        return ResponseEntity.ok(mediaService.getPresignedUrlForAttachment(fileId));
     }
 
     @GetMapping
-    public ResponseEntity<String> getUserAvatarUrl() {
-        return ResponseEntity.of(mediaService.getAvatarUrlForCurrentUser());
+    public ResponseEntity<FileUrlDto> getPresignedUrlForUserAvatar(UUID fileId) {
+        return ResponseEntity.ok(new FileUrlDto(mediaService.getPresignedAvatarUrl(fileId)));
     }
 }

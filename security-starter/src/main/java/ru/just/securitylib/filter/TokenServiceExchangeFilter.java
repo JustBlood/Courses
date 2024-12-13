@@ -23,6 +23,11 @@ public class TokenServiceExchangeFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        if (request.getContextPath().contains("/internal/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (bearerToken != null) {
             bearerToken = bearerToken.replace(BEARER_PREFIX, "");

@@ -4,15 +4,19 @@ import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.StatObjectArgs;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Repository
@@ -20,70 +24,63 @@ import java.util.concurrent.TimeUnit;
 public class MediaRepository {
     private final MinioClient minioClient;
 
-    @Value("${minio.buckets.users-data}")
-    private String usersBucket;
-    @Value("${minio.buckets.chat-data}")
-    private String chatAttachmentsBucket;
-
-    public String saveUserFile(String objectFullPathName, MultipartFile file) {
+    public UUID saveFile(String bucket, MultipartFile file) {
         try {
-            return saveUserFile(objectFullPathName, file.getInputStream(), file.getSize());
+            return saveFile(bucket, file.getInputStream(), file.getSize());
         } catch (Exception e) {
+            log.error("Can't get InputStream for file: ", e);
             throw new RuntimeException(e);
         }
     }
 
-    public String saveUserFile(String objectFullPathName, InputStream is, long size) {
+    public UUID saveFile(String bucket, InputStream is, long size) {
         try {
+            UUID fileId = UUID.randomUUID();
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(usersBucket)
-                            .object(objectFullPathName)
+                            .bucket(bucket)
+                            .object(fileId.toString())
                             .stream(is, size, -1)
                             .build()
             );
-            return "/media/" + usersBucket + objectFullPathName;
+            return fileId;
         } catch (Exception e) {
+            log.error("Error while saving file", e);
             throw new RuntimeException(e);
         }
     }
 
-    public boolean checkFileExists(String avatarPath) {
+    public boolean checkFileExists(String bucket, UUID fileId) {
         try {
             minioClient.statObject(
                     StatObjectArgs.builder()
-                            .bucket(usersBucket)
-                            .object(avatarPath)
+                            .bucket(bucket)
+                            .object(fileId.toString())
                             .build()
             );
             return true;
-        } catch (Exception e) {
-            log.debug("Object with path {} not found", avatarPath, e);
-            return false;
-        }
-    }
-
-    public void saveChatAttachment(String objectFullPathName, MultipartFile file) {
-        try {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(chatAttachmentsBucket)
-                            .object(objectFullPathName)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .build()
-            );
+        } catch (ErrorResponseException e) {
+            if (e.errorResponse().code().equals("NoSuchKey")) {
+                log.warn("File with id {} not found", fileId, e);
+                return false;
+            } else {
+                throw new RuntimeException(e); // Обработка других ошибок
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public String getPresignedUrlForAttachment(String fullPathToFile) {
+    public String getPresignedUrlForFile(String bucket, UUID fileId) {
         try {
+            if (!checkFileExists(bucket, fileId)) {
+                throw new NoSuchElementException(format("File with id %s not found", fileId));
+            }
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
-                            .bucket(chatAttachmentsBucket)
-                            .object(fullPathToFile)
+                            .bucket(bucket)
+                            .object(fileId.toString())
                             .expiry(7, TimeUnit.DAYS)
                             .build()
             );
