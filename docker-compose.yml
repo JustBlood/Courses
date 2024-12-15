@@ -11,17 +11,6 @@ services:
       - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
       - REDIS_PORT=6379
 
-  media_service_redis:
-    image: redis:7.2.4-alpine
-    restart: always
-    networks:
-      - db
-    ports:
-      - "6380:6379"
-    environment:
-      - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnADMSADOPImasodmasdmasdoiAMSAs
-      - REDIS_PORT=6379
-
   api_gateway_redis:
     image: redis:7.2.4-alpine
     restart: always
@@ -31,6 +20,17 @@ services:
       - "6380:6379"
     environment:
       - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnmn0lk2v04taJOVjUkEb16z5ckSdZ
+      - REDIS_PORT=6379
+
+  media_service_redis:
+    image: redis:7.2.4-alpine
+    restart: always
+    networks:
+      - db
+    ports:
+      - "6381:6379"
+    environment:
+      - REDIS_PASSWORD=fq4Rmz5Elc7pJZ8s3YvvKnADMSADOPImasodmasdmasdoiAMSAs
       - REDIS_PORT=6379
   #                         ======================= DB ==============================
   courses_service_db:

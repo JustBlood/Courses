@@ -108,8 +108,7 @@ public class ChatService {
         FileIdDto fileIdDto = mediaIntegrationService.saveChatAttachmentPhoto(file);
         String presignedUrl = mediaIntegrationService.getPresignedUrlForAttachment(fileIdDto.getFileId());
 
-        final Message.AttachmentMessageBody messageBody = new Message.AttachmentMessageBody(presignedUrl,
-                fileIdDto.getFileId());
+        final Message.AttachmentMessageBody messageBody = new Message.AttachmentMessageBody(fileIdDto.getFileId());
         messageService.saveMessage(chatId, tokenService.getUserId(), messageBody);
 
         MessageEventDto.AttachmentMessageBody body = new MessageEventDto.AttachmentMessageBody(

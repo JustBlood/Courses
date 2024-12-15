@@ -31,7 +31,7 @@ public class MediaIntegrationService {
         if (!"image/png".equals(file.getContentType())) {
             throw new IllegalArgumentException("photo should be png file");
         }
-        final String uriTemplate = mediaServiceUri + "/chatAttachments/upload";
+        final String uriTemplate = mediaServiceUri + "/chatAttachments";
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", file.getResource());
         RequestEntity<MultiValueMap<String, Object>> saveAttachmentRequest = RequestEntity

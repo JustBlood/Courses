@@ -41,7 +41,6 @@ public class Message {
     @AllArgsConstructor
     @Data
     public static class AttachmentMessageBody extends MessageBody {
-        String presignedUrl;
         UUID fileId;
 
         @Override
