@@ -3,6 +3,7 @@ package ru.just.mediaservice.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.mediaservice.repository.MediaRepository;
@@ -56,6 +57,6 @@ public class MediaService {
     public UUID generateAvatarFor(String username) {
         var imageOutputStream = AvatarGenerator.generateAvatar(420, username);
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageOutputStream.toByteArray());
-        return mediaRepository.saveFile(usersBucket, inputStream, imageOutputStream.size());
+        return mediaRepository.saveFile(usersBucket, inputStream, imageOutputStream.size(), MediaType.IMAGE_PNG_VALUE, "avatar.png");
     }
 }
