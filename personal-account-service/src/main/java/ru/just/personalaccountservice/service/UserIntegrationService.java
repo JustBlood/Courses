@@ -42,7 +42,7 @@ public class UserIntegrationService {
     }
 
     public Optional<UserDto> getUserData() {
-        final String uriTemplate = usersServiceUri;
+        final String uriTemplate = usersServiceUri + "/" + tokenService.getUserId();
         final RequestEntity<Void> requestEntity = RequestEntity.get(uriTemplate)
                 .headers(buildHeaders())
                 .build();
