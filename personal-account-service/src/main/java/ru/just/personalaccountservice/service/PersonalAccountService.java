@@ -3,10 +3,10 @@ package ru.just.personalaccountservice.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import ru.just.dtolib.response.media.FileIdDto;
-import ru.just.dtolib.response.media.FileUrlDto;
+import ru.just.dtolib.response.ApiResponse;
 import ru.just.personalaccountservice.dto.UpdateUserDto;
 import ru.just.personalaccountservice.dto.UserDto;
+import ru.just.securitylib.service.ThreadLocalTokenService;
 
 import java.util.Optional;
 
@@ -14,18 +14,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PersonalAccountService {
     private final UserIntegrationService userIntegrationService;
-    private final MediaIntegrationService mediaIntegrationService;
+    private final ThreadLocalTokenService tokenService;
 
     public void updateUserData(UpdateUserDto updateUserDto) {
         userIntegrationService.sendUpdateUserDataMessage(updateUserDto);
     }
 
-    public FileUrlDto updateProfilePhoto(MultipartFile file) {
-        if (!"image/png".equals(file.getContentType())) {
-            throw new IllegalArgumentException("photo should be png file");
-        }
-        final FileIdDto fileIdDto = mediaIntegrationService.uploadAvatar(file);
-        return mediaIntegrationService.getAvatar(fileIdDto.getFileId());
+    public ApiResponse updateProfilePhoto(MultipartFile file) {
+        return userIntegrationService.addAvatar(tokenService.getUserId(), file);
     }
 
     public Optional<UserDto> getUserData() {

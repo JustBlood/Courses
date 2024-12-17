@@ -51,9 +51,9 @@ public class UserController {
 
     @PostMapping("/{userId}/photo")
     public ResponseEntity<ApiResponse> addPhoto(@PathVariable("userId") Long userId,
-                                                @RequestParam("avatar") MultipartFile avatar) {
+                                                @RequestParam("file") MultipartFile file) {
         final String message = String.format("Success adding photo to user with id = %s", userId);
-        userService.addAvatarToUser(userId, avatar);
+        userService.addAvatarToUser(userId, file);
         ApiResponse apiResponse = new ApiResponse(message);
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }

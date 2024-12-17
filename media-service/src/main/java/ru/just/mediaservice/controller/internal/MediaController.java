@@ -7,7 +7,10 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.response.media.FileIdDto;
 import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.mediaservice.service.MediaService;
+import ru.just.mediaservice.service.PresignedAvatarUrlsLoader;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -15,6 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MediaController {
     private final MediaService mediaService;
+    private final PresignedAvatarUrlsLoader avatarUrlsLoader;
 
     @PostMapping("/avatar/generate")
     public ResponseEntity<FileIdDto> generateAvatarPhoto(@RequestParam("username") String username) {
@@ -42,7 +46,7 @@ public class MediaController {
     }
 
     @GetMapping("/avatar")
-    public ResponseEntity<FileUrlDto> getPresignedUrlForUserAvatar(UUID fileId) {
-        return ResponseEntity.ok(new FileUrlDto(mediaService.getPresignedAvatarUrl(fileId)));
+    public ResponseEntity<Map<UUID, FileUrlDto>> getPresignedUrlForUsersAvatars(@RequestParam("fileIds") List<UUID> fileIds) {
+        return ResponseEntity.ok(avatarUrlsLoader.getPresignedAvatarUrls(fileIds));
     }
 }

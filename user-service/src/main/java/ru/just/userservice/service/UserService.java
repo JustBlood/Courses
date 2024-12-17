@@ -2,10 +2,12 @@ package ru.just.userservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.audit.ChangeType;
+import ru.just.dtolib.response.media.FileUrlDto;
 import ru.just.userservice.audit.UserChangeEvent;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -18,8 +20,10 @@ import ru.just.userservice.service.integration.MediaService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -62,12 +66,21 @@ public class UserService {
         saveUserChangeEvent(userId, userId, ChangeType.UPDATE);
     }
 
-    public void addAvatarToUser(Long userId, MultipartFile avatar) {
-        UUID avatarUrl = mediaService.uploadAvatarPhoto(avatar).getFileId();
-        userRepository.saveUserPhoto(userId, avatarUrl);
+    public void addAvatarToUser(Long userId, MultipartFile file) {
+        UUID fileId = mediaService.uploadAvatarPhoto(file).getFileId();
+        userRepository.saveUserPhoto(userId, fileId);
     }
 
     public List<UserDto> getUsersByIds(List<Long> usersInfoByIdsDto) {
-        return userRepository.findAllByIds(usersInfoByIdsDto);
+        final List<UserDto> users = userRepository.findAllByIds(usersInfoByIdsDto);
+        final List<UUID> fileIdDtos = users.stream()
+                .map(UserDto::getPhotoUrl)
+                .filter(StringUtils::isNotBlank)
+                .map(UUID::fromString)
+                .toList();
+        final Map<UUID, FileUrlDto> avatarMap = mediaService.getAvatar(fileIdDtos);
+        return users.stream()
+                .peek(user -> user.setPhotoUrl(avatarMap.get(UUID.fromString(user.getPhotoUrl())).getUrl()))
+                .collect(Collectors.toList());
     }
 }
