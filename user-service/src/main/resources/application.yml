@@ -28,6 +28,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "ru.just.dtolib.kafka.*"
+      enable-auto-commit: false
+      auto-offset-reset: earliest
   data:
     redis:
       host: ${REDIS_HOST:localhost}

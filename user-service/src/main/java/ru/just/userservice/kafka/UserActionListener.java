@@ -2,7 +2,6 @@ package ru.just.userservice.kafka;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -28,15 +27,14 @@ public class UserActionListener {
 
     @KafkaHandler
     @Transactional
-    public void handleUserAction(ConsumerRecord<String, UserAction> userActionRecord) {
+    public void handleUserAction(UserAction userAction) {
         log.info("Получено сообщение из user-actions топика");
-        final UserAction userAction = userActionRecord.value();
         ChangeType changeType = userAction.getUserActionType().equals(UserAction.UserActionType.CREATED) ?
                 ChangeType.CREATE : ChangeType.DELETE;
         if (userAction.getUserActionType().equals(UserAction.UserActionType.CREATED)) {
             log.info("Создание нового пользователя");
             userRepository.saveUserFromSecurityService(userAction);
-            UUID avatarUUID = mediaService.generateAvatar(userAction.getLogin());
+            UUID avatarUUID = mediaService.generateAvatar(userAction.getLogin()).getFileId();
             userRepository.saveUserPhoto(userAction.getUserId(), avatarUUID);
         } else if (userAction.getUserActionType().equals(UserAction.UserActionType.DELETED)) {
             log.info("Удаление пользователя");

@@ -18,7 +18,7 @@ import java.util.UUID;
 @FeignClient(name = "media-service", path = "/api/v1/media/internal", configuration = FeignConfiguration.class)
 public interface MediaService {
     @PostMapping("/avatar/generate")
-    UUID generateAvatar(@RequestParam("username") String username);
+    FileIdDto generateAvatar(@RequestParam("username") String username);
 
     @PostMapping(value = "/avatar/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     FileIdDto uploadAvatarPhoto(@RequestPart(value = "file") MultipartFile file);

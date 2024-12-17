@@ -2,7 +2,6 @@ package ru.just.userservice.kafka;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -25,8 +24,7 @@ public class UserUpdateActionListener {
 
     @KafkaHandler
     @Transactional
-    public void handleUpdateUserAction(ConsumerRecord<String, UpdateUserAction> consumerRecord) {
-        final UpdateUserAction updateUserAction = consumerRecord.value();
+    public void handleUpdateUserAction(UpdateUserAction updateUserAction) {
         userRepository.updateUserById(updateUserAction.getId(), updateUserAction);
         userChangeEventRepository.save(new UserChangeEvent()
                 .withUserId(updateUserAction.getId())
