@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.utils.Lists;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
+import ru.just.mediaservice.config.MinioProperties;
 
 import java.io.InputStream;
 import java.util.List;
@@ -22,6 +23,7 @@ import static java.lang.String.format;
 @RequiredArgsConstructor
 public class MediaRepository {
     private final MinioClient minioClient;
+    private final MinioProperties minioProperties;
 
     public UUID saveFile(String bucket, MultipartFile file) {
         try {
@@ -83,7 +85,7 @@ public class MediaRepository {
                 throw new NoSuchElementException(format("File with id %s not found", fileId));
             }
 
-            return minioClient.getPresignedObjectUrl(
+            final String presignedObjectUrl = minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
@@ -91,6 +93,7 @@ public class MediaRepository {
                             .expiry(7, TimeUnit.DAYS)
                             .build()
             );
+            return presignedObjectUrl.replace(minioProperties.getEndpoint(), minioProperties.getDomain());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

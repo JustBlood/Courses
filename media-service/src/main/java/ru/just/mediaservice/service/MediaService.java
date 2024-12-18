@@ -2,8 +2,6 @@ package ru.just.mediaservice.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,14 +24,12 @@ public class MediaService {
         return mediaRepository.saveFile(objectFullPathName, file);
     }
 
-    @CacheEvict(value = "presigned-url", key = "#result")
     public UUID uploadAvatarPhoto(MultipartFile file) {
         checkPngContentType(file);
 
         return saveFile(usersBucket, file);
     }
 
-    @Cacheable(value = "presigned-url", key = "#fileId")
     public String getPresignedAvatarUrl(UUID fileId) {
         return mediaRepository.getPresignedUrlForFile(usersBucket, fileId);
     }
@@ -51,7 +47,6 @@ public class MediaService {
         }
     }
 
-    @Cacheable(value = "presigned-url", key = "#fileId")
     public String getPresignedUrlForAttachment(UUID fileId) {
         return mediaRepository.getPresignedUrlForFile(chatAttachmentsBucket, fileId);
     }
