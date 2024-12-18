@@ -34,7 +34,7 @@ public class MentorService {
     private String usersServiceName;
 
     public MentorDto createMentor(CreateMentorDto createMentorDto) {
-        if (getUsersInfoFromUsersServices(createMentorDto.getUserId()) != null) {
+        if (getUsersInfoFromUsersServices(createMentorDto.getUserId()) == null) {
             throw new NoSuchElementException("Пользователя с предоствленным id не существует.");
         }
         final Mentor mentor = mentorRepository.createMentor(createMentorDto);
