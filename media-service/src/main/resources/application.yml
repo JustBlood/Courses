@@ -15,7 +15,6 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
 
 minio:
-  domain: ${MINIO_DOMAIN:http://localhost:9000}
   endpoint: ${MINIO_URL:http://localhost:9000}
   accessKey: admin
   secretKey: adminadmin

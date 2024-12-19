@@ -85,7 +85,7 @@ public class MediaRepository {
                 throw new NoSuchElementException(format("File with id %s not found", fileId));
             }
 
-            final String presignedObjectUrl = minioClient.getPresignedObjectUrl(
+            return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
@@ -93,7 +93,6 @@ public class MediaRepository {
                             .expiry(7, TimeUnit.DAYS)
                             .build()
             );
-            return presignedObjectUrl.replace(minioProperties.getEndpoint(), minioProperties.getDomain());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
