@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package integration.media_service.avatargenerate;
+
+option java_multiple_files = true;
+option java_package = "ru.just.protos.mediaservice.avatargenerate";
+option java_outer_classname = "FileIdProto";
+
+message FileId {
+  string fileUUID = 1;
+}
+
+message Username {
+  string name = 1;
+}
+
+message PresignedFileUrl {
+  string url = 1;
+}
+
+message FileIds {
+  repeated FileId fileIds = 1;
+}
+
+message PresignedFileUrlsByUserAvatars {
+  map<string, PresignedFileUrl> urlsByFileUUID = 1;
+}

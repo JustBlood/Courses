@@ -30,6 +30,7 @@
         <module>media-service</module>
         <module>dto-lib</module>
         <module>security-starter</module>
+        <module>common-protos</module>
     </modules>
 
 </project>

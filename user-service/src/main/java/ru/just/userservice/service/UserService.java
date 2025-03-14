@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.dtolib.audit.ChangeType;
 import ru.just.dtolib.response.media.FileUrlDto;
+import ru.just.protos.mediaservice.avatargenerate.FileId;
+import ru.just.protos.mediaservice.avatargenerate.FileIds;
 import ru.just.userservice.audit.UserChangeEvent;
 import ru.just.userservice.dto.CreateUserDto;
 import ru.just.userservice.dto.UpdateUserDto;
@@ -17,6 +19,7 @@ import ru.just.userservice.exception.EntityNotFoundException;
 import ru.just.userservice.repository.UserChangeEventRepository;
 import ru.just.userservice.repository.UserRepository;
 import ru.just.userservice.service.integration.MediaService;
+import ru.just.userservice.service.integration.MediaServiceProtobuf;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,12 +35,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserChangeEventRepository userChangeEventRepository;
     private final MediaService mediaService;
+    private final MediaServiceProtobuf mediaServiceProtobuf;
 
     public Optional<UserDto> getUserById(Long userId) {
         final Optional<UserDto> activeUserById = userRepository.findActiveUserById(userId);
         return activeUserById.map(user -> {
             final UUID fileId = UUID.fromString(user.getPhotoUrl());
-            String photoUrl = mediaService.getAvatar(List.of(fileId)).get(fileId).getUrl();
+            String photoUrl = mediaServiceProtobuf.getPresignedUrlsByUserAvatars(FileIds.newBuilder()
+                    .addFileIds(FileId.newBuilder().setFileUUID(fileId.toString()).build())
+                    .build()).getUrlsByFileUUIDMap().get(fileId.toString()).getUrl();
+//            String photoUrl = mediaService.getAvatar(List.of(fileId)).get(fileId).getUrl();
             user.setPhotoUrl(photoUrl);
             return user;
         });
