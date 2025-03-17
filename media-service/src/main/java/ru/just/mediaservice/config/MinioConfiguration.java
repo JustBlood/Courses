@@ -6,13 +6,10 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
-
-import java.util.List;
 
 @Slf4j
 @Configuration
@@ -38,11 +35,5 @@ public class MinioConfiguration {
     @Bean
     public HttpMessageConverter<Message> protobufHttpMessageConverter() {
         return new ProtobufHttpMessageConverter();
-    }
-
-    @Bean
-    public CommandLineRunner configureMessageConverters(List<HttpMessageConverter<?>> converters) {
-        converters.add(protobufHttpMessageConverter());
-        return args -> {};
     }
 }
