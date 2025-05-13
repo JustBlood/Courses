@@ -34,4 +34,6 @@ public class Course {
     private Set<Module> modules;
     @OneToMany(mappedBy = "course")
     private List<CourseChangeEvent> courseChangeEvents;
+    @Column(nullable = false)
+    private Boolean isPublished = false;
 }

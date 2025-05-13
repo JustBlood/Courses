@@ -86,4 +86,18 @@ public class CourseService {
                 .map(new CourseDto()::fromEntity)
                 .collect(Collectors.toList());
     }
+
+    public List<CourseDto> getPublishedCoursesByAuthor(Long authorId) {
+        return courseRepository.findByAuthorIdAndIsPublished(authorId, true).stream()
+                .map(new CourseDto()::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    public void updateIsPublishedCourseById(Long courseId, Boolean isPublished) {
+        final Optional<Course> course = courseRepository.findById(courseId);
+        if (course.isPresent() && !course.get().getAuthorId().equals(tokenService.getUserId())) {
+            throw new MethodNotAllowedException("You are not a course author");
+        }
+        courseRepository.updateIsPublished(courseId, isPublished);
+    }
 }

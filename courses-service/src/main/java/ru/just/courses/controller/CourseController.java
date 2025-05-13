@@ -12,7 +12,6 @@ import ru.just.courses.service.CourseService;
 import ru.just.dtolib.response.ApiResponse;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping(value = "/api/v1/courses")
@@ -20,11 +19,6 @@ import java.util.Optional;
 public class CourseController {
     private final String SUCCESS_OPERATION_MESSAGE_TEMPLATE = "Success %s course with id = %s";
     private final CourseService service;
-
-    @GetMapping
-    public ResponseEntity<List<CourseDto>> getCourses(@RequestParam(value = "titlePrefix", required = false) Optional<String> prefix) {
-        return new ResponseEntity<>(service.getCourses(prefix.orElse("")), HttpStatus.OK);
-    }
 
     @GetMapping("/full/{courseId}")
     public ResponseEntity<CourseDto> getFullCourseById(@PathVariable("courseId") Long courseId) {
@@ -39,6 +33,17 @@ public class CourseController {
     @GetMapping("/byAuthor/{authorId}")
     public ResponseEntity<List<CourseDto>> getCoursesByAuthor(@PathVariable("authorId") Long authorId) {
         return new ResponseEntity<>(service.getCoursesByAuthor(authorId), HttpStatus.OK);
+    }
+
+    @GetMapping("/byAuthor/published/{authorId}")
+    public ResponseEntity<List<CourseDto>> getPublishedCoursesByAuthor(@PathVariable("authorId") Long authorId) {
+        return new ResponseEntity<>(service.getPublishedCoursesByAuthor(authorId), HttpStatus.OK);
+    }
+
+    @PatchMapping("/publish/{courseId}")
+    public ResponseEntity<Void> publishCourse(@PathVariable("courseId") Long courseId, @RequestParam("isPublished") Boolean isPublished) {
+        service.updateIsPublishedCourseById(courseId, isPublished);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping
