@@ -75,10 +75,7 @@ public class ProgressService {
     private ModuleProgressDto mapModuleProgress(UserModuleProgress moduleProgress) {
         List<ThemeProgressDto> themeProgresses = themeProgressRepository.findByModuleProgressId(moduleProgress.getId())
                 .stream()
-                .map(theme -> new ThemeProgressDto(
-                        theme.getThemeId(),
-                        theme.getCompleted()
-                ))
+                .map(this::mapLessonProgressDto)
                 .toList();
 
         return new ModuleProgressDto(
@@ -86,6 +83,15 @@ public class ProgressService {
                 moduleProgress.getCompleted(),
                 themeProgresses
         );
+    }
+
+    private ThemeProgressDto mapLessonProgressDto(UserThemeProgress themeProgress) {
+        final List<LessonProgressDto> lessonProgresses = lessonProgressRepository.findByThemeProgressId(themeProgress.getId())
+                .stream()
+                .map(lesson -> new LessonProgressDto(lesson.getLessonId(), lesson.getCompleted(), lesson.getCompletedAt()))
+                .toList();
+
+        return new ThemeProgressDto(themeProgress.getThemeId(), themeProgress.getCompleted(), lessonProgresses);
     }
 
     public LessonDto getLastVisitedLesson(Long courseId) {

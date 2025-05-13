@@ -5,9 +5,12 @@ spring:
     url: jdbc:postgresql://${DB_CONTAINER:localhost:5432}/progress_service
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
 eureka:
   client:
     service-url:

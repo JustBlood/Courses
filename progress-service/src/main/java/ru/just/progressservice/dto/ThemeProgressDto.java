@@ -4,11 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class ThemeProgressDto {
     private Long themeId;
     private Boolean completed;
+    private List<LessonProgressDto> lessonProgresses;
 }
 
