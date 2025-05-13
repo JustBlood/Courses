@@ -31,8 +31,8 @@ public class MentorController {
         return ResponseEntity.ok(mentorService.isStudentHasMentor(studentId, mentorId));
     }
     // является ли пользователь ментором?
-    @GetMapping("/{userId}/is-mentor")
-    public ResponseEntity<Boolean> isMentor(@PathVariable Long userId) {
-        return ResponseEntity.ok(mentorService.isMentor(userId));
+    @GetMapping("/{userId}")
+    public ResponseEntity<MentorDto> getMentorInfoById(@PathVariable Long userId) {
+        return ResponseEntity.ok(mentorService.getMentorById(userId));
     }
 }

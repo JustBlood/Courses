@@ -18,7 +18,10 @@ import ru.just.mentorcatalogservice.repository.mapper.MentorResultSetExtractor;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import static ru.just.mentorcatalogservice.model.Mentor.Column.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -120,5 +123,30 @@ public class MentorRepository {
         mapSqlParameterSource.addValue("userId", userId);
         final Integer returnedCount = namedTemplate.queryForObject(sql, mapSqlParameterSource, Integer.class);
         return returnedCount != null && returnedCount == 1;
+    }
+
+    public Mentor findMentorByUserId(Long userId) {
+        final String sql =
+                """
+          select m.id as "id", m.user_id as "user_id", m.short_about_me as "short_about_me",
+                 m.long_about_me as "long_about_me",
+                 STRING_AGG(s.name, ',') as "specializations"
+          from mentor m
+              join mentor_specialization ms on m.id = ms.mentor_id
+              join specialization s on s.id = ms.specialization_id
+          where m.user_id = :userId
+          group by m.id, m.user_id, m.short_about_me, m.long_about_me
+          order by m.id;
+        """;
+        MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource();
+        mapSqlParameterSource.addValue("userId", userId);
+        return namedTemplate.query(sql, mapSqlParameterSource, (rs, rowNum) -> Mentor.builder()
+                .id(rs.getLong(ID))
+                .userId(rs.getLong(USER_ID))
+                .shortAboutMe(rs.getString(SHORT_ABOUT_ME))
+                .longAboutMe(rs.getString(LONG_ABOUT_ME))
+                .studentsIds(new ArrayList<>())
+                .specializations(Arrays.stream(rs.getString(SPECIALIZATIONS).split(",")).toList())
+                .build()).getFirst();
     }
 }

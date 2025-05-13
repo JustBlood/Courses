@@ -76,4 +76,8 @@ public class MentorService {
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         return headers;
     }
+
+    public MentorDto getMentorById(Long userId) {
+        return mentorMapper.toDto(mentorRepository.findMentorByUserId(userId));
+    }
 }

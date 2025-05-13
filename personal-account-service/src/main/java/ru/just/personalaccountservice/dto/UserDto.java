@@ -18,5 +18,6 @@ public class UserDto {
     private String address;
     private String photoUrl;
     private LocalDate registrationDate;
+    private Boolean isMentor;
     private UserStatus userStatus;
 }
