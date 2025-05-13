@@ -33,9 +33,7 @@ public class CourseDto extends Dto<Course> {
         description = entity.getDescription();
         completionTimeInHours = entity.getCompletionTimeInHours();
         createdAt = entity.getCreatedAt();
-        modules = entity.getModules() == null
-                ? new ArrayList<>()
-                : entity.getModules().stream().map(m -> new ModuleDto().fromEntity(m)).collect(Collectors.toList());
+        modules = new ArrayList<>();
         return this;
     }
 

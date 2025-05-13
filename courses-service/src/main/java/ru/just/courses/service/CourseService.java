@@ -5,11 +5,13 @@ import org.springframework.stereotype.Service;
 import ru.just.courses.controller.exception.MethodNotAllowedException;
 import ru.just.courses.dto.CourseDto;
 import ru.just.courses.dto.CreateCourseDto;
+import ru.just.courses.dto.ModuleDto;
 import ru.just.courses.dto.UpdateCourseDto;
 import ru.just.courses.model.course.Course;
 import ru.just.courses.repository.CourseRepository;
 import ru.just.securitylib.service.ThreadLocalTokenService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -67,10 +69,21 @@ public class CourseService {
 
     public CourseDto getFullCourseById(Long id) {
         CourseDto dto = new CourseDto();
-        dto.fromEntity(courseRepository.findByIdFull(id)
+        final Course course = courseRepository.findByIdFull(id)
                 .orElseThrow(() -> new NoSuchElementException(
                         "course with specified id doesn't exists"
-                )));
+                ));
+        dto.fromEntity(course);
+
+        dto.setModules(course.getModules() == null
+                ? new ArrayList<>()
+                : course.getModules().stream().map(m -> new ModuleDto().fromEntity(m)).collect(Collectors.toList()));
         return dto;
+    }
+
+    public List<CourseDto> getCoursesByAuthor(Long authorId) {
+        return courseRepository.findByAuthorId(authorId).stream()
+                .map(new CourseDto()::fromEntity)
+                .collect(Collectors.toList());
     }
 }

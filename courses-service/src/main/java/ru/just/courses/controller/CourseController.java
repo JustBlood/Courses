@@ -36,6 +36,11 @@ public class CourseController {
         return new ResponseEntity<>(service.getCourseById(courseId), HttpStatus.OK);
     }
 
+    @GetMapping("/byAuthor/{authorId}")
+    public ResponseEntity<List<CourseDto>> getCoursesByAuthor(@PathVariable("authorId") Long authorId) {
+        return new ResponseEntity<>(service.getCoursesByAuthor(authorId), HttpStatus.OK);
+    }
+
     @PostMapping
     public ResponseEntity<CourseDto> saveCourse(@Valid @RequestBody CreateCourseDto courseDto) {
         return new ResponseEntity<>(service.saveCourse(courseDto), HttpStatus.CREATED);
