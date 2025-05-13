@@ -26,6 +26,11 @@ public class CourseController {
         return new ResponseEntity<>(service.getCourses(prefix.orElse("")), HttpStatus.OK);
     }
 
+    @GetMapping("/full/{courseId}")
+    public ResponseEntity<CourseDto> getFullCourseById(@PathVariable("courseId") Long courseId) {
+        return new ResponseEntity<>(service.getFullCourseById(courseId), HttpStatus.OK);
+    }
+
     @GetMapping("/{courseId}")
     public ResponseEntity<CourseDto> getCourseById(@PathVariable("courseId") Long courseId) {
         return new ResponseEntity<>(service.getCourseById(courseId), HttpStatus.OK);

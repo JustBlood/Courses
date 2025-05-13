@@ -7,6 +7,7 @@ import ru.just.courses.model.course.Course;
 import ru.just.courses.model.theme.Theme;
 
 import java.util.List;
+import java.util.Set;
 
 @With
 @Getter
@@ -29,7 +30,7 @@ public class Module {
     @Column(name = "ordinal_number", nullable = false)
     private Integer ordinalNumber;
     @OneToMany(mappedBy = "module")
-    private List<Theme> themes;
+    private Set<Theme> themes;
     @OneToMany(mappedBy = "module")
     private List<ModuleChangeEvent> moduleChangeEvents;
 }

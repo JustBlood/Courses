@@ -7,6 +7,10 @@ import ru.just.courses.model.Module;
 import ru.just.courses.model.course.Course;
 import ru.just.dtolib.base.Dto;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,6 +20,7 @@ public class ModuleDto extends Dto<Module> {
     private String description;
     private Integer ordinalNumber;
     private Long courseId;
+    private List<ThemeDto> themes;
 
     @Override
     public ModuleDto fromEntity(Module entity) {
@@ -24,6 +29,9 @@ public class ModuleDto extends Dto<Module> {
         description = entity.getDescription();
         courseId = entity.getCourse().getId();
         ordinalNumber = entity.getOrdinalNumber();
+        themes = entity.getThemes() == null
+                ? new ArrayList<>()
+                : entity.getThemes().stream().map(th -> new ThemeDto().fromEntity(th)).collect(Collectors.toList());
         return this;
     }
 

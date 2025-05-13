@@ -7,6 +7,7 @@ import ru.just.courses.model.audit.CourseChangeEvent;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -30,7 +31,7 @@ public class Course {
     private Integer completionTimeInHours; // todo: index
     private Boolean completionPercentForCertificate;
     @OneToMany(mappedBy = "course", orphanRemoval = true,  cascade = CascadeType.ALL)
-    private List<Module> modules;
+    private Set<Module> modules;
     @OneToMany(mappedBy = "course")
     private List<CourseChangeEvent> courseChangeEvents;
 }

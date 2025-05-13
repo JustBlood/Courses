@@ -64,4 +64,13 @@ public class CourseService {
                 )));
         return dto;
     }
+
+    public CourseDto getFullCourseById(Long id) {
+        CourseDto dto = new CourseDto();
+        dto.fromEntity(courseRepository.findByIdFull(id)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "course with specified id doesn't exists"
+                )));
+        return dto;
+    }
 }

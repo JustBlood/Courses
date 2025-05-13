@@ -8,6 +8,9 @@ import ru.just.courses.model.course.Course;
 import ru.just.dtolib.base.Dto;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -20,6 +23,7 @@ public class CourseDto extends Dto<Course> {
     private Integer completionTimeInHours;
     private ZonedDateTime createdAt;
     private Long authorId;
+    private List<ModuleDto> modules;
 
     @Override
     public CourseDto fromEntity(Course entity) {
@@ -29,6 +33,9 @@ public class CourseDto extends Dto<Course> {
         description = entity.getDescription();
         completionTimeInHours = entity.getCompletionTimeInHours();
         createdAt = entity.getCreatedAt();
+        modules = entity.getModules() == null
+                ? new ArrayList<>()
+                : entity.getModules().stream().map(m -> new ModuleDto().fromEntity(m)).collect(Collectors.toList());
         return this;
     }
 
