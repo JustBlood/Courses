@@ -16,6 +16,8 @@
     <description>courses-parent</description>
 
     <modules>
+        <module>dto-lib</module>
+        <module>security-starter</module>
         <module>api-gateway</module>
         <module>communication-service</module>
         <module>courses-service</module>
@@ -28,8 +30,6 @@
         <module>task-checker-service</module>
         <module>user-service</module>
         <module>media-service</module>
-        <module>dto-lib</module>
-        <module>security-starter</module>
     </modules>
 
 </project>

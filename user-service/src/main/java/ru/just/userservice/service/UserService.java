@@ -36,9 +36,11 @@ public class UserService {
     public Optional<UserDto> getUserById(Long userId) {
         final Optional<UserDto> activeUserById = userRepository.findActiveUserById(userId);
         return activeUserById.map(user -> {
-            final UUID fileId = UUID.fromString(user.getPhotoUrl());
-            String photoUrl = mediaService.getAvatar(List.of(fileId)).get(fileId).getUrl();
-            user.setPhotoUrl(photoUrl);
+            if (user.getPhotoUrl() != null) {
+                final UUID fileId = UUID.fromString(user.getPhotoUrl());
+                String photoUrl = mediaService.getAvatar(List.of(fileId)).get(fileId).getUrl();
+                user.setPhotoUrl(photoUrl);
+            }
             return user;
         });
     }
