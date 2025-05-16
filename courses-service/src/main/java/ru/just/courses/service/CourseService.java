@@ -83,7 +83,7 @@ public class CourseService {
 
     public List<CourseDto> getCoursesByAuthor(Long authorId) {
         return courseRepository.findByAuthorId(authorId).stream()
-                .map(new CourseDto()::fromEntity)
+                .map(course -> new CourseDto().fromEntity(course))
                 .collect(Collectors.toList());
     }
 
