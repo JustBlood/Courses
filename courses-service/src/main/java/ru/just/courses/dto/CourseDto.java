@@ -10,7 +10,6 @@ import ru.just.dtolib.base.Dto;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -24,6 +23,7 @@ public class CourseDto extends Dto<Course> {
     private ZonedDateTime createdAt;
     private Long authorId;
     private List<ModuleDto> modules;
+    private Boolean isPublished;
 
     @Override
     public CourseDto fromEntity(Course entity) {
@@ -34,6 +34,7 @@ public class CourseDto extends Dto<Course> {
         completionTimeInHours = entity.getCompletionTimeInHours();
         createdAt = entity.getCreatedAt();
         modules = new ArrayList<>();
+        isPublished = entity.getIsPublished();
         return this;
     }
 
@@ -45,7 +46,8 @@ public class CourseDto extends Dto<Course> {
                 .withDescription(description)
                 .withCompletionTimeInHours(completionTimeInHours)
                 .withCreatedAt(createdAt)
-                .withAuthorId(authorId);
+                .withAuthorId(authorId)
+                .withIsPublished(isPublished);
     }
 
 }
