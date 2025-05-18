@@ -89,7 +89,7 @@ public class CourseService {
 
     public List<CourseDto> getPublishedCoursesByAuthor(Long authorId) {
         return courseRepository.findByAuthorIdAndIsPublished(authorId, true).stream()
-                .map(new CourseDto()::fromEntity)
+                .map(course -> new CourseDto().fromEntity(course))
                 .collect(Collectors.toList());
     }
 
