@@ -16,20 +16,9 @@
     <description>courses-parent</description>
 
     <modules>
+        <module>monolith-mvp</module>
         <module>api-gateway</module>
-        <module>communication-service</module>
-        <module>courses-service</module>
-        <module>eureka-server</module>
-        <module>mentor-catalog-service</module>
-        <module>news-service</module>
-        <module>personal-account-service</module>
-        <module>progress-service</module>
-        <module>security-service</module>
-        <module>task-checker-service</module>
-        <module>user-service</module>
         <module>media-service</module>
-        <module>dto-lib</module>
-        <module>security-starter</module>
     </modules>
 
 </project>
