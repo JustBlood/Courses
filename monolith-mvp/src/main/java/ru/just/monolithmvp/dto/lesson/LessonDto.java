@@ -16,6 +16,9 @@ public record LessonDto(
         String theoryContent,
         QuestionType questionType,
         String questionText,
-        List<String> options
+        String assignmentPrompt,
+        List<String> options,
+        Integer fullPoints,
+        Integer partialPoints
 ) {
 }

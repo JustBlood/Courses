@@ -1,6 +1,9 @@
 package ru.just.monolithmvp.model;
 
 public enum LessonType {
-    THEORY,
-    PRACTICE
+    THEORY_TEXT,
+    THEORY_VIDEO,
+    THEORY_PDF,
+    PRACTICE_TEST,
+    PRACTICE_ASSIGNMENT
 }

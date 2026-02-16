@@ -22,6 +22,12 @@ public class TheoryLesson extends Lesson {
     @PrePersist
     @PreUpdate
     private void syncLessonType() {
-        setLessonType(LessonType.THEORY);
+        if (getContentType() == TheoryContentType.VIDEO_URL) {
+            setLessonType(LessonType.THEORY_VIDEO);
+        } else if (getContentType() == TheoryContentType.PDF_FILE) {
+            setLessonType(LessonType.THEORY_PDF);
+        } else {
+            setLessonType(LessonType.THEORY_TEXT);
+        }
     }
 }

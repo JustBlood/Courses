@@ -24,6 +24,12 @@ public class Course {
     @Column(length = 4000)
     private String description;
 
+    @Column
+    private String coverFilePath;
+
+    @Column(nullable = false)
+    private Integer passingThresholdPercent = 70;
+
     @Column(nullable = false)
     private Long createdByAdminId;
 

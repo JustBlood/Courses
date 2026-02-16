@@ -35,4 +35,10 @@ public class Lesson {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LessonType lessonType;
+
+    @Column(nullable = false)
+    private Integer fullPoints = 1;
+
+    @Column(nullable = false)
+    private Integer partialPoints = 0;
 }

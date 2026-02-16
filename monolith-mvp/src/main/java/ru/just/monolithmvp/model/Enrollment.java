@@ -28,4 +28,8 @@ public class Enrollment {
 
     @Column(nullable = false)
     private LocalDateTime enrolledAt;
+
+    private LocalDateTime startedAt;
+
+    private LocalDateTime completedAt;
 }

@@ -13,10 +13,10 @@ import lombok.Setter;
 public class PracticeLesson extends Lesson {
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private QuestionType questionType;
 
-    @Column(length = 4000, nullable = false)
+    @Column(length = 4000)
     private String questionText;
 
     @Column(length = 4000)
@@ -25,9 +25,16 @@ public class PracticeLesson extends Lesson {
     @Column(length = 2000)
     private String correctAnswersRaw;
 
+    @Column(length = 4000)
+    private String assignmentPrompt;
+
     @PrePersist
     @PreUpdate
     private void syncLessonType() {
-        setLessonType(LessonType.PRACTICE);
+        if (questionType == null) {
+            setLessonType(LessonType.PRACTICE_ASSIGNMENT);
+        } else {
+            setLessonType(LessonType.PRACTICE_TEST);
+        }
     }
 }

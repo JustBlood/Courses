@@ -36,6 +36,9 @@ public class LessonSubmission {
     private Boolean passed;
 
     @Column(nullable = false)
+    private Integer pointsAwarded = 0;
+
+    @Column(nullable = false)
     private LocalDateTime submittedAt;
 
     private Long reviewedByAdminId;

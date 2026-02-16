@@ -1,20 +1,32 @@
 package ru.just.monolithmvp.service;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import ru.just.monolithmvp.config.properties.MailProperties;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
-import ru.just.monolithmvp.model.AppUser;
-import ru.just.monolithmvp.repository.AppUserRepository;
-import ru.just.monolithmvp.repository.EnrollmentRepository;
-import ru.just.monolithmvp.repository.LessonSubmissionRepository;
+import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.repository.*;
 
-import java.util.List;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -24,20 +36,52 @@ public class UserService {
     private final LessonSubmissionRepository submissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final PasswordSetupTokenRepository passwordSetupTokenRepository;
+    private final EmailService emailService;
+    private final MailProperties mailProperties;
+    private final LearningGroupRepository learningGroupRepository;
+    private final GroupMembershipRepository groupMembershipRepository;
+
+    private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
 
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
+        String username = resolveUsername(request.username(), request.email());
+
+        if (userRepository.existsByUsername(username)) {
             throw new BadRequestException("Username already exists");
+        }
+        if (userRepository.existsByEmail(request.email())) {
+            throw new BadRequestException("Email already exists");
         }
 
         AppUser user = new AppUser();
-        user.setUsername(request.username());
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setFullName(request.fullName());
+        user.setEmail(request.email());
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setRole(request.role());
         user.setEnabled(true);
+        user.setLang(request.lang());
+        user.setPhone(request.phone());
+        user.setComment(request.comment());
+        user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
+        user.setCreatedBy(request.createdBy());
+        user.setLastVisit(request.lastVisit());
+        user.setDeactivatedAt(request.deactivatedAt());
+        user.setDeactivatedBy(request.deactivatedBy());
+        user = userRepository.save(user);
 
-        return userMapper.toDto(userRepository.save(user));
+        PasswordSetupToken invite = new PasswordSetupToken();
+        invite.setToken(UUID.randomUUID().toString());
+        invite.setUser(user);
+        invite.setCreatedAt(LocalDateTime.now());
+        passwordSetupTokenRepository.save(invite);
+
+        String inviteLink = mailProperties.inviteBaseUrl() + "/api/v1/auth/set-password?token=" + invite.getToken();
+        emailService.sendInvite(user.getEmail(), user.getFullName(), inviteLink);
+
+        return userMapper.toDto(user);
     }
 
     @Transactional(readOnly = true)
@@ -59,5 +103,207 @@ public class UserService {
         submissionRepository.deleteByStudentId(userId);
         enrollmentRepository.deleteByUserId(userId);
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public void deleteUsers(List<Long> userIds) {
+        userIds.forEach(this::deleteUser);
+    }
+
+    @Transactional
+    public int importUsersFromCsv(MultipartFile file) {
+        try {
+            String raw = new String(file.getBytes());
+            CSVFormat format = CSVFormat.DEFAULT.builder()
+                    .setDelimiter(';')
+                    .setQuote('"')
+                    .setIgnoreSurroundingSpaces(true)
+                    .build();
+
+            int created = 0;
+            try (CSVParser parser = CSVParser.parse(new StringReader(raw), format)) {
+                for (CSVRecord r : parser) {
+                    if (r.size() < 24) {
+                        continue;
+                    }
+
+                    String roleRaw = val(r, 0).toUpperCase(Locale.ROOT);
+                    if (!"ADMIN".equals(roleRaw) && !"STUDENT".equals(roleRaw)) {
+                        continue;
+                    }
+
+                    String email = val(r, 1);
+                    if (email.isBlank() || userRepository.existsByEmail(email)) {
+                        continue;
+                    }
+
+                    CreateUserRequest req = new CreateUserRequest(
+                            val(r, 3),
+                            email,
+                            val(r, 2),
+                            ru.just.monolithmvp.model.Role.valueOf(roleRaw),
+                            val(r, 4),
+                            val(r, 5),
+                            val(r, 6),
+                            val(r, 14),
+                            parseDateTime(val(r, 19)),
+                            val(r, 20),
+                            parseDateTime(val(r, 21)),
+                            parseDateTime(val(r, 22)),
+                            val(r, 23)
+                    );
+
+                    UserDto createdUser = createUser(req);
+                    Long userId = createdUser.id();
+
+                    bindTypedGroup(userId, GroupType.COMPANY, val(r, 9));
+                    bindTypedGroup(userId, GroupType.DEPARTMENT, val(r, 11));
+                    bindTypedGroup(userId, GroupType.POSITION, val(r, 13));
+                    bindGeneralGroups(userId, val(r, 15));
+                    created++;
+                }
+            }
+            return created;
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid CSV file", e);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public String exportUsersToCsv() {
+        CSVFormat format = CSVFormat.DEFAULT.builder().setDelimiter(';').setQuote('"').build();
+        try (StringWriter out = new StringWriter(); CSVPrinter printer = new CSVPrinter(out, format)) {
+            for (AppUser u : userRepository.findAll()) {
+                Optional<LearningGroup> company = findTypedGroup(u.getId(), GroupType.COMPANY);
+                Optional<LearningGroup> department = findTypedGroup(u.getId(), GroupType.DEPARTMENT);
+                Optional<LearningGroup> position = findTypedGroup(u.getId(), GroupType.POSITION);
+                List<LearningGroup> generalGroups = findGeneralGroups(u.getId());
+
+                printer.printRecord(
+                        u.getRole().name().toLowerCase(Locale.ROOT),
+                        n(u.getEmail()),
+                        n(u.getUsername()),
+                        n(u.getFullName()),
+                        n(u.getId()),
+                        n(u.getLang()),
+                        n(u.getPhone()),
+                        "",
+                        company.map(g -> n(g.getId())).orElse(""),
+                        company.map(LearningGroup::getTitle).orElse(""),
+                        department.map(g -> n(g.getId())).orElse(""),
+                        department.map(LearningGroup::getTitle).orElse(""),
+                        position.map(g -> n(g.getId())).orElse(""),
+                        position.map(LearningGroup::getTitle).orElse(""),
+                        n(u.getComment()),
+                        joinTitles(generalGroups),
+                        joinIds(generalGroups),
+                        "",
+                        "",
+                        formatDateTime(u.getCreatedAt()),
+                        n(u.getCreatedBy()),
+                        formatDateTime(u.getLastVisit()),
+                        formatDateTime(u.getDeactivatedAt()),
+                        n(u.getDeactivatedBy())
+                );
+            }
+            printer.flush();
+            return out.toString();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to export CSV", e);
+        }
+    }
+
+    private String resolveUsername(String requestedUsername, String email) {
+        if (requestedUsername != null && !requestedUsername.isBlank()) {
+            return requestedUsername;
+        }
+        String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        String candidate = localPart.isBlank() ? "user" : localPart;
+        String username = candidate;
+        int i = 1;
+        while (userRepository.existsByUsername(username)) {
+            username = candidate + i;
+            i++;
+        }
+        return username;
+    }
+
+    private String val(CSVRecord r, int idx) {
+        String v = idx < r.size() ? r.get(idx) : "";
+        return v == null ? "" : v.trim();
+    }
+
+    private String n(Object v) {
+        return v == null ? "" : String.valueOf(v);
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(value.trim(), CSV_DT_FORMAT);
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
+    }
+
+    private String formatDateTime(LocalDateTime value) {
+        return value == null ? "" : value.format(CSV_DT_FORMAT);
+    }
+
+    private void bindTypedGroup(Long userId, GroupType type, String title) {
+        if (title == null || title.isBlank()) {
+            return;
+        }
+        LearningGroup group = learningGroupRepository.findByTitleAndType(title.trim(), type)
+                .orElseGet(() -> {
+                    LearningGroup g = new LearningGroup();
+                    g.setTitle(title.trim());
+                    g.setType(type);
+                    return learningGroupRepository.save(g);
+                });
+        if (!groupMembershipRepository.existsByGroupIdAndUserId(group.getId(), userId)) {
+            GroupMembership membership = new GroupMembership();
+            membership.setGroup(group);
+            membership.setUser(userRepository.getReferenceById(userId));
+            groupMembershipRepository.save(membership);
+        }
+    }
+
+    private void bindGeneralGroups(Long userId, String titlesRaw) {
+        if (titlesRaw == null || titlesRaw.isBlank()) {
+            return;
+        }
+        for (String rawTitle : titlesRaw.split(",")) {
+            String title = rawTitle.trim();
+            if (title.isBlank()) {
+                continue;
+            }
+            bindTypedGroup(userId, GroupType.GENERAL, title);
+        }
+    }
+
+    private Optional<LearningGroup> findTypedGroup(Long userId, GroupType type) {
+        return groupMembershipRepository.findByUserIdAndGroup_Type(userId, type)
+                .map(GroupMembership::getGroup);
+    }
+
+    private List<LearningGroup> findGeneralGroups(Long userId) {
+        List<LearningGroup> result = new ArrayList<>();
+        for (GroupMembership m : groupMembershipRepository.findByUserId(userId)) {
+            if (m.getGroup().getType() == GroupType.GENERAL) {
+                result.add(m.getGroup());
+            }
+        }
+        return result;
+    }
+
+    private String joinTitles(List<LearningGroup> groups) {
+        return groups.stream().map(LearningGroup::getTitle).reduce((a, b) -> a + ", " + b).orElse("");
+    }
+
+    private String joinIds(List<LearningGroup> groups) {
+        return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
     }
 }

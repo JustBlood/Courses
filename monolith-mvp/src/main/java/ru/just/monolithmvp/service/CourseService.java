@@ -12,22 +12,13 @@ import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.CourseMapper;
 import ru.just.monolithmvp.mapper.LessonMapper;
-import ru.just.monolithmvp.model.AppUser;
-import ru.just.monolithmvp.model.Course;
-import ru.just.monolithmvp.model.Enrollment;
-import ru.just.monolithmvp.model.Lesson;
-import ru.just.monolithmvp.model.PracticeLesson;
-import ru.just.monolithmvp.model.QuestionType;
-import ru.just.monolithmvp.model.Role;
-import ru.just.monolithmvp.model.TheoryLesson;
-import ru.just.monolithmvp.repository.AppUserRepository;
-import ru.just.monolithmvp.repository.CourseRepository;
-import ru.just.monolithmvp.repository.EnrollmentRepository;
-import ru.just.monolithmvp.repository.LessonRepository;
+import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +26,8 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final CourseReviewerRepository courseReviewerRepository;
+    private final GroupMembershipRepository groupMembershipRepository;
     private final AppUserRepository userRepository;
     private final CourseMapper courseMapper;
     private final LessonMapper lessonMapper;
@@ -45,6 +38,8 @@ public class CourseService {
         Course course = new Course();
         course.setTitle(request.title());
         course.setDescription(request.description());
+        course.setCoverFilePath(request.coverFilePath());
+        course.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 70 : request.passingThresholdPercent());
         course.setCreatedByAdminId(securityUtils.currentUserId());
         return courseMapper.toDto(courseRepository.save(course));
     }
@@ -70,6 +65,8 @@ public class CourseService {
         lesson.setTitle(request.title());
         lesson.setContentType(request.contentType());
         lesson.setContent(request.content());
+        lesson.setFullPoints(request.fullPoints() == null ? 1 : request.fullPoints());
+        lesson.setPartialPoints(0);
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
     }
@@ -84,10 +81,22 @@ public class CourseService {
         lesson.setCourse(course);
         lesson.setPosition(request.position());
         lesson.setTitle(request.title());
-        lesson.setQuestionType(request.questionType());
-        lesson.setQuestionText(request.questionText());
-        lesson.setOptionsRaw(joinValues(request.options()));
-        lesson.setCorrectAnswersRaw(joinValues(request.correctAnswers()));
+        lesson.setFullPoints(request.fullPoints() == null ? 1 : request.fullPoints());
+        lesson.setPartialPoints(request.partialPoints() == null ? 0 : request.partialPoints());
+
+        if (request.lessonType() == LessonType.PRACTICE_ASSIGNMENT) {
+            lesson.setQuestionType(null);
+            lesson.setQuestionText(null);
+            lesson.setAssignmentPrompt(request.assignmentPrompt());
+            lesson.setOptionsRaw(null);
+            lesson.setCorrectAnswersRaw(null);
+        } else {
+            lesson.setQuestionType(request.questionType());
+            lesson.setQuestionText(request.questionText());
+            lesson.setAssignmentPrompt(null);
+            lesson.setOptionsRaw(joinValues(request.options()));
+            lesson.setCorrectAnswersRaw(joinValues(request.correctAnswers()));
+        }
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
     }
@@ -116,6 +125,59 @@ public class CourseService {
     @Transactional
     public void selfEnroll(Long courseId) {
         assignStudentToCourse(courseId, securityUtils.currentUserId());
+    }
+
+    @Transactional
+    public void unassignStudentFromCourse(Long courseId, Long userId) {
+        if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new NotFoundException("Enrollment not found");
+        }
+        enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
+    }
+
+    @Transactional
+    public void assignReviewerToCourse(Long courseId, Long reviewerId) {
+        Course course = getCourseEntity(courseId);
+        AppUser reviewer = userRepository.findById(reviewerId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + reviewerId));
+        if (reviewer.getRole() != Role.ADMIN) {
+            throw new BadRequestException("Reviewer must be ADMIN");
+        }
+        if (courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, reviewerId)) {
+            return;
+        }
+        ru.just.monolithmvp.model.CourseReviewer cr = new ru.just.monolithmvp.model.CourseReviewer();
+        cr.setCourse(course);
+        cr.setReviewer(reviewer);
+        courseReviewerRepository.save(cr);
+    }
+
+    @Transactional
+    public void unassignReviewerFromCourse(Long courseId, Long reviewerId) {
+        courseReviewerRepository.deleteByCourseIdAndReviewerId(courseId, reviewerId);
+    }
+
+    @Transactional
+    public void assignGroupToCourse(Long courseId, UUID groupId) {
+        groupMembershipRepository.findByGroupId(groupId)
+                .forEach(m -> {
+                    if (m.getUser().getRole() == Role.STUDENT && !enrollmentRepository.existsByUserIdAndCourseId(m.getUser().getId(), courseId)) {
+                        assignStudentToCourse(courseId, m.getUser().getId());
+                    }
+                });
+    }
+
+    @Transactional
+    public void unassignGroupFromCourse(Long courseId, UUID groupId) {
+        groupMembershipRepository.findByGroupId(groupId)
+                .forEach(m -> enrollmentRepository.deleteByUserIdAndCourseId(m.getUser().getId(), courseId));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean canReviewCourse(Long courseId, Long adminId) {
+        Course course = getCourseEntity(courseId);
+        return course.getCreatedByAdminId().equals(adminId)
+                || courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, adminId);
     }
 
     @Transactional(readOnly = true)
@@ -167,8 +229,21 @@ public class CourseService {
     }
 
     private void validatePracticeRequest(CreatePracticeLessonRequest request) {
-        if (request.questionType() == QuestionType.OPEN_TEXT) {
+        if (request.lessonType() == LessonType.PRACTICE_ASSIGNMENT) {
+            if (request.assignmentPrompt() == null || request.assignmentPrompt().isBlank()) {
+                throw new BadRequestException("assignmentPrompt is required for PRACTICE_ASSIGNMENT");
+            }
             return;
+        }
+
+        if (request.lessonType() != LessonType.PRACTICE_TEST) {
+            throw new BadRequestException("lessonType must be PRACTICE_TEST or PRACTICE_ASSIGNMENT");
+        }
+        if (request.questionType() == null) {
+            throw new BadRequestException("questionType is required for PRACTICE_TEST");
+        }
+        if (request.questionText() == null || request.questionText().isBlank()) {
+            throw new BadRequestException("questionText is required for PRACTICE_TEST");
         }
 
         if (request.options() == null || request.options().isEmpty()) {
@@ -180,6 +255,10 @@ public class CourseService {
 
         if (request.questionType() == QuestionType.SINGLE_CHOICE && request.correctAnswers().size() != 1) {
             throw new BadRequestException("SINGLE_CHOICE must contain exactly one correct answer");
+        }
+
+        if (request.partialPoints() != null && request.fullPoints() != null && request.partialPoints() > request.fullPoints()) {
+            throw new BadRequestException("partialPoints cannot be greater than fullPoints");
         }
     }
 }

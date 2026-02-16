@@ -8,4 +8,5 @@ import java.util.List;
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByCourseIdOrderByPositionAsc(Long courseId);
     boolean existsByCourseIdAndPosition(Long courseId, Integer position);
+    long countByCourseId(Long courseId);
 }

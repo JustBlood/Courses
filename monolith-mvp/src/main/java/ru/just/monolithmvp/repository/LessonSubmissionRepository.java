@@ -1,14 +1,27 @@
 package ru.just.monolithmvp.repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.SubmissionStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LessonSubmissionRepository extends JpaRepository<LessonSubmission, Long> {
     List<LessonSubmission> findByStatus(SubmissionStatus status);
+    List<LessonSubmission> findByStatusAndLessonCourseId(SubmissionStatus status, Long courseId);
     List<LessonSubmission> findByStudentIdAndLessonCourseId(Long studentId, Long courseId);
+    List<LessonSubmission> findByLessonCourseId(Long courseId);
     boolean existsByStudentIdAndLessonIdAndPassedTrue(Long studentId, Long lessonId);
+
+    @Query("select count(distinct s.lesson.id) from LessonSubmission s where s.student.id = :studentId and s.lesson.course.id = :courseId and s.passed = true")
+    long countDistinctPassedLessons(Long studentId, Long courseId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<LessonSubmission> findWithLockingById(Long id);
+
     void deleteByStudentId(Long studentId);
 }

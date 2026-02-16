@@ -1,7 +1,7 @@
 package ru.just.monolithmvp.model;
 
 public enum SubmissionStatus {
-    CORRECT,
-    INCORRECT,
+    COMPLETE,
+    INCOMPLETE,
     PENDING_REVIEW
 }

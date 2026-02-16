@@ -19,7 +19,10 @@ public interface LessonMapper {
     @Mapping(target = "theoryContent", expression = "java(extractTheoryContent(lesson))")
     @Mapping(target = "questionType", expression = "java(extractQuestionType(lesson))")
     @Mapping(target = "questionText", expression = "java(extractQuestionText(lesson))")
+    @Mapping(target = "assignmentPrompt", expression = "java(extractAssignmentPrompt(lesson))")
     @Mapping(target = "options", expression = "java(extractOptions(lesson))")
+    @Mapping(target = "fullPoints", expression = "java(lesson.getFullPoints())")
+    @Mapping(target = "partialPoints", expression = "java(lesson.getPartialPoints())")
     LessonDto toDto(Lesson lesson);
 
     default ru.just.monolithmvp.model.TheoryContentType extractTheoryContentType(Lesson lesson) {
@@ -46,6 +49,13 @@ public interface LessonMapper {
     default String extractQuestionText(Lesson lesson) {
         if (lesson instanceof PracticeLesson practiceLesson) {
             return practiceLesson.getQuestionText();
+        }
+        return null;
+    }
+
+    default String extractAssignmentPrompt(Lesson lesson) {
+        if (lesson instanceof PracticeLesson practiceLesson) {
+            return practiceLesson.getAssignmentPrompt();
         }
         return null;
     }
