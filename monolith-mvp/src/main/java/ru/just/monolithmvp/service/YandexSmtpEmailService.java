@@ -19,11 +19,11 @@ public class YandexSmtpEmailService implements EmailService {
     private final MailProperties mailProperties;
 
     @Override
-    public void sendInvite(String toEmail, String fullName, String link) {
+    public void sendPasswordLink(String toEmail, String fullName, String link) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(mailProperties.from());
         message.setTo(toEmail);
-        message.setSubject("Приглашение в систему обучения");
+        message.setSubject("Cистема обучения Shels");
         message.setText("Здравствуйте, " + fullName + "!\n\n" +
                 "Для установки пароля перейдите по ссылке:\n" + link + "\n");
         mailSender.send(message);

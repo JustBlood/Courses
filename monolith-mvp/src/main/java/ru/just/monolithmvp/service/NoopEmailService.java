@@ -12,7 +12,7 @@ public class NoopEmailService implements EmailService {
     private static final Logger log = LoggerFactory.getLogger(NoopEmailService.class);
 
     @Override
-    public void sendInvite(String toEmail, String fullName, String link) {
+    public void sendPasswordLink(String toEmail, String fullName, String link) {
         log.warn("Mail sender is not configured. Invite was NOT sent. to={}, fullName={}, link={}", toEmail, fullName, link);
     }
 }

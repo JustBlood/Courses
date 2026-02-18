@@ -169,7 +169,54 @@ class UserAuthStudentFlowIntegrationTest {
                                 """))
                 .andExpect(status().isOk());
 
-        studentToken = login("student1@example.com", "StudPass2!");
+        // Негативный кейс: воостановление пароля несуществующего студента
+        mockMvc.perform(post("/api/v1/auth/recover-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "unexpected@unexpected.unexpected"
+                                }
+                                """))
+                .andExpect(status().isNotFound());
+
+        // Позитивное воостановление пароля студента
+        mockMvc.perform(post("/api/v1/auth/recover-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "student1@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        PasswordSetupToken recoverToken = passwordSetupTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(studentId) && t.getUsedAt() == null)
+                .reduce((a, b) -> b)
+                .orElseThrow();
+
+        // Позитивный кейс: восстановление пароля по токену
+        mockMvc.perform(post("/api/v1/auth/set-password?token=" + recoverToken.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "password": "StudPass3!"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        // Негативный кейс: восстановление пароля по использованному токену
+        mockMvc.perform(post("/api/v1/auth/set-password?token=" + recoverToken.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "password": "StudPass3!"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+
+
+        studentToken = login("student1@example.com", "StudPass3!");
 
         // Student controller
         mockMvc.perform(get("/api/v1/student/my/profile")

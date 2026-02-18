@@ -74,7 +74,7 @@ public class UserService {
         user = userRepository.save(user);
 
         if (sendInvite) {
-            sendInvite(user);
+            sendPasswordLink(user);
         }
 
         return userMapper.toDto(user);
@@ -255,7 +255,7 @@ public class UserService {
         }
     }
 
-    private void sendInvite(AppUser user) {
+    public void sendPasswordLink(AppUser user) {
         PasswordSetupToken invite = new PasswordSetupToken();
         invite.setToken(UUID.randomUUID().toString());
         invite.setUser(user);
@@ -263,7 +263,7 @@ public class UserService {
         passwordSetupTokenRepository.save(invite);
 
         String inviteLink = mailProperties.inviteBaseUrl() + "/set-password?token=" + invite.getToken();
-        emailService.sendInvite(user.getEmail(), user.getFullName(), inviteLink);
+        emailService.sendPasswordLink(user.getEmail(), user.getFullName(), inviteLink);
     }
 
     private String resolveCurrentActor() {

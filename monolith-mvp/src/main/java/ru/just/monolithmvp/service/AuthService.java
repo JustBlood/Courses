@@ -26,6 +26,7 @@ import ru.just.monolithmvp.security.SecurityUtils;
 public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final UserService userService;
     private final PasswordSetupTokenRepository passwordSetupTokenRepository;
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -66,5 +67,11 @@ public class AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
+    }
+
+    public void recoverPassword(String email) {
+        final AppUser user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found by email"));
+        userService.sendPasswordLink(user);
     }
 }

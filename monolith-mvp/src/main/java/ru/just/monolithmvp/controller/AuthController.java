@@ -6,10 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
-import ru.just.monolithmvp.dto.auth.ChangePasswordRequest;
-import ru.just.monolithmvp.dto.auth.LoginRequest;
-import ru.just.monolithmvp.dto.auth.LoginResponse;
-import ru.just.monolithmvp.dto.auth.SetPasswordRequest;
+import ru.just.monolithmvp.dto.auth.*;
 import ru.just.monolithmvp.service.AuthService;
 
 @RestController
@@ -21,6 +18,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/recover-password")
+    public ResponseEntity<ApiResponse> recoverPassword(@Valid @RequestBody RecoverPasswordRequest request) {
+        authService.recoverPassword(request.email());
+        return ResponseEntity.ok(new ApiResponse("Link for password recover sent to email"));
     }
 
     @PostMapping("/set-password")
