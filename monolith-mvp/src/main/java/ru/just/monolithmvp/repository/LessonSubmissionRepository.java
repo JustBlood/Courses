@@ -24,4 +24,6 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     Optional<LessonSubmission> findWithLockingById(Long id);
 
     void deleteByStudentId(Long studentId);
+    void deleteByLesson_Course_Id(Long courseId);
+    void deleteByLessonId(Long lessonId);
 }

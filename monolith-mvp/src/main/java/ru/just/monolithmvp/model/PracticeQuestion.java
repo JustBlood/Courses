@@ -34,4 +34,13 @@ public class PracticeQuestion {
 
     @Column(length = 2000)
     private String correctAnswersRaw;
+
+    @Column(length = 4000)
+    private String trainerHint;
+
+    @Column(nullable = false)
+    private Integer fullPoints = 1;
+
+    @Column(nullable = false)
+    private Integer partialPoints = 0;
 }

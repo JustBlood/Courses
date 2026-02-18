@@ -9,6 +9,10 @@ public record PracticeQuestionDto(
         Integer index,
         QuestionType questionType,
         String questionText,
-        List<String> options
+        String trainerHint,
+        List<String> options,
+        List<String> correctAnswers,
+        Integer fullPoints,
+        Integer partialPoints
 ) {
 }

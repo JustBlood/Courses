@@ -25,11 +25,29 @@ public class Course {
     @Column(length = 4000)
     private String description;
 
+    @Column(length = 255)
+    private String authorFullName;
+
     @Column
     private String coverFilePath;
 
     @Column(nullable = false)
     private Integer passingThresholdPercent = 70;
+
+    @Column
+    private Integer deadlineDays;
+
+    @Column(nullable = false)
+    private Boolean lessonsFreeOrder = false;
+
+    @Column(nullable = false)
+    private Boolean allowContinueAfterFail = false;
+
+    @Column(nullable = false)
+    private Boolean keepAccessAfterDeadline = false;
+
+    @Column(nullable = false)
+    private Boolean includeInOverallStats = true;
 
     @Column(nullable = false)
     private Long createdByAdminId;

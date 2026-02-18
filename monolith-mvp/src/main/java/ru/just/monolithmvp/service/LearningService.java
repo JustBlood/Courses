@@ -16,10 +16,7 @@ import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -70,11 +67,11 @@ public class LearningService {
 
         if (!(lesson instanceof PracticeLesson practiceLesson)
                 || (lesson.getLessonType() != LessonType.PRACTICE_TEST
-                && lesson.getLessonType() != LessonType.PRACTICE_ASSIGNMENT)) {
+                && lesson.getLessonType() != LessonType.PRACTICE_OPEN_ANSWER)) {
             throw new BadRequestException("Lesson is not PRACTICE");
         }
 
-        if (lesson.getLessonType() == LessonType.PRACTICE_ASSIGNMENT) {
+        if (lesson.getLessonType() == LessonType.PRACTICE_OPEN_ANSWER) {
             if (request.openAnswer() == null || request.openAnswer().isBlank()) {
                 throw new BadRequestException("openAnswer is required for assignment task");
             }
@@ -95,14 +92,18 @@ public class LearningService {
             throw new BadRequestException("selectedAnswers is required for choice tasks");
         }
 
-        List<String> selectedAnswers = normalizeList(request.selectedAnswers());
-        List<String> correctAnswers = normalizeList(splitRaw(practiceLesson.getCorrectAnswersRaw()));
+        PracticeQuestion firstQuestion = practiceLesson.getQuestions().stream()
+                .min(Comparator.comparing(PracticeQuestion::getQuestionIndex))
+                .orElseThrow(() -> new BadRequestException("Practice lesson has no questions"));
 
-        boolean correct = evaluateCorrectness(practiceLesson.getQuestionType(), selectedAnswers, correctAnswers);
+        List<String> selectedAnswers = normalizeList(request.selectedAnswers());
+        List<String> correctAnswers = normalizeList(splitRaw(firstQuestion.getCorrectAnswersRaw()));
+
+        boolean correct = evaluateCorrectness(firstQuestion.getQuestionType(), selectedAnswers, correctAnswers);
         int points = 0;
         if (correct) {
             points = lesson.getFullPoints();
-        } else if (practiceLesson.getQuestionType() == QuestionType.MULTIPLE_CHOICE) {
+        } else if (firstQuestion.getQuestionType() == QuestionType.MULTIPLE_CHOICE) {
             long matched = selectedAnswers.stream().filter(correctAnswers::contains).count();
             if (matched > 0) {
                 points = lesson.getPartialPoints();

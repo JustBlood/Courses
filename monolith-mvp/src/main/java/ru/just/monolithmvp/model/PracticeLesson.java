@@ -14,21 +14,23 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class PracticeLesson extends Lesson {
-    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Integer passingThresholdPercent = 100;
+
+    @Column(nullable = false)
+    private Boolean evaluateByCorrectCount = false;
+
     @Column
-    private QuestionType questionType;
+    private Integer randomQuestionCount;
 
-    @Column(length = 4000)
-    private String questionText;
+    @Column(nullable = false)
+    private Boolean shuffleOptions = false;
 
-    @Column(length = 4000)
-    private String assignmentPrompt;
+    @Column(nullable = false)
+    private Boolean showQuestionStatus = true;
 
-    @Column(length = 4000)
-    private String optionsRaw;
-
-    @Column(length = 2000)
-    private String correctAnswersRaw;
+    @Column(nullable = false)
+    private Boolean showCorrectAnswers = false;
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionIndex ASC")
@@ -37,6 +39,8 @@ public class PracticeLesson extends Lesson {
     @PrePersist
     @PreUpdate
     private void syncLessonType() {
-        setLessonType(LessonType.PRACTICE_TEST);
+        if (getLessonType() != LessonType.PRACTICE_OPEN_ANSWER) {
+            setLessonType(LessonType.PRACTICE_TEST);
+        }
     }
 }

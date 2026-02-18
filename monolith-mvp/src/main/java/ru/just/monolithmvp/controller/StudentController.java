@@ -7,6 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.course.CourseDto;
+import ru.just.monolithmvp.dto.course.CourseLearnerDto;
 import ru.just.monolithmvp.dto.group.GroupUsersDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
@@ -33,11 +34,6 @@ public class StudentController {
     private final ProgramService programService;
     private final UserService userService;
     private final SecurityUtils securityUtils;
-
-    @GetMapping("/courses")
-    public ResponseEntity<List<CourseDto>> allCourses() {
-        return ResponseEntity.ok(courseService.getAllCourses());
-    }
 
     @GetMapping("/my/courses")
     public ResponseEntity<List<CourseDto>> myCourses() {
@@ -71,6 +67,11 @@ public class StudentController {
     @GetMapping("/courses/{courseId}/lessons")
     public ResponseEntity<List<LessonDto>> courseLessons(@PathVariable Long courseId) {
         return ResponseEntity.ok(courseService.getCourseLessons(courseId));
+    }
+
+    @GetMapping("/courses/{courseId}")
+    public ResponseEntity<CourseLearnerDto> courseForLearner(@PathVariable Long courseId) {
+        return ResponseEntity.ok(courseService.getCourseForLearner(securityUtils.currentUserId(), courseId));
     }
 
     @PostMapping("/lessons/{lessonId}/complete-theory")

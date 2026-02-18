@@ -1,73 +1,72 @@
 package ru.just.monolithmvp.mapper;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.springframework.stereotype.Component;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
+import ru.just.monolithmvp.dto.lesson.PracticeQuestionDto;
 import ru.just.monolithmvp.model.Lesson;
 import ru.just.monolithmvp.model.PracticeLesson;
+import ru.just.monolithmvp.model.PracticeQuestion;
 import ru.just.monolithmvp.model.TheoryLesson;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@Mapper(componentModel = "spring")
-public interface LessonMapper {
+@Component
+public class LessonMapper {
 
-    @Mapping(target = "courseId", expression = "java(lesson.getCourse().getId())")
-    @Mapping(target = "theoryContentType", expression = "java(extractTheoryContentType(lesson))")
-    @Mapping(target = "theoryContent", expression = "java(extractTheoryContent(lesson))")
-    @Mapping(target = "questionType", expression = "java(extractQuestionType(lesson))")
-    @Mapping(target = "questionText", expression = "java(extractQuestionText(lesson))")
-    @Mapping(target = "assignmentPrompt", expression = "java(extractAssignmentPrompt(lesson))")
-    @Mapping(target = "options", expression = "java(extractOptions(lesson))")
-    @Mapping(target = "fullPoints", expression = "java(lesson.getFullPoints())")
-    @Mapping(target = "partialPoints", expression = "java(lesson.getPartialPoints())")
-    LessonDto toDto(Lesson lesson);
+    public LessonDto toDto(Lesson lesson) {
+        TheoryLesson theoryLesson = lesson instanceof TheoryLesson t ? t : null;
+        PracticeLesson practiceLesson = lesson instanceof PracticeLesson p ? p : null;
 
-    default ru.just.monolithmvp.model.TheoryContentType extractTheoryContentType(Lesson lesson) {
-        if (lesson instanceof TheoryLesson theoryLesson) {
-            return theoryLesson.getContentType();
-        }
-        return null;
+        return new LessonDto(
+                lesson.getId(),
+                lesson.getCourse() == null ? null : lesson.getCourse().getId(),
+                lesson.getPosition(),
+                lesson.getTitle(),
+                lesson.getDescription(),
+                lesson.getCoverFilePath(),
+                lesson.isRequiresPreviousCompleted(),
+                lesson.isOpenForAccess(),
+                lesson.getStopLesson(),
+                lesson.getBlockedDuringAttempt(),
+                lesson.getAttemptLimit(),
+                lesson.getTimeLimitMinutes(),
+                lesson.getLessonType(),
+                theoryLesson == null ? null : theoryLesson.getContentType(),
+                theoryLesson == null ? null : theoryLesson.getContent(),
+                lesson.getFullPoints(),
+                lesson.getPartialPoints(),
+                practiceLesson == null ? null : practiceLesson.getPassingThresholdPercent(),
+                practiceLesson == null ? null : practiceLesson.getEvaluateByCorrectCount(),
+                practiceLesson == null ? null : practiceLesson.getRandomQuestionCount(),
+                practiceLesson == null ? null : practiceLesson.getShuffleOptions(),
+                practiceLesson == null ? null : practiceLesson.getShowQuestionStatus(),
+                practiceLesson == null ? null : practiceLesson.getShowCorrectAnswers(),
+                practiceLesson == null ? Collections.emptyList() : toQuestionDtos(practiceLesson.getQuestions())
+        );
     }
 
-    default String extractTheoryContent(Lesson lesson) {
-        if (lesson instanceof TheoryLesson theoryLesson) {
-            return theoryLesson.getContent();
+    private List<PracticeQuestionDto> toQuestionDtos(List<PracticeQuestion> questions) {
+        if (questions == null || questions.isEmpty()) {
+            return Collections.emptyList();
         }
-        return null;
+        return questions.stream()
+                .map(q -> new PracticeQuestionDto(
+                        q.getId(),
+                        q.getQuestionIndex(),
+                        q.getQuestionType(),
+                        q.getQuestionText(),
+                        q.getTrainerHint(),
+                        splitRaw(q.getOptionsRaw()),
+                        splitRaw(q.getCorrectAnswersRaw()),
+                        q.getFullPoints(),
+                        q.getPartialPoints()
+                ))
+                .toList();
     }
 
-    default ru.just.monolithmvp.model.QuestionType extractQuestionType(Lesson lesson) {
-        if (lesson instanceof PracticeLesson practiceLesson) {
-            return practiceLesson.getQuestionType();
-        }
-        return null;
-    }
-
-    default String extractQuestionText(Lesson lesson) {
-        if (lesson instanceof PracticeLesson practiceLesson) {
-            return practiceLesson.getQuestionText();
-        }
-        return null;
-    }
-
-    default String extractAssignmentPrompt(Lesson lesson) {
-        if (lesson instanceof PracticeLesson practiceLesson) {
-            return practiceLesson.getAssignmentPrompt();
-        }
-        return null;
-    }
-
-    default List<String> extractOptions(Lesson lesson) {
-        if (lesson instanceof PracticeLesson practiceLesson) {
-            return splitRaw(practiceLesson.getOptionsRaw());
-        }
-        return Collections.emptyList();
-    }
-
-    default List<String> splitRaw(String raw) {
+    public List<String> splitRaw(String raw) {
         if (raw == null || raw.isBlank()) {
             return Collections.emptyList();
         }
