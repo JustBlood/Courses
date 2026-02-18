@@ -32,6 +32,18 @@ public class Lesson {
     @Column(nullable = false)
     private String title;
 
+    @Column(length = 4000)
+    private String description;
+
+    @Column
+    private String coverFilePath;
+
+    @Column(nullable = false)
+    private boolean requiresPreviousCompleted = false; // TODO: добавить в логику сервисов
+
+    @Column(nullable = false)
+    private boolean openForAccess = true; // TODO: добавить в логику сервисов
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LessonType lessonType;

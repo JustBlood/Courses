@@ -5,16 +5,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "courses")
+@Table(name = "learning_programs")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Course {
+public class LearningProgram {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,18 +29,16 @@ public class Course {
     @Column
     private String coverFilePath;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Integer passingThresholdPercent = 70;
+    private ProgramAccessCondition accessCondition = ProgramAccessCondition.PREVIOUS_COURSES_COMPLETED;
 
-    @Column(nullable = false)
-    private Long createdByAdminId;
-
-    private LocalDateTime deadlineAt;
+    private Duration deadlineAt;
 
     @Column(nullable = false)
     private Boolean blockAfterDeadline = false;
 
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("position ASC")
-    private List<Lesson> lessons = new ArrayList<>();
+    @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private List<ProgramCourse> courses = new ArrayList<>();
 }

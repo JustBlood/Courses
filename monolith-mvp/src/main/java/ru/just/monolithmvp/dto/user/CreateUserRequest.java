@@ -10,10 +10,8 @@ import java.time.LocalDateTime;
 public record CreateUserRequest(
         @NotBlank String fullName,
         @NotBlank @Email String email,
-        String username,
         @NotNull Role role,
         String customId,
-        String lang,
         String phone,
         String comment,
         LocalDateTime createdAt,

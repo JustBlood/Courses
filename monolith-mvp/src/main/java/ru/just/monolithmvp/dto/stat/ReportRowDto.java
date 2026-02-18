@@ -3,7 +3,8 @@ package ru.just.monolithmvp.dto.stat;
 public record ReportRowDto(
         String fullName,
         String email,
-        String username,
+        String login,
+        String lang,
         String courseTitle,
         Integer earnedPoints,
         Integer maxPoints,

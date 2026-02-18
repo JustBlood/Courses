@@ -123,11 +123,6 @@ public class CourseService {
     }
 
     @Transactional
-    public void selfEnroll(Long courseId) {
-        assignStudentToCourse(courseId, securityUtils.currentUserId());
-    }
-
-    @Transactional
     public void unassignStudentFromCourse(Long courseId, Long userId) {
         if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
             throw new NotFoundException("Enrollment not found");

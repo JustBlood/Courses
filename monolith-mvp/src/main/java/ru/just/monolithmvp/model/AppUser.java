@@ -19,9 +19,6 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String username;
-
     @Column(nullable = false)
     private String fullName;
 
@@ -38,7 +35,6 @@ public class AppUser {
     @Column(nullable = false)
     private boolean enabled = true;
 
-    private String lang;
     private String phone;
 
     @Column(length = 2000)

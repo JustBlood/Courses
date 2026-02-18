@@ -135,7 +135,7 @@ public class LearningService {
                         s.getLesson().getId(),
                         s.getLesson().getTitle(),
                         s.getStudent().getId(),
-                        s.getStudent().getUsername(),
+                        s.getStudent().getEmail(),
                         s.getAnswerRaw(),
                         s.getSubmittedAt().toString()
                 ))

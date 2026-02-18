@@ -41,16 +41,13 @@ public class UserService {
     private final MailProperties mailProperties;
     private final LearningGroupRepository learningGroupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final ProgramEnrollmentRepository programEnrollmentRepository;
 
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
 
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        String username = resolveUsername(request.username(), request.email());
 
-        if (userRepository.existsByUsername(username)) {
-            throw new BadRequestException("Username already exists");
-        }
         if (userRepository.existsByEmail(request.email())) {
             throw new BadRequestException("Email already exists");
         }
@@ -58,11 +55,9 @@ public class UserService {
         AppUser user = new AppUser();
         user.setFullName(request.fullName());
         user.setEmail(request.email());
-        user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setRole(request.role());
         user.setEnabled(true);
-        user.setLang(request.lang());
         user.setPhone(request.phone());
         user.setComment(request.comment());
         user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
@@ -102,6 +97,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
         submissionRepository.deleteByStudentId(userId);
         enrollmentRepository.deleteByUserId(userId);
+        programEnrollmentRepository.deleteByUserId(userId);
         userRepository.delete(user);
     }
 
@@ -140,10 +136,8 @@ public class UserService {
                     CreateUserRequest req = new CreateUserRequest(
                             val(r, 3),
                             email,
-                            val(r, 2),
                             ru.just.monolithmvp.model.Role.valueOf(roleRaw),
                             val(r, 4),
-                            val(r, 5),
                             val(r, 6),
                             val(r, 14),
                             parseDateTime(val(r, 19)),
@@ -182,10 +176,10 @@ public class UserService {
                 printer.printRecord(
                         u.getRole().name().toLowerCase(Locale.ROOT),
                         n(u.getEmail()),
-                        n(u.getUsername()),
+                        n(""),
                         n(u.getFullName()),
                         n(u.getId()),
-                        n(u.getLang()),
+                        n(""),
                         n(u.getPhone()),
                         "",
                         company.map(g -> n(g.getId())).orElse(""),
@@ -213,15 +207,12 @@ public class UserService {
         }
     }
 
-    private String resolveUsername(String requestedUsername, String email) {
-        if (requestedUsername != null && !requestedUsername.isBlank()) {
-            return requestedUsername;
-        }
+    private String resolveUsername(String email) {
         String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
         String candidate = localPart.isBlank() ? "user" : localPart;
         String username = candidate;
         int i = 1;
-        while (userRepository.existsByUsername(username)) {
+        while (userRepository.existsByEmail(email)) {
             username = candidate + i;
             i++;
         }

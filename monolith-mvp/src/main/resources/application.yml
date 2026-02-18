@@ -27,7 +27,6 @@ app:
       secret: 8w8QyQv7h8A7Z4f8mM2VnJ4kP6sT9xY1bW3cD5eF7gH9jK2
       expiration-ms: 86400000
   bootstrap-admin:
-    username: admin
     password: admin123
     full-name: System Admin
     email: admin@local

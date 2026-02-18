@@ -49,6 +49,15 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
+    public List<GroupDto> getUserGroups(Long userId) {
+        return membershipRepository.findByUserId(userId).stream()
+                .map(GroupMembership::getGroup)
+                .distinct()
+                .map(g -> new GroupDto(g.getId(), g.getTitle(), g.getType()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public GroupUsersDto getGroupUsers(UUID groupId) {
         LearningGroup group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
@@ -100,6 +109,9 @@ public class GroupService {
 
         if (CollectionUtils.isEmpty(userIds)) {
             throw new BadRequestException("User ids must not be empty");
+        }
+        if (userIds.stream().anyMatch(Objects::isNull)) {
+            throw new BadRequestException("User ids must not contain null values");
         }
 
         List<Long> uniqueUserIds = new ArrayList<>(new LinkedHashSet<>(userIds));
@@ -182,6 +194,14 @@ public class GroupService {
     public void removeUsersFromGroup(UUID groupId, List<Long> userIds) {
         groupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
+
+        if (CollectionUtils.isEmpty(userIds)) {
+            throw new BadRequestException("User ids must not be empty");
+        }
+        if (userIds.stream().anyMatch(Objects::isNull)) {
+            throw new BadRequestException("User ids must not contain null values");
+        }
+
         userIds.forEach(userId -> membershipRepository.deleteByGroupIdAndUserId(groupId, userId));
     }
 

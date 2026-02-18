@@ -23,6 +23,10 @@ import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.CreatePracticeLessonRequest;
 import ru.just.monolithmvp.dto.lesson.CreateTheoryLessonRequest;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
+import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
+import ru.just.monolithmvp.dto.program.GroupAssignmentRequest;
+import ru.just.monolithmvp.dto.program.LearningProgramDto;
+import ru.just.monolithmvp.dto.program.ProgramTargetType;
 import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -41,6 +45,7 @@ public class AdminController {
     private final LearningService learningService;
     private final GroupService groupService;
     private final StatisticsService statisticsService;
+    private final ProgramService programService;
 
     @PostMapping("/users")
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest request) {
@@ -171,6 +176,46 @@ public class AdminController {
                                                                @RequestBody @Valid UuidIdsRequest request) {
         request.ids().forEach(groupId -> courseService.unassignGroupFromCourse(courseId, groupId));
         return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
+    }
+
+    @PostMapping("/groups/{groupId}/assign")
+    public ResponseEntity<ApiResponse> assignGroupToTarget(@PathVariable UUID groupId,
+                                                           @RequestBody @Valid GroupAssignmentRequest request) {
+        if (request.targetType() == ProgramTargetType.COURSE) {
+            courseService.assignGroupToCourse(request.targetId(), groupId);
+            return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
+        }
+        programService.assignGroupToProgram(request.targetId(), groupId);
+        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
+    }
+
+    @PostMapping("/programs")
+    public ResponseEntity<LearningProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
+        return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/programs")
+    public ResponseEntity<List<LearningProgramDto>> getPrograms() {
+        return ResponseEntity.ok(programService.getPrograms());
+    }
+
+    @GetMapping("/programs/{programId}")
+    public ResponseEntity<LearningProgramDto> getProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(programService.getProgram(programId));
+    }
+
+    @PostMapping("/programs/{programId}/assign")
+    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
+                                                            @RequestBody @Valid IdsRequest request) {
+        programService.assignUsersToProgram(programId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Users assigned to program"));
+    }
+
+    @PostMapping("/programs/{programId}/groups/assign")
+    public ResponseEntity<ApiResponse> assignGroupToProgram(@PathVariable Long programId,
+                                                            @RequestBody @Valid UuidIdsRequest request) {
+        request.ids().forEach(groupId -> programService.assignGroupToProgram(programId, groupId));
+        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
     }
 
     @PostMapping(value = "/users/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

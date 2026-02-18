@@ -10,12 +10,16 @@ import ru.just.monolithmvp.dto.group.GroupUsersDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
+import ru.just.monolithmvp.dto.program.LearningProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
+import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.security.SecurityUtils;
 import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.GroupService;
 import ru.just.monolithmvp.service.LearningService;
+import ru.just.monolithmvp.service.ProgramService;
 import ru.just.monolithmvp.service.StatisticsService;
+import ru.just.monolithmvp.service.UserService;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +33,8 @@ public class StudentController {
     private final LearningService learningService;
     private final StatisticsService statisticsService;
     private final GroupService groupService;
+    private final ProgramService programService;
+    private final UserService userService;
     private final SecurityUtils securityUtils;
 
     @GetMapping("/courses")
@@ -36,15 +42,28 @@ public class StudentController {
         return ResponseEntity.ok(courseService.getAllCourses());
     }
 
-    @PostMapping("/courses/{courseId}/enroll")
-    public ResponseEntity<ApiResponse> enroll(@PathVariable Long courseId) {
-        courseService.selfEnroll(courseId);
-        return ResponseEntity.ok(new ApiResponse("Enrolled successfully"));
-    }
-
     @GetMapping("/my/courses")
     public ResponseEntity<List<CourseDto>> myCourses() {
         return ResponseEntity.ok(courseService.getMyCourses());
+    }
+
+    @GetMapping("/my/profile")
+    public ResponseEntity<StudentProfileDto> myProfile() {
+        Long userId = securityUtils.currentUserId();
+        return ResponseEntity.ok(new StudentProfileDto(
+                userService.getUser(userId),
+                groupService.getUserGroups(userId)
+        ));
+    }
+
+    @GetMapping("/my/programs")
+    public ResponseEntity<List<LearningProgramDto>> myPrograms() {
+        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
+    }
+
+    @GetMapping("/my/programs/{programId}")
+    public ResponseEntity<LearningProgramDto> myProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
     }
 
     @GetMapping("/courses/{courseId}/lessons")

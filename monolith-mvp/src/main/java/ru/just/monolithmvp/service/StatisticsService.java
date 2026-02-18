@@ -51,7 +51,7 @@ public class StatisticsService {
                             e.getUser().getId(),
                             e.getUser().getFullName(),
                             e.getUser().getEmail(),
-                            e.getUser().getUsername(),
+                            extractLogin(e.getUser().getEmail()),
                             earned,
                             maxPoints,
                             efficiency,
@@ -77,7 +77,8 @@ public class StatisticsService {
             rows.add(new ReportRowDto(
                     e.getUser().getFullName(),
                     e.getUser().getEmail(),
-                    e.getUser().getUsername(),
+                    extractLogin(e.getUser().getEmail()),
+                    "",
                     e.getCourse().getTitle(),
                     earned,
                     maxPoints,
@@ -89,11 +90,12 @@ public class StatisticsService {
         }
 
         StringBuilder csv = new StringBuilder();
-        csv.append("fullName,email,username,course,earnedPoints,maxPoints,efficiency,enrolledAt,startedAt,completedAt\n");
+        csv.append("fullName,email,login,lang,course,earnedPoints,maxPoints,efficiency,enrolledAt,startedAt,completedAt\n");
         for (ReportRowDto row : rows) {
             csv.append(escape(row.fullName())).append(',')
                     .append(escape(row.email())).append(',')
-                    .append(escape(row.username())).append(',')
+                    .append(escape(row.login())).append(',')
+                    .append(escape(row.lang())).append(',')
                     .append(escape(row.courseTitle())).append(',')
                     .append(row.earnedPoints()).append(',')
                     .append(row.maxPoints()).append(',')
@@ -153,5 +155,13 @@ public class StatisticsService {
         if (value == null) return "";
         String escaped = value.replace("\"", "\"\"");
         return '"' + escaped + '"';
+    }
+
+    private String extractLogin(String email) {
+        if (email == null || email.isBlank()) {
+            return "";
+        }
+        int at = email.indexOf('@');
+        return at > 0 ? email.substring(0, at) : email;
     }
 }

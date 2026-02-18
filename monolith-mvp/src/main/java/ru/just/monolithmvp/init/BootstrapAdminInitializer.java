@@ -18,13 +18,12 @@ public class BootstrapAdminInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (properties.username() == null || properties.username().isBlank()) {
+        if (properties.email() == null || properties.email().isBlank()) {
             return;
         }
 
-        userRepository.findByUsername(properties.username()).orElseGet(() -> {
+        userRepository.findByEmail(properties.email()).orElseGet(() -> {
             AppUser admin = new AppUser();
-            admin.setUsername(properties.username());
             admin.setFullName(properties.fullName() == null || properties.fullName().isBlank() ? "System Admin" : properties.fullName());
             admin.setEmail(properties.email() == null || properties.email().isBlank() ? "admin@local" : properties.email());
             admin.setPasswordHash(passwordEncoder.encode(properties.password()));
