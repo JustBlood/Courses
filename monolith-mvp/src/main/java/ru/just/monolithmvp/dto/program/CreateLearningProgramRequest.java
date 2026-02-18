@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import ru.just.monolithmvp.model.ProgramAccessCondition;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,7 +14,7 @@ public record CreateLearningProgramRequest(
         String description,
         String coverFilePath,
         @NotNull ProgramAccessCondition accessCondition,
-        Duration deadlineAt,
+        LocalDateTime deadlineAt,
         Boolean blockAfterDeadline,
         @NotEmpty List<@Valid ProgramCourseSettingsRequest> courses
 ) {

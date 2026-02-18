@@ -5,19 +5,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import ru.just.monolithmvp.model.Role;
 
-import java.time.LocalDateTime;
-
-public record CreateUserRequest(
+public record UpdateUserRequest(
         @NotBlank String fullName,
         @NotBlank @Email String email,
         @NotNull Role role,
         String phone,
-        String comment,
-        LocalDateTime createdAt,
-        String createdBy,
-        LocalDateTime lastVisit,
-        LocalDateTime deactivatedAt,
-        String deactivatedBy,
-        String password
+        String comment
 ) {
 }

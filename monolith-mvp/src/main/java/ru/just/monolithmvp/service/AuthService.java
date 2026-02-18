@@ -7,15 +7,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.just.monolithmvp.dto.auth.ChangePasswordRequest;
 import ru.just.monolithmvp.dto.auth.LoginRequest;
 import ru.just.monolithmvp.dto.auth.LoginResponse;
 import ru.just.monolithmvp.dto.auth.SetPasswordRequest;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
+import ru.just.monolithmvp.model.AppUser;
 import ru.just.monolithmvp.model.PasswordSetupToken;
+import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 import ru.just.monolithmvp.security.AuthenticatedUser;
 import ru.just.monolithmvp.security.JwtService;
+import ru.just.monolithmvp.security.SecurityUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +27,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final PasswordSetupTokenRepository passwordSetupTokenRepository;
+    private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityUtils securityUtils;
 
     public LoginResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -46,5 +52,19 @@ public class AuthService {
         setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
         setupToken.setUsedAt(java.time.LocalDateTime.now());
         passwordSetupTokenRepository.save(setupToken);
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        Long userId = securityUtils.currentUserId();
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("Current password is invalid");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 }

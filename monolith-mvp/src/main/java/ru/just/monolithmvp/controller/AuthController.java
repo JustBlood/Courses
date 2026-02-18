@@ -3,8 +3,10 @@ package ru.just.monolithmvp.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
+import ru.just.monolithmvp.dto.auth.ChangePasswordRequest;
 import ru.just.monolithmvp.dto.auth.LoginRequest;
 import ru.just.monolithmvp.dto.auth.LoginResponse;
 import ru.just.monolithmvp.dto.auth.SetPasswordRequest;
@@ -26,5 +28,12 @@ public class AuthController {
                                                    @Valid @RequestBody SetPasswordRequest request) {
         authService.setPassword(token, request);
         return ResponseEntity.ok(new ApiResponse("Password has been set"));
+    }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
+    public ResponseEntity<ApiResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.ok(new ApiResponse("Password has been changed"));
     }
 }

@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.course.CourseDto;
 import ru.just.monolithmvp.dto.group.GroupUsersDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
@@ -14,12 +13,7 @@ import ru.just.monolithmvp.dto.program.LearningProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.security.SecurityUtils;
-import ru.just.monolithmvp.service.CourseService;
-import ru.just.monolithmvp.service.GroupService;
-import ru.just.monolithmvp.service.LearningService;
-import ru.just.monolithmvp.service.ProgramService;
-import ru.just.monolithmvp.service.StatisticsService;
-import ru.just.monolithmvp.service.UserService;
+import ru.just.monolithmvp.service.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/student")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('STUDENT')")
+@PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
 public class StudentController {
     private final CourseService courseService;
     private final LearningService learningService;

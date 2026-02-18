@@ -14,6 +14,22 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class PracticeLesson extends Lesson {
+    @Enumerated(EnumType.STRING)
+    @Column
+    private QuestionType questionType;
+
+    @Column(length = 4000)
+    private String questionText;
+
+    @Column(length = 4000)
+    private String assignmentPrompt;
+
+    @Column(length = 4000)
+    private String optionsRaw;
+
+    @Column(length = 2000)
+    private String correctAnswersRaw;
+
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionIndex ASC")
     private List<PracticeQuestion> questions = new ArrayList<>();

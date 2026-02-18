@@ -12,13 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
-import ru.just.monolithmvp.dto.user.CreateUserRequest;
-import ru.just.monolithmvp.dto.user.UserDto;
+import ru.just.monolithmvp.dto.user.*;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
+import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -42,41 +42,87 @@ public class UserService {
     private final LearningGroupRepository learningGroupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final ProgramEnrollmentRepository programEnrollmentRepository;
+    private final SecurityUtils securityUtils;
 
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
 
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
-
         if (userRepository.existsByEmail(request.email())) {
             throw new BadRequestException("Email already exists");
         }
 
+        boolean sendInvite = request.password() == null || request.password().isBlank();
+
         AppUser user = new AppUser();
         user.setFullName(request.fullName());
         user.setEmail(request.email());
-        user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
         user.setRole(request.role());
         user.setEnabled(true);
         user.setPhone(request.phone());
         user.setComment(request.comment());
         user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
-        user.setCreatedBy(request.createdBy());
+        user.setCreatedBy(
+                request.createdBy() == null || request.createdBy().isBlank()
+                        ? resolveCurrentActor()
+                        : request.createdBy()
+        );
         user.setLastVisit(request.lastVisit());
         user.setDeactivatedAt(request.deactivatedAt());
         user.setDeactivatedBy(request.deactivatedBy());
         user = userRepository.save(user);
 
-        PasswordSetupToken invite = new PasswordSetupToken();
-        invite.setToken(UUID.randomUUID().toString());
-        invite.setUser(user);
-        invite.setCreatedAt(LocalDateTime.now());
-        passwordSetupTokenRepository.save(invite);
-
-        String inviteLink = mailProperties.inviteBaseUrl() + "/api/v1/auth/set-password?token=" + invite.getToken();
-        emailService.sendInvite(user.getEmail(), user.getFullName(), inviteLink);
+        if (sendInvite) {
+            sendInvite(user);
+        }
 
         return userMapper.toDto(user);
+    }
+
+    @Transactional
+    public UserDto updateUser(Long userId, UpdateUserRequest request) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+
+        if (userRepository.existsByEmailAndIdNot(request.email(), userId)) {
+            throw new BadRequestException("Email already exists");
+        }
+
+        user.setFullName(request.fullName());
+        user.setEmail(request.email());
+        user.setRole(request.role());
+        user.setPhone(request.phone());
+        user.setComment(request.comment());
+
+        return userMapper.toDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public void setUserPassword(Long userId, SetUserPasswordRequest request) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public UserDto updateUserRole(Long userId, UpdateUserRoleRequest request) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        user.setRole(request.role());
+        return userMapper.toDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public void setUsersActivation(List<Long> userIds, Boolean activation) {
+        final List<AppUser> usersWithAnotherActivation = userRepository.findAllByIdInAndEnabled(userIds, !activation);
+        for (AppUser user : usersWithAnotherActivation) {
+            user.setEnabled(activation);
+            user.setDeactivatedAt(LocalDateTime.now());
+            user.setDeactivatedBy(resolveCurrentActor());
+        }
+        userRepository.saveAll(usersWithAnotherActivation);
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +144,8 @@ public class UserService {
         submissionRepository.deleteByStudentId(userId);
         enrollmentRepository.deleteByUserId(userId);
         programEnrollmentRepository.deleteByUserId(userId);
+        passwordSetupTokenRepository.deleteByUser_Id(userId);
+        groupMembershipRepository.deleteAll(groupMembershipRepository.findByUserId(userId));
         userRepository.delete(user);
     }
 
@@ -137,14 +185,14 @@ public class UserService {
                             val(r, 3),
                             email,
                             ru.just.monolithmvp.model.Role.valueOf(roleRaw),
-                            val(r, 4),
                             val(r, 6),
                             val(r, 14),
                             parseDateTime(val(r, 19)),
                             val(r, 20),
                             parseDateTime(val(r, 21)),
                             parseDateTime(val(r, 22)),
-                            val(r, 23)
+                            val(r, 23),
+                            null
                     );
 
                     UserDto createdUser = createUser(req);
@@ -207,16 +255,23 @@ public class UserService {
         }
     }
 
-    private String resolveUsername(String email) {
-        String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
-        String candidate = localPart.isBlank() ? "user" : localPart;
-        String username = candidate;
-        int i = 1;
-        while (userRepository.existsByEmail(email)) {
-            username = candidate + i;
-            i++;
+    private void sendInvite(AppUser user) {
+        PasswordSetupToken invite = new PasswordSetupToken();
+        invite.setToken(UUID.randomUUID().toString());
+        invite.setUser(user);
+        invite.setCreatedAt(LocalDateTime.now());
+        passwordSetupTokenRepository.save(invite);
+
+        String inviteLink = mailProperties.inviteBaseUrl() + "/set-password?token=" + invite.getToken();
+        emailService.sendInvite(user.getEmail(), user.getFullName(), inviteLink);
+    }
+
+    private String resolveCurrentActor() {
+        try {
+            return securityUtils.currentUser().getUsername();
+        } catch (Exception ex) {
+            return "system";
         }
-        return username;
     }
 
     private String val(CSVRecord r, int idx) {
