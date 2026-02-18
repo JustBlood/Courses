@@ -28,6 +28,7 @@ create table if not exists users (
     lang varchar(255),
     phone varchar(255),
     comment varchar(2000),
+    avatar_file_path varchar(1000),
     created_at timestamp,
     created_by varchar(255),
     last_visit timestamp,

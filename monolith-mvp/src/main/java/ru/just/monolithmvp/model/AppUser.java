@@ -45,4 +45,5 @@ public class AppUser {
     private LocalDateTime lastVisit;
     private LocalDateTime deactivatedAt;
     private String deactivatedBy;
+    private String avatarFilePath;
 }

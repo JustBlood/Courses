@@ -5,6 +5,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,9 @@ import ru.just.monolithmvp.security.SecurityUtils;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -43,6 +47,9 @@ public class UserService {
     private final GroupMembershipRepository groupMembershipRepository;
     private final ProgramEnrollmentRepository programEnrollmentRepository;
     private final SecurityUtils securityUtils;
+
+    @Value("${app.storage.user-avatar-dir:data/users/avatars}")
+    private String userAvatarDir;
 
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
 
@@ -141,12 +148,47 @@ public class UserService {
     public void deleteUser(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+
+        deleteAvatarIfExists(user.getAvatarFilePath());
+
         submissionRepository.deleteByStudentId(userId);
         enrollmentRepository.deleteByUserId(userId);
         programEnrollmentRepository.deleteByUserId(userId);
         passwordSetupTokenRepository.deleteByUser_Id(userId);
         groupMembershipRepository.deleteAll(groupMembershipRepository.findByUserId(userId));
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public UserDto updateUserAvatar(Long userId, MultipartFile file) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Avatar file is empty");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new BadRequestException("Avatar must be an image");
+        }
+
+        try {
+            Path userDir = Path.of(userAvatarDir, String.valueOf(userId));
+            Files.createDirectories(userDir);
+
+            String extension = extractExtension(file.getOriginalFilename());
+            String fileName = UUID.randomUUID() + extension;
+            Path target = userDir.resolve(fileName);
+
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+            deleteAvatarIfExists(user.getAvatarFilePath());
+
+            user.setAvatarFilePath(target.toString().replace('\\', '/'));
+            return userMapper.toDto(userRepository.save(user));
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save avatar", e);
+        }
     }
 
     @Transactional
@@ -351,5 +393,27 @@ public class UserService {
 
     private String joinIds(List<LearningGroup> groups) {
         return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
+    }
+
+    private void deleteAvatarIfExists(String avatarPath) {
+        if (avatarPath == null || avatarPath.isBlank()) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(Path.of(avatarPath));
+        } catch (IOException ignored) {
+            // no-op for MVP
+        }
+    }
+
+    private String extractExtension(String originalFilename) {
+        if (originalFilename == null) {
+            return ".bin";
+        }
+        int dot = originalFilename.lastIndexOf('.');
+        if (dot == -1 || dot == originalFilename.length() - 1) {
+            return ".bin";
+        }
+        return originalFilename.substring(dot).toLowerCase(Locale.ROOT);
     }
 }

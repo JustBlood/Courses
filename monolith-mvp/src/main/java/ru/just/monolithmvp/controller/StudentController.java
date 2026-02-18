@@ -1,9 +1,11 @@
 package ru.just.monolithmvp.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.course.CourseDto;
 import ru.just.monolithmvp.dto.group.GroupUsersDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
@@ -12,6 +14,7 @@ import ru.just.monolithmvp.dto.lesson.LessonDto;
 import ru.just.monolithmvp.dto.program.LearningProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
+import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.security.SecurityUtils;
 import ru.just.monolithmvp.service.*;
 
@@ -48,6 +51,11 @@ public class StudentController {
                 userService.getUser(userId),
                 groupService.getUserGroups(userId)
         ));
+    }
+
+    @PostMapping(value = "/my/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserDto> uploadMyAvatar(@RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.updateUserAvatar(securityUtils.currentUserId(), file));
     }
 
     @GetMapping("/my/programs")

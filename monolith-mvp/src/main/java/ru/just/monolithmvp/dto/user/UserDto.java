@@ -12,6 +12,7 @@ public record UserDto(
         boolean enabled,
         String phone,
         String comment,
+        String avatarFilePath,
         LocalDateTime createdAt,
         String createdBy,
         LocalDateTime lastVisit,

@@ -218,6 +218,24 @@ class UserAuthStudentFlowIntegrationTest {
 
         studentToken = login("student1@example.com", "StudPass3!");
 
+        MockMultipartFile avatar = new MockMultipartFile(
+                "file",
+                "avatar.png",
+                "image/png",
+                new byte[]{1, 2, 3, 4, 5}
+        );
+
+        String avatarUploadResponse = mockMvc.perform(multipart("/api/v1/student/my/avatar")
+                        .file(avatar)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(avatarUploadResponse).get("avatarFilePath").asText())
+                .isNotBlank();
+
         // Student controller
         mockMvc.perform(get("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + studentToken))
