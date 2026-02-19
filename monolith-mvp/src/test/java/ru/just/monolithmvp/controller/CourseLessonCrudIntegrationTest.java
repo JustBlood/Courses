@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -224,15 +226,134 @@ class CourseLessonCrudIntegrationTest {
 
         Long practiceLessonId = objectMapper.readTree(practiceLessonResponse).get("id").asLong();
 
+        String createAdminLearnerResponse = mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Admin Learner",
+                                  "email": "admin-learner@example.com",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long adminLearnerId = objectMapper.readTree(createAdminLearnerResponse).get("id").asLong();
+
+        PasswordSetupToken adminLearnerInviteToken = passwordSetupTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(adminLearnerId))
+                .reduce((a, b) -> b)
+                .orElseThrow();
+
+        mockMvc.perform(post("/api/v1/auth/set-password?token=" + adminLearnerInviteToken.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "password": "Admin123!"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        String adminLearnerToken = login("admin-learner@example.com", "Admin123!");
+
         mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d, %d]
+                                }
+                                """.formatted(studentId, adminLearnerId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + adminLearnerToken))
+                .andExpect(status().isOk());
+
+        String openPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice Open",
+                                  "description": "Open answer",
+                                  "lessonType": "PRACTICE_OPEN_ANSWER",
+                                  "fullPoints": 7,
+                                  "partialPoints": 2,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "OPEN_ANSWER",
+                                      "questionText": "Explain JVM",
+                                      "trainerHint": "Provide details",
+                                      "fullPoints": 7,
+                                      "partialPoints": 2
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long openPracticeLessonId = objectMapper.readTree(openPracticeResponse).get("id").asLong();
+
+        String openSubmissionResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "openAnswer": "My open answer"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long openSubmissionId = objectMapper.readTree(openSubmissionResponse).get("submissionId").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/reviewers", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "ids": [%d]
                                 }
-                                """.formatted(studentId)))
+                                """.formatted(adminLearnerId)))
                 .andExpect(status().isOk());
+
+        String reReviewResponse = mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
+                        .header("Authorization", "Bearer " + adminLearnerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": true,
+                                  "toNextReview": true,
+                                  "comment": "Need second pass"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode reReview = objectMapper.readTree(reReviewResponse);
+        assertThat(reReview.get("status").asText()).isEqualTo("PENDING_REVIEW");
+        assertThat(reReview.get("passed").asBoolean()).isFalse();
 
         String learnerCourseResponse = mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
                         .header("Authorization", "Bearer " + studentToken))
@@ -242,7 +363,7 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         JsonNode learnerCourse = objectMapper.readTree(learnerCourseResponse);
-        assertThat(learnerCourse.get("lessons").size()).isEqualTo(2);
+        assertThat(learnerCourse.get("lessons").size()).isEqualTo(3);
 
         mockMvc.perform(put("/api/v1/admin/courses/{courseId}", courseId)
                         .header("Authorization", "Bearer " + adminToken)
@@ -256,10 +377,11 @@ class CourseLessonCrudIntegrationTest {
                                   "deadlineDays": 45,
                                   "lessonIdToPosition": {
                                     "%d": 2,
-                                    "%d": 1
+                                    "%d": 1,
+                                    "%d": 3
                                   }
                                 }
-                                """.formatted(theoryLessonId, practiceLessonId)))
+                                """.formatted(theoryLessonId, practiceLessonId, openPracticeLessonId)))
                 .andExpect(status().isOk());
 
         String adminCourseResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}", courseId)
@@ -274,6 +396,8 @@ class CourseLessonCrudIntegrationTest {
         assertThat(adminCourse.get("lessons").get(0).get("position").asInt()).isEqualTo(1);
         assertThat(adminCourse.get("lessons").get(1).get("id").asLong()).isEqualTo(theoryLessonId);
         assertThat(adminCourse.get("lessons").get(1).get("position").asInt()).isEqualTo(2);
+        assertThat(adminCourse.get("lessons").get(2).get("id").asLong()).isEqualTo(openPracticeLessonId);
+        assertThat(adminCourse.get("lessons").get(2).get("position").asInt()).isEqualTo(3);
 
         mockMvc.perform(put("/api/v1/admin/courses/{courseId}/lessons/{lessonId}/practice", courseId, practiceLessonId)
                         .header("Authorization", "Bearer " + adminToken)
@@ -321,7 +445,7 @@ class CourseLessonCrudIntegrationTest {
         assertThat(updatedPractice.get("questions").get(0).get("questionText").asText())
                 .isEqualTo("Prime numbers updated");
 
-        mockMvc.perform(delete("/api/v1/admin/courses/{courseId}/lessons/{lessonId}", courseId, theoryLessonId)
+        mockMvc.perform(delete("/api/v1/admin/courses/{courseId}/lessons/{lessonId}", courseId, openPracticeLessonId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
 
@@ -333,9 +457,11 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         JsonNode afterDeleteLesson = objectMapper.readTree(afterDeleteLessonCourse);
-        assertThat(afterDeleteLesson.get("lessons").size()).isEqualTo(1);
+        assertThat(afterDeleteLesson.get("lessons").size()).isEqualTo(2);
         assertThat(afterDeleteLesson.get("lessons").get(0).get("id").asLong()).isEqualTo(practiceLessonId);
         assertThat(afterDeleteLesson.get("lessons").get(0).get("position").asInt()).isEqualTo(1);
+        assertThat(afterDeleteLesson.get("lessons").get(1).get("id").asLong()).isEqualTo(theoryLessonId);
+        assertThat(afterDeleteLesson.get("lessons").get(1).get("position").asInt()).isEqualTo(2);
 
         mockMvc.perform(delete("/api/v1/admin/courses/{courseId}", courseId)
                         .header("Authorization", "Bearer " + adminToken))
@@ -344,6 +470,333 @@ class CourseLessonCrudIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/courses/{courseId}", courseId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void validation_and_negative_cases_for_courses_and_lessons_should_work() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Invalid Course",
+                                  "description": "Should fail",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 120,
+                                  "deadlineDays": 0
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Validation Course",
+                                  "description": "For negative checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String theoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory",
+                                  "description": "Theory",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "text",
+                                  "fullPoints": 1
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long theoryLessonId = objectMapper.readTree(theoryResponse).get("id").asLong();
+
+        String openPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Open Practice",
+                                  "description": "Open answer",
+                                  "lessonType": "PRACTICE_OPEN_ANSWER",
+                                  "fullPoints": 5,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "OPEN_ANSWER",
+                                      "questionText": "Explain",
+                                      "trainerHint": "Hint",
+                                      "fullPoints": 5
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long openPracticeLessonId = objectMapper.readTree(openPracticeResponse).get("id").asLong();
+
+        mockMvc.perform(put("/api/v1/admin/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Validation Course Updated",
+                                  "description": "Updated",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 80,
+                                  "deadlineDays": 40,
+                                  "lessonIdToPosition": {
+                                    "%d": 1
+                                  }
+                                }
+                                """.formatted(theoryLessonId)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/v1/admin/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Validation Course Updated",
+                                  "description": "Updated",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 80,
+                                  "deadlineDays": 40,
+                                  "lessonIdToPosition": {
+                                    "%d": 2,
+                                    "%d": 2
+                                  }
+                                }
+                                """.formatted(theoryLessonId, openPracticeLessonId)))
+                .andExpect(status().isBadRequest());
+
+        Long studentId = createUser(adminToken, "Reviewer Student", uniqueEmail("reviewer-student"), "STUDENT");
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/reviewers", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void enrollment_submission_and_review_corner_cases_should_work() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("corner-student");
+        Long studentId = createUser(adminToken, "Corner Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String otherAdminEmail = uniqueEmail("corner-admin");
+        Long otherAdminId = createUser(adminToken, "Corner Admin", otherAdminEmail, "ADMIN");
+        String otherAdminToken = setPasswordAndLogin(otherAdminId, otherAdminEmail, "Admin123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Corner Course",
+                                  "description": "Corner cases",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String myCoursesResponse = mockMvc.perform(get("/api/v1/student/my/courses")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(objectMapper.readTree(myCoursesResponse).size()).isEqualTo(1);
+
+        String testPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Test Practice",
+                                  "description": "Choose",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "fullPoints": 2,
+                                  "partialPoints": 1,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "2+2",
+                                      "options": ["3", "4"],
+                                      "correctAnswers": ["4"],
+                                      "fullPoints": 2
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long testPracticeLessonId = objectMapper.readTree(testPracticeResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", testPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "openAnswer": "ignored"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        String openPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Open Practice",
+                                  "description": "Open",
+                                  "lessonType": "PRACTICE_OPEN_ANSWER",
+                                  "fullPoints": 3,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "OPEN_ANSWER",
+                                      "questionText": "Explain JVM",
+                                      "trainerHint": "Hint",
+                                      "fullPoints": 3
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long openPracticeLessonId = objectMapper.readTree(openPracticeResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "selectedAnswers": ["x"]
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        String openSubmissionResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "openAnswer": "My detailed answer"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long openSubmissionId = objectMapper.readTree(openSubmissionResponse).get("submissionId").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
+                        .header("Authorization", "Bearer " + otherAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": false,
+                                  "toNextReview": false,
+                                  "comment": "Try"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/reviewers", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(otherAdminId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
+                        .header("Authorization", "Bearer " + otherAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": false,
+                                  "toNextReview": false,
+                                  "comment": "Approved"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
+                        .header("Authorization", "Bearer " + otherAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": false,
+                                  "toNextReview": false,
+                                  "comment": "Second review should fail"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     private String login(String email, String password) throws Exception {
@@ -361,5 +814,45 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         return objectMapper.readTree(loginResponse).get("token").asText();
+    }
+
+    private Long createUser(String adminToken, String fullName, String email, String role) throws Exception {
+        String response = mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "%s",
+                                  "email": "%s",
+                                  "role": "%s"
+                                }
+                                """.formatted(fullName, email, role)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return objectMapper.readTree(response).get("id").asLong();
+    }
+
+    private String setPasswordAndLogin(Long userId, String email, String password) throws Exception {
+        PasswordSetupToken inviteToken = passwordSetupTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(userId))
+                .reduce((a, b) -> b)
+                .orElseThrow();
+
+        mockMvc.perform(post("/api/v1/auth/set-password?token=" + inviteToken.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "password": "%s"
+                                }
+                                """.formatted(password)))
+                .andExpect(status().isOk());
+
+        return login(email, password);
+    }
+
+    private String uniqueEmail(String prefix) {
+        return prefix + "-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
     }
 }

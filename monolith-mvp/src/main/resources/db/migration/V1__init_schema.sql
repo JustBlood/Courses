@@ -79,9 +79,6 @@ create table if not exists lessons (
     position integer not null,
     title varchar(255) not null,
     description varchar(4000),
-    cover_file_path varchar(1000),
-    requires_previous_completed boolean not null,
-    open_for_access boolean not null,
     stop_lesson boolean not null,
     blocked_during_attempt boolean not null,
     attempt_limit integer,
@@ -95,18 +92,12 @@ create table if not exists lessons (
     theory_content varchar(20000),
 
     -- Практика
-    question_type varchar(50),
-    question_text varchar(4000),
-    options_raw varchar(4000),
-    correct_answers_raw varchar(2000),
-    assignment_prompt varchar(4000),
-    trainer_hint varchar(4000),
     passing_threshold_percent integer,
     evaluate_by_correct_count boolean,
     random_question_count integer,
-    shuffle_options boolean,
+    shuffle_on_every_attempt boolean,
     show_question_status boolean,
-    show_correct_answers boolean,
+    show_correct_answers_after_completion boolean,
 
     unique (course_id, position)
 );

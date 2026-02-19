@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CourseService {
@@ -147,9 +149,10 @@ public class CourseService {
         lesson.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
         lesson.setEvaluateByCorrectCount(Boolean.TRUE.equals(request.evaluateByCorrectCount()));
         lesson.setRandomQuestionCount(request.randomQuestionCount());
-        lesson.setShuffleOptions(Boolean.TRUE.equals(request.shuffleOptions()));
+        lesson.setShuffleOnEveryAttempt(Boolean.TRUE.equals(request.shuffleOptions()));
         lesson.setShowQuestionStatus(request.showQuestionStatus() == null || request.showQuestionStatus());
-        lesson.setShowCorrectAnswers(Boolean.TRUE.equals(request.showCorrectAnswers()));
+        lesson.setShowCorrectAnswersAfterCompletion(Boolean.TRUE.equals(request.showCorrectAnswers()));
+        lesson.setLessonType(request.lessonType());
 
         lesson.setFullPoints(request.fullPoints() == null ? 1 : request.fullPoints());
         lesson.setPartialPoints(request.partialPoints() == null ? 0 : request.partialPoints());
@@ -208,9 +211,10 @@ public class CourseService {
         lesson.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
         lesson.setEvaluateByCorrectCount(Boolean.TRUE.equals(request.evaluateByCorrectCount()));
         lesson.setRandomQuestionCount(request.randomQuestionCount());
-        lesson.setShuffleOptions(Boolean.TRUE.equals(request.shuffleOptions()));
+        lesson.setShuffleOnEveryAttempt(Boolean.TRUE.equals(request.shuffleOptions()));
         lesson.setShowQuestionStatus(request.showQuestionStatus() == null || request.showQuestionStatus());
-        lesson.setShowCorrectAnswers(Boolean.TRUE.equals(request.showCorrectAnswers()));
+        lesson.setShowCorrectAnswersAfterCompletion(Boolean.TRUE.equals(request.showCorrectAnswers()));
+        lesson.setLessonType(request.lessonType());
 
         lesson.setFullPoints(request.fullPoints() == null ? lesson.getFullPoints() : request.fullPoints());
         lesson.setPartialPoints(request.partialPoints() == null ? lesson.getPartialPoints() : request.partialPoints());
@@ -229,11 +233,12 @@ public class CourseService {
         if (!Objects.equals(lesson.getCourse().getId(), courseId)) {
             throw new BadRequestException("Lesson does not belong to course");
         }
-        final List<Lesson> lessonsToUpdatePosition = lessonRepository.findByCourse_IdAndPositionGreaterThan(courseId, lesson.getPosition()).stream()
-                .peek(nextLesson -> nextLesson.setPosition(nextLesson.getPosition() - 1)).toList();
+        final List<Lesson> lessonsToUpdatePosition = lessonRepository.findByCourse_IdAndPositionGreaterThan(courseId, lesson.getPosition());
         submissionRepository.deleteByLessonId(lessonId);
         practiceQuestionRepository.deleteAllByLessonId(lesson.getId());
         lessonRepository.delete(lesson);
+        lessonRepository.flush();
+        lessonsToUpdatePosition.forEach(nextLesson -> nextLesson.setPosition(nextLesson.getPosition() - 1));
         lessonRepository.saveAll(lessonsToUpdatePosition);
     }
 
@@ -266,12 +271,9 @@ public class CourseService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        if (user.getRole() != Role.STUDENT) {
-            throw new BadRequestException("Only STUDENT can be assigned to course");
-        }
-
         if (enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            throw new BadRequestException("Student already assigned to this course");
+            log.warn("Student already assigned to this course");
+            return;
         }
 
         Enrollment enrollment = new Enrollment();
@@ -284,7 +286,7 @@ public class CourseService {
     @Transactional
     public void unassignStudentFromCourse(Long courseId, Long userId) {
         if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            throw new NotFoundException("Enrollment not found");
+            throw new NotFoundException("User not assigned to course");
         }
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
     }
@@ -298,9 +300,10 @@ public class CourseService {
             throw new BadRequestException("Reviewer must be ADMIN");
         }
         if (courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, reviewerId)) {
+            log.warn("User already reviewer on course");
             return;
         }
-        ru.just.monolithmvp.model.CourseReviewer cr = new ru.just.monolithmvp.model.CourseReviewer();
+        CourseReviewer cr = new CourseReviewer();
         cr.setCourse(course);
         cr.setReviewer(reviewer);
         courseReviewerRepository.save(cr);
@@ -315,7 +318,8 @@ public class CourseService {
     public void assignGroupToCourse(Long courseId, UUID groupId) {
         groupMembershipRepository.findByGroupId(groupId)
                 .forEach(m -> {
-                    if (m.getUser().getRole() == Role.STUDENT && !enrollmentRepository.existsByUserIdAndCourseId(m.getUser().getId(), courseId)) {
+                    if ((m.getUser().getRole() == Role.STUDENT || m.getUser().getRole() == Role.ADMIN)
+                            && !enrollmentRepository.existsByUserIdAndCourseId(m.getUser().getId(), courseId)) {
                         assignStudentToCourse(courseId, m.getUser().getId());
                     }
                 });
@@ -329,9 +333,12 @@ public class CourseService {
 
     @Transactional(readOnly = true)
     public boolean canReviewCourse(Long courseId, Long adminId) {
-        Course course = getCourseEntity(courseId);
-        return course.getCreatedByAdminId().equals(adminId)
-                || courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, adminId);
+        return courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, adminId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Course> findCoursesThatAdminCanReview(Long adminId) {
+        return courseReviewerRepository.findAllByReviewerId(adminId).stream().map(CourseReviewer::getCourse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -355,6 +362,11 @@ public class CourseService {
     public Lesson getLessonEntity(Long lessonId) {
         return lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new NotFoundException("Lesson not found: " + lessonId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PracticeQuestion> getPracticeQuestionForLesson(Long lessonId) {
+        return practiceQuestionRepository.findByLessonIdOrderByQuestionIndexAsc(lessonId);
     }
 
     @Transactional(readOnly = true)
@@ -400,11 +412,8 @@ public class CourseService {
                                          Integer timeLimitMinutes) {
         lesson.setTitle(title);
         lesson.setDescription(description);
-        lesson.setCoverFilePath(coverFilePath);
-        lesson.setRequiresPreviousCompleted(Boolean.TRUE.equals(requiresPreviousCompleted));
-        lesson.setOpenForAccess(openForAccess == null ? true : openForAccess);
         lesson.setStopLesson(Boolean.TRUE.equals(stopLesson));
-        lesson.setBlockedDuringAttempt(blockedDuringAttempt == null ? true : blockedDuringAttempt);
+        lesson.setBlockedDuringAttempt(blockedDuringAttempt == null || blockedDuringAttempt);
         lesson.setAttemptLimit(attemptLimit);
         lesson.setTimeLimitMinutes(timeLimitMinutes);
     }
@@ -417,7 +426,7 @@ public class CourseService {
     }
 
     private int nextLessonPosition(Long courseId) {
-        Lesson last = lessonRepository.findByCourse_IdOrderByPositionDesc(courseId);
+        Lesson last = lessonRepository.findFirstByCourse_IdOrderByPositionDesc(courseId);
         return last == null ? 1 : last.getPosition() + 1;
     }
 
@@ -511,5 +520,12 @@ public class CourseService {
             }
         }
 
+    }
+
+    public List<String> splitRaw(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(raw.split(";;", -1)).toList();
     }
 }

@@ -1,5 +1,6 @@
 package ru.just.monolithmvp.mapper;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
 import ru.just.monolithmvp.dto.lesson.PracticeQuestionDto;
@@ -7,13 +8,20 @@ import ru.just.monolithmvp.model.Lesson;
 import ru.just.monolithmvp.model.PracticeLesson;
 import ru.just.monolithmvp.model.PracticeQuestion;
 import ru.just.monolithmvp.model.TheoryLesson;
+import ru.just.monolithmvp.service.CourseService;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 @Component
 public class LessonMapper {
+
+
+    private final CourseService courseService;
+    @Lazy
+    public LessonMapper(CourseService courseService) {
+        this.courseService = courseService;
+    }
 
     public LessonDto toDto(Lesson lesson) {
         TheoryLesson theoryLesson = lesson instanceof TheoryLesson t ? t : null;
@@ -25,9 +33,6 @@ public class LessonMapper {
                 lesson.getPosition(),
                 lesson.getTitle(),
                 lesson.getDescription(),
-                lesson.getCoverFilePath(),
-                lesson.isRequiresPreviousCompleted(),
-                lesson.isOpenForAccess(),
                 lesson.getStopLesson(),
                 lesson.getBlockedDuringAttempt(),
                 lesson.getAttemptLimit(),
@@ -40,9 +45,8 @@ public class LessonMapper {
                 practiceLesson == null ? null : practiceLesson.getPassingThresholdPercent(),
                 practiceLesson == null ? null : practiceLesson.getEvaluateByCorrectCount(),
                 practiceLesson == null ? null : practiceLesson.getRandomQuestionCount(),
-                practiceLesson == null ? null : practiceLesson.getShuffleOptions(),
-                practiceLesson == null ? null : practiceLesson.getShowQuestionStatus(),
-                practiceLesson == null ? null : practiceLesson.getShowCorrectAnswers(),
+                practiceLesson == null ? null : practiceLesson.getShuffleOnEveryAttempt(),
+                practiceLesson == null ? null : practiceLesson.getShowCorrectAnswersAfterCompletion(),
                 practiceLesson == null ? Collections.emptyList() : toQuestionDtos(practiceLesson.getQuestions())
         );
     }
@@ -58,18 +62,11 @@ public class LessonMapper {
                         q.getQuestionType(),
                         q.getQuestionText(),
                         q.getTrainerHint(),
-                        splitRaw(q.getOptionsRaw()),
-                        splitRaw(q.getCorrectAnswersRaw()),
+                        courseService.splitRaw(q.getOptionsRaw()),
+                        courseService.splitRaw(q.getCorrectAnswersRaw()),
                         q.getFullPoints(),
                         q.getPartialPoints()
                 ))
                 .toList();
-    }
-
-    public List<String> splitRaw(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return Collections.emptyList();
-        }
-        return Arrays.stream(raw.split(";;", -1)).toList();
     }
 }

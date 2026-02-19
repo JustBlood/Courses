@@ -11,9 +11,6 @@ public record LessonDto(
         Integer position,
         String title,
         String description,
-        String coverFilePath,
-        boolean requiresPreviousCompleted,
-        boolean openForAccess,
         Boolean stopLesson,
         Boolean blockedDuringAttempt,
         Integer attemptLimit,
@@ -26,9 +23,8 @@ public record LessonDto(
         Integer passingThresholdPercent,
         Boolean evaluateByCorrectCount,
         Integer randomQuestionCount,
-        Boolean shuffleOptions,
-        Boolean showQuestionStatus,
-        Boolean showCorrectAnswers,
+        Boolean shuffleOnEveryAttempt,
+        Boolean showCorrectAnswersAfterCompletion,
         List<PracticeQuestionDto> questions
 ) {
 }

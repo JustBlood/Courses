@@ -1,8 +1,6 @@
 package ru.just.monolithmvp.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,9 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
 import ru.just.monolithmvp.dto.learning.ReviewOpenSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
-import ru.just.monolithmvp.dto.lesson.CreatePracticeLessonRequest;
-import ru.just.monolithmvp.dto.lesson.CreateTheoryLessonRequest;
-import ru.just.monolithmvp.dto.lesson.LessonDto;
 import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
 import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.LearningService;
@@ -28,18 +23,6 @@ public class ProgressController {
     private final CourseService courseService;
     private final LearningService learningService;
     private final StatisticsService statisticsService;
-
-    @PostMapping("/courses/{courseId}/lessons/theory")
-    public ResponseEntity<LessonDto> createTheoryLesson(@PathVariable Long courseId,
-                                                        @Valid @RequestBody CreateTheoryLessonRequest request) {
-        return new ResponseEntity<>(courseService.createTheoryLesson(courseId, request), HttpStatus.CREATED);
-    }
-
-    @PostMapping("/courses/{courseId}/lessons/practice")
-    public ResponseEntity<LessonDto> createPracticeLesson(@PathVariable Long courseId,
-                                                          @Valid @RequestBody CreatePracticeLessonRequest request) {
-        return new ResponseEntity<>(courseService.createPracticeLesson(courseId, request), HttpStatus.CREATED);
-    }
 
     @GetMapping("/reviews/pending")
     public ResponseEntity<List<PendingSubmissionDto>> pendingReviews() {

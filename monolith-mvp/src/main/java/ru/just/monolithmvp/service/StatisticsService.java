@@ -36,8 +36,9 @@ public class StatisticsService {
 
     @Transactional(readOnly = true)
     public List<CourseStudentStatDto> courseStats(Long courseId) {
-        courseRepository.findById(courseId)
-                .orElseThrow(() -> new NotFoundException("Course not found: " + courseId));
+        if (!courseRepository.existsById(courseId)) {
+            throw new NotFoundException("Course not found: " + courseId);
+        }
 
         int maxPoints = maxPoints(courseId);
         long totalLessons = lessonRepository.countByCourseId(courseId);

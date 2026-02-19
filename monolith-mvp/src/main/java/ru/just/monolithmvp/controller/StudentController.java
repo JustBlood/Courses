@@ -8,11 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.course.CourseDto;
 import ru.just.monolithmvp.dto.course.CourseLearnerDto;
-import ru.just.monolithmvp.dto.group.GroupUsersDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
-import ru.just.monolithmvp.dto.lesson.LessonDto;
-import ru.just.monolithmvp.dto.program.LearningProgramDto;
+import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -20,7 +18,6 @@ import ru.just.monolithmvp.security.SecurityUtils;
 import ru.just.monolithmvp.service.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/student")
@@ -54,24 +51,24 @@ public class StudentController {
         return ResponseEntity.ok(userService.updateUserAvatar(securityUtils.currentUserId(), file));
     }
 
-    @GetMapping("/my/programs")
-    public ResponseEntity<List<LearningProgramDto>> myPrograms() {
-        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
-    }
-
-    @GetMapping("/my/programs/{programId}")
-    public ResponseEntity<LearningProgramDto> myProgram(@PathVariable Long programId) {
-        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
-    }
-
-    @GetMapping("/courses/{courseId}/lessons")
-    public ResponseEntity<List<LessonDto>> courseLessons(@PathVariable Long courseId) {
-        return ResponseEntity.ok(courseService.getCourseLessons(courseId));
-    }
+//    @GetMapping("/my/programs")
+//    public ResponseEntity<List<LearningProgramDto>> myPrograms() {
+//        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
+//    }
+//
+//    @GetMapping("/my/programs/{programId}")
+//    public ResponseEntity<LearningProgramDto> myProgram(@PathVariable Long programId) {
+//        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
+//    }
 
     @GetMapping("/courses/{courseId}")
     public ResponseEntity<CourseLearnerDto> courseForLearner(@PathVariable Long courseId) {
         return ResponseEntity.ok(courseService.getCourseForLearner(securityUtils.currentUserId(), courseId));
+    }
+
+    @GetMapping("/lessons/{lessonId}")
+    public ResponseEntity<LearnerLessonDto> getLessonForLearner(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(learningService.getLessonForLearner(lessonId, securityUtils.currentUserId()));
     }
 
     @PostMapping("/lessons/{lessonId}/complete-theory")
@@ -89,14 +86,14 @@ public class StudentController {
     public ResponseEntity<List<StudentCourseStatDto>> myStats() {
         return ResponseEntity.ok(statisticsService.myCourseStats());
     }
-
-    @GetMapping("/groups/{groupId}/users")
-    public ResponseEntity<GroupUsersDto> groupUsersById(@PathVariable UUID groupId) {
-        return ResponseEntity.ok(groupService.getGroupUsersForStudent(groupId, securityUtils.currentUserId()));
-    }
-
-    @GetMapping("/groups/users")
-    public ResponseEntity<List<GroupUsersDto>> myGroupsUsersByTitle(@RequestParam(required = false) String title) {
-        return ResponseEntity.ok(groupService.getMyGroupUsersByTitle(securityUtils.currentUserId(), title));
-    }
+//
+//    @GetMapping("/groups/{groupId}/users")
+//    public ResponseEntity<GroupUsersDto> groupUsersById(@PathVariable UUID groupId) {
+//        return ResponseEntity.ok(groupService.getGroupUsersForStudent(groupId, securityUtils.currentUserId()));
+//    }
+//
+//    @GetMapping("/groups/users")
+//    public ResponseEntity<List<GroupUsersDto>> myGroupsUsersByTitle(@RequestParam(required = false) String title) {
+//        return ResponseEntity.ok(groupService.getMyGroupUsersByTitle(securityUtils.currentUserId(), title));
+//    }
 }

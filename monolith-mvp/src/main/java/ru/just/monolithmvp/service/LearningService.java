@@ -7,6 +7,8 @@ import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.ReviewOpenSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
+import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
+import ru.just.monolithmvp.dto.lesson.LearnerPracticeQuestionDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
@@ -26,6 +28,36 @@ public class LearningService {
     private final EnrollmentRepository enrollmentRepository;
     private final AppUserRepository userRepository;
     private final SecurityUtils securityUtils;
+
+    public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
+        final Lesson lesson = courseService.getLessonEntity(lessonId);
+        validateStudentEnrolled(userId, lesson.getCourse().getId());
+
+        LearnerLessonDto.LearnerLessonDtoBuilder learnerLessonDtoBuilder = LearnerLessonDto.builder()
+                .id(lesson.getId())
+                .position(lesson.getPosition())
+                .title(lesson.getTitle())
+                .description(lesson.getDescription())
+                .lessonType(lesson.getLessonType());
+        if (LessonType.LessonSubType.PRACTICE.equals(lesson.getLessonType().getSubType())) {
+            final List<PracticeQuestion> practiceQuestions = courseService.getPracticeQuestionForLesson(lessonId);
+            final List<LearnerPracticeQuestionDto> questions = practiceQuestions.stream().map(question -> new LearnerPracticeQuestionDto(
+                    question.getQuestionIndex(),
+                    question.getQuestionType(),
+                    question.getQuestionText(),
+                    courseService.splitRaw(question.getOptionsRaw()),
+                    question.getFullPoints(),
+                    question.getPartialPoints()
+            )).toList();
+            learnerLessonDtoBuilder.questions(questions);
+        } else {
+            TheoryLesson theoryLesson = (TheoryLesson) lesson;
+            learnerLessonDtoBuilder
+                    .theoryContentType(theoryLesson.getContentType())
+                    .theoryContent(theoryLesson.getContent());
+        }
+        return learnerLessonDtoBuilder.build();
+    }
 
     @Transactional
     public SubmissionResultDto completeTheoryLesson(Long lessonId) {
@@ -129,8 +161,9 @@ public class LearningService {
     @Transactional(readOnly = true)
     public List<PendingSubmissionDto> getPendingReviews() {
         Long adminId = securityUtils.currentUserId();
-        return submissionRepository.findByStatus(SubmissionStatus.PENDING_REVIEW).stream()
-                .filter(s -> courseService.canReviewCourse(s.getLesson().getCourse().getId(), adminId))
+        final List<Long> courseIdsThatCanReview = courseService.findCoursesThatAdminCanReview(adminId).stream()
+                .map(Course::getId).toList();
+        return submissionRepository.findAllByStatusAndLessonCourseIdIn(SubmissionStatus.PENDING_REVIEW, courseIdsThatCanReview).stream()
                 .map(s -> new PendingSubmissionDto(
                         s.getId(),
                         s.getLesson().getId(),
@@ -139,8 +172,7 @@ public class LearningService {
                         s.getStudent().getEmail(),
                         s.getAnswerRaw(),
                         s.getSubmittedAt().toString()
-                ))
-                .toList();
+                )).toList();
     }
 
     @Transactional
@@ -156,15 +188,27 @@ public class LearningService {
             throw new BadRequestException("Admin is not assigned as reviewer for this course");
         }
 
-        submission.setPassed(request.passed());
-        submission.setStatus(request.passed() ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        submission.setPointsAwarded(request.passed() ? submission.getLesson().getFullPoints() : 0);
+        boolean finalPassed = request.passed();
+        SubmissionStatus finalStatus = request.passed() ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE;
+        if (request.toNextReview()) {
+            finalStatus = SubmissionStatus.PENDING_REVIEW;
+            finalPassed = false;
+        }
+        final int pointsAwarded = finalPassed
+                ? request.partialPoints()
+                    ? submission.getLesson().getPartialPoints()
+                    : submission.getLesson().getFullPoints()
+                : 0;
+
+        submission.setPassed(finalPassed);
+        submission.setStatus(finalStatus);
+        submission.setPointsAwarded(pointsAwarded);
         submission.setReviewComment(request.comment());
         submission.setReviewedByAdminId(securityUtils.currentUserId());
         submission.setReviewedAt(LocalDateTime.now());
 
         submission = submissionRepository.save(submission);
-        if (request.passed()) {
+        if (finalPassed) {
             markEnrollmentCompletedIfDone(submission.getStudent().getId(), submission.getLesson().getCourse().getId());
         }
         return new SubmissionResultDto(
@@ -184,8 +228,8 @@ public class LearningService {
     private AppUser getStudent(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        if (user.getRole() != Role.STUDENT) {
-            throw new BadRequestException("Only STUDENT can submit lessons");
+        if (user.getRole() != Role.STUDENT && user.getRole() != Role.ADMIN) {
+            throw new BadRequestException("Only STUDENT or ADMIN can submit lessons");
         }
         return user;
     }

@@ -24,13 +24,13 @@ public class PracticeLesson extends Lesson {
     private Integer randomQuestionCount;
 
     @Column(nullable = false)
-    private Boolean shuffleOptions = false;
+    private Boolean shuffleOnEveryAttempt = false;
 
     @Column(nullable = false)
     private Boolean showQuestionStatus = true;
 
     @Column(nullable = false)
-    private Boolean showCorrectAnswers = false;
+    private Boolean showCorrectAnswersAfterCompletion = false;
 
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionIndex ASC")

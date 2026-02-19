@@ -10,15 +10,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
-import ru.just.monolithmvp.dto.group.CreateGroupRequest;
-import ru.just.monolithmvp.dto.group.GroupDto;
-import ru.just.monolithmvp.dto.group.GroupUsersDto;
-import ru.just.monolithmvp.dto.group.GroupUsersRequest;
 import ru.just.monolithmvp.dto.user.*;
 import ru.just.monolithmvp.service.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -96,43 +91,43 @@ public class UsersController {
     }
 
 
-    @PostMapping("/groups")
-    public ResponseEntity<GroupDto> createGroup(@Valid @RequestBody CreateGroupRequest request) {
-        return new ResponseEntity<>(groupService.createGroup(request), HttpStatus.CREATED);
-    }
-
-    @GetMapping("/groups")
-    public ResponseEntity<List<GroupDto>> groups() {
-        return ResponseEntity.ok(groupService.getGroups());
-    }
-
-    @GetMapping("/groups/{groupId}/users")
-    public ResponseEntity<GroupUsersDto> groupUsersById(@PathVariable UUID groupId) {
-        return ResponseEntity.ok(groupService.getGroupUsers(groupId));
-    }
-
-    @GetMapping("/groups/users")
-    public ResponseEntity<List<GroupUsersDto>> groupUsersByTitle(@RequestParam(required = false) String title) {
-        return ResponseEntity.ok(groupService.getGroupUsersByTitle(title));
-    }
-
-    @PostMapping("/groups/{groupId}/members")
-    public ResponseEntity<ApiResponse> addUserToGroup(@PathVariable UUID groupId,
-                                                      @RequestBody @Valid GroupUsersRequest request) {
-        groupService.addUsersToGroup(groupId, request.userIds());
-        return ResponseEntity.ok(new ApiResponse("Users added to group"));
-    }
-
-    @DeleteMapping("/groups/{groupId}/members")
-    public ResponseEntity<ApiResponse> removeUsersFromGroup(@PathVariable UUID groupId,
-                                                            @RequestBody @Valid GroupUsersRequest request) {
-        groupService.removeUsersFromGroup(groupId, request.userIds());
-        return ResponseEntity.ok(new ApiResponse("Users removed from group"));
-    }
-
-    @DeleteMapping("/groups/{groupId}")
-    public ResponseEntity<ApiResponse> deleteGroup(@PathVariable UUID groupId) {
-        groupService.deleteGroup(groupId);
-        return ResponseEntity.ok(new ApiResponse("Group deleted"));
-    }
+//    @PostMapping("/groups")
+//    public ResponseEntity<GroupDto> createGroup(@Valid @RequestBody CreateGroupRequest request) {
+//        return new ResponseEntity<>(groupService.createGroup(request), HttpStatus.CREATED);
+//    }
+//
+//    @GetMapping("/groups")
+//    public ResponseEntity<List<GroupDto>> groups() {
+//        return ResponseEntity.ok(groupService.getGroups());
+//    }
+//
+//    @GetMapping("/groups/{groupId}/users")
+//    public ResponseEntity<GroupUsersDto> groupUsersById(@PathVariable UUID groupId) {
+//        return ResponseEntity.ok(groupService.getGroupUsers(groupId));
+//    }
+//
+//    @GetMapping("/groups/users")
+//    public ResponseEntity<List<GroupUsersDto>> groupUsersByTitle(@RequestParam(required = false) String title) {
+//        return ResponseEntity.ok(groupService.getGroupUsersByTitle(title));
+//    }
+//
+//    @PostMapping("/groups/{groupId}/members")
+//    public ResponseEntity<ApiResponse> addUserToGroup(@PathVariable UUID groupId,
+//                                                      @RequestBody @Valid GroupUsersRequest request) {
+//        groupService.addUsersToGroup(groupId, request.userIds());
+//        return ResponseEntity.ok(new ApiResponse("Users added to group"));
+//    }
+//
+//    @DeleteMapping("/groups/{groupId}/members")
+//    public ResponseEntity<ApiResponse> removeUsersFromGroup(@PathVariable UUID groupId,
+//                                                            @RequestBody @Valid GroupUsersRequest request) {
+//        groupService.removeUsersFromGroup(groupId, request.userIds());
+//        return ResponseEntity.ok(new ApiResponse("Users removed from group"));
+//    }
+//
+//    @DeleteMapping("/groups/{groupId}")
+//    public ResponseEntity<ApiResponse> deleteGroup(@PathVariable UUID groupId) {
+//        groupService.deleteGroup(groupId);
+//        return ResponseEntity.ok(new ApiResponse("Group deleted"));
+//    }
 }

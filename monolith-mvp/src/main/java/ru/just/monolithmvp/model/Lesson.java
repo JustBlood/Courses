@@ -35,34 +35,25 @@ public class Lesson {
     @Column(length = 4000)
     private String description;
 
-    @Column
-    private String coverFilePath;
-
-    @Column(nullable = false)
-    private boolean requiresPreviousCompleted = false; // TODO: добавить в логику сервисов
-
-    @Column(nullable = false)
-    private boolean openForAccess = true; // TODO: добавить в логику сервисов
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LessonType lessonType;
 
     @Column(nullable = false)
-    private Integer fullPoints = 1;
+    private Integer fullPoints = 1; // TODO: добавить в логику сервисов
 
     @Column(nullable = false)
-    private Integer partialPoints = 0;
+    private Integer partialPoints = 0; // TODO: добавить в логику сервисов
 
     @Column(nullable = false)
-    private Boolean stopLesson = false;
+    private Boolean stopLesson = false; // TODO: добавить в логику сервисов
 
     @Column(nullable = false)
-    private Boolean blockedDuringAttempt = true;
+    private Boolean blockedDuringAttempt = true; // TODO: добавить в логику сервисов
 
     @Column
-    private Integer attemptLimit;
+    private Integer attemptLimit; // TODO: добавить в логику сервисов
 
     @Column
-    private Integer timeLimitMinutes;
+    private Integer timeLimitMinutes; // TODO: добавить в логику сервисов
 }
