@@ -9,7 +9,9 @@
 - [PRD-02: Функциональные требования](./prd/02-functional-requirements.md)
 - [PRD-03: Нефункциональные требования](./prd/03-non-functional-requirements.md)
 - [PRD-04: Ограничения и допущения](./prd/04-constraints-and-assumptions.md)
-- [PRD-05: Критерии приемки](./prd/05-acceptance-criteria.md)
+- [PRD-05: Техническая архитектура](./prd/05-technical-architecture.md)
+- [PRD-06: Критерии приемки](./prd/06-acceptance-criteria.md)
+- [PRD-07: Этапы разработки, риски и развитие](./prd/07-development-and-risks-and-future.md)
 
 ## Правило чтения
 1. Сначала читать этот индекс.

@@ -4,12 +4,12 @@
 1. `memory-bank/00-project-brief.md`
 2. `memory-bank/06-system-development-progress.md`
 3. `memory-bank/01-prd-index.md`
-4. Только релевантные главы из `memory-bank/prd/*` под текущую задачу
+4. Только релевантные главы из `memory-bank/prd/*` под текущую задачу по ссылкам из `memory-bank/01-prd-index.md`
 
 ## Обязательные обновления
 - После анализа задачи обновлять `memory-bank/02-active-context.md`.
 - По завершении задачи **или перед исчерпанием контекста** обновлять `memory-bank/05-task-execution-progress.md`.
-- После полного завершения задачи/итерации обновлять `memory-bank/06-system-development-progress.md`.
+- После ПОЛНОГО завершения задачи обновлять `memory-bank/06-system-development-progress.md`.
 
 ## Для длинных задач
 1. Зафиксировать промежуточный контекст в `05-task-execution-progress.md`.
