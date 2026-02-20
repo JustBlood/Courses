@@ -34,7 +34,7 @@
         "Шаг 3: Проверить, что baseline-отчёт сохранён в рабочем контексте задачи."
       ],
       "dependencies": [],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-002",
@@ -54,7 +54,7 @@
       "dependencies": [
         "PRE-001"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-003",
@@ -74,7 +74,7 @@
       "dependencies": [
         "PRE-001"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-004",
@@ -94,7 +94,7 @@
       "dependencies": [
         "PRE-003"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-005",
@@ -114,7 +114,7 @@
       "dependencies": [
         "PRE-002"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-006",
@@ -135,7 +135,7 @@
         "PRE-002",
         "PRE-003"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-007",
@@ -156,7 +156,7 @@
         "PRE-002",
         "PRE-005"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-008",
@@ -176,7 +176,7 @@
       "dependencies": [
         "PRE-002"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-009",
@@ -198,7 +198,7 @@
         "PRE-005",
         "PRE-006"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-010",
@@ -219,7 +219,7 @@
         "PRE-004",
         "PRE-006"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-011",
@@ -241,7 +241,7 @@
         "PRE-009",
         "PRE-010"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-012",
@@ -263,7 +263,7 @@
         "PRE-008",
         "PRE-011"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-013",
@@ -284,7 +284,7 @@
         "PRE-005",
         "PRE-008"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-014",
@@ -306,7 +306,7 @@
         "PRE-010",
         "PRE-011"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-015",
@@ -327,7 +327,7 @@
         "PRE-006",
         "PRE-014"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-016",
@@ -348,7 +348,7 @@
         "PRE-010",
         "PRE-011"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-017",
@@ -370,7 +370,7 @@
         "PRE-007",
         "PRE-008"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-018",
@@ -398,7 +398,7 @@
         "PRE-016",
         "PRE-017"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-019",
@@ -418,7 +418,7 @@
       "dependencies": [
         "PRE-018"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "PRE-020",
@@ -438,7 +438,7 @@
       "dependencies": [
         "PRE-019"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

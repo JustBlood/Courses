@@ -1,119 +1,56 @@
 # Прогресс выполнения задачи
 
 ## Назначение
-Хранит «оперативный» прогресс по текущей задаче (или длинной ветке задач), если контекст начинает заканчиваться.
+Оперативный индекс выполнения pre-phase и ссылок на артефакты gap-analysis.
 
-## Шаблон записи
-### Задача
-- ID/название:
-- Ссылка на требования (PRD/тикет/сообщение):
+## Индекс артефактов (compressed)
 
-### Что уже сделано
-- 
+### PRE-phase: завершённые задачи с артефактами
+- `PRE-001` — Baseline анализа
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-001-baseline-report.md`
+- `PRE-002` — Инвентаризация API-контуров
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-002-api-inventory-report.md`
+- `PRE-003` — Инвентаризация доменных моделей
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-003-domain-model-inventory-report.md`
+- `PRE-004` — Сверка Flyway/схемы БД
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-004-flyway-schema-gap-report.md`
+- `PRE-005` — Сверка auth/security-контура
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-005-security-gap-report.md`
+- `PRE-006` — Проверка слойности и сервисного слоя
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-006-layering-and-architecture-gap-report.md`
+- `PRE-007` — Интеграции SMTP/YouTube/файлового хранения и деградационные сценарии
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-007-integrations-gap-report.md`
+- `PRE-008` — Покрытие интеграционных/сквозных тестов по AC
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-008-test-coverage-gap-report.md`
+- `PRE-009` — Сверка FR-001..FR-004 (users/profile/roles) с AC-001..AC-004
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-009-fr-001-fr-004-gap-report.md`
+- `PRE-010` — Сверка FR-005..FR-009 (courses/lessons/questions/scoring) с AC-005..AC-009
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-010-fr-005-fr-009-gap-report.md`
+- `PRE-011` — Сверка FR-010..FR-014 (enrollment/review/learning flow) с AC-010..AC-014
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-011-fr-010-fr-014-gap-report.md`
+- `PRE-012` — Сверка FR-015..FR-017 (statistics/reporting) с AC-015..AC-017
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-012-fr-015-fr-017-gap-report.md`
+- `PRE-013` — Сверка FR-018..FR-019 (change/reset password) и security/NFR
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-013-fr-018-fr-019-security-gap-report.md`
+- `PRE-014` — Сверка FR-101..FR-105 (sections/programs/program rules/assignments)
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-014-fr-101-fr-105-gap-report.md`
+- `PRE-015` — Сверка FR-106..FR-109 (groups/mass assignments/search/filter)
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-015-fr-106-fr-109-gap-report.md`
+- `PRE-016` — Сверка FR-110..FR-114 (advanced practice: threshold/attempts/time/random/stopLesson)
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-016-fr-110-fr-114-gap-report.md`
+- `PRE-017` — Сверка NFR-контура (observability/audit/backup-restore/reliability)
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-017-nfr-gap-report.md`
+- `PRE-018` — Сводная матрица соответствия FR/AC/NFR с risk/effort/phase
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-018-fr-ac-nfr-consolidated-matrix.md`
+- `PRE-019` — Change-set план для финальной синхронизации backlog (`tasks.json`)
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-019-backlog-change-set-plan.md`
+- `PRE-020` — Финальная синхронизация backlog и фиксация новой baseline-версии `tasks.json`
+  - Артефакт: `memory-bank/pre-task-artifacts/PRE-020-backlog-baseline-update-report.md`
 
-### Что осталось
-- 
+## Текущий статус ветки
+- Последняя завершённая pre-задача: `PRE-020` (`status=done` в `memory-bank/pre-tasks.json`).
+- Pre-phase полностью завершён (`PRE-001..PRE-020`).
+- Актуальный рабочий backlog: `memory-bank/tasks.json` (baseline после PRE-020).
 
-### Риски/блокеры
-- 
-
-### Следующий шаг
-- 
-
-## Текущее состояние
-
-### Задача
-- ID/название: Комплексный PRD (главы 00–07) — финализация по ТЗ и user feedback.
-- Ссылка на требования (PRD/тикет/сообщение):
-  - ТЗ «Система корпоративного обучения»
-  - Детальный feedback пользователя в чате
-  - Инструкция `memory-bank/000-PRD-agent.md`
-  - Правила `.clinerules/*`
-
-### Что уже сделано
-- Актуализирован индекс PRD: `memory-bank/01-prd-index.md` (добавлены корректные ссылки на PRD-05..07).
-- Полностью заполнены главы:
-  - `memory-bank/prd/03-non-functional-requirements.md`
-  - `memory-bank/prd/04-constraints-and-assumptions.md`
-  - `memory-bank/prd/05-technical-architecture.md`
-  - `memory-bank/prd/06-acceptance-criteria.md`
-  - `memory-bank/prd/07-development-and-risks-and-future.md`
-- Выполнен ресерч через субагентов (`backend-architect`, `solution-architect`, `sprint-prioritizer`) и синтезирован в итоговые разделы PRD.
-- Согласован с пользователем режим фиксации качества: гибрид (MVP минимум, post-MVP целевой уровень).
-- Обновлён `memory-bank/02-active-context.md`.
-
-### Что осталось
-- Получить финальное ревью/подтверждение пользователя по версии PRD 00–07.
-- По feedback внести точечные правки (при необходимости).
-
-### Риски/блокеры
-- Возможны дополнительные уточнения по деталям NFR/SLO и формату отчётов на этапе финального согласования.
-
-### Следующий шаг
-- Передать пользователю краткий отчёт о завершении комплексного PRD и запросить финальный комментарий на полный пакет глав 00–07.
-
----
-
-### Задача
-- ID/название: Декомпозиция PRD в backlog задач для coding-агентов (`tasks.json`) + инициализация `progress.md`.
-- Ссылка на требования (PRD/тикет/сообщение):
-  - Пользовательская задача: «преобразовать PRD в структурированный список задач».
-  - `memory-bank/prd/00-overview-and-goals.md`
-  - `memory-bank/prd/01-user-scenarios.md`
-  - `memory-bank/prd/02-functional-requirements.md`
-  - `memory-bank/prd/03-non-functional-requirements.md`
-  - `memory-bank/prd/04-constraints-and-assumptions.md`
-  - `memory-bank/prd/05-technical-architecture.md`
-  - `memory-bank/prd/06-acceptance-criteria.md`
-  - `memory-bank/prd/07-development-and-risks-and-future.md`
-
-### Что уже сделано
-- Подготовлен `tasks.json` в строгом JSON-формате.
-- Добавлены обязательные `agent_instructions` для coding-агентов.
-- Сформирован backlog из 40 атомарных задач (`TASK-001..TASK-040`) со статусом `pending`.
-- Покрыты все обязательные категории задач: `infrastructure`, `functional`, `ui`, `integration`, `security`.
-- Для каждой задачи заполнены `description`, `acceptance_criteria`, `test_steps`, `dependencies`, `priority`, `status`.
-- Создан пустой `progress.md`.
-- Обновлён `memory-bank/02-active-context.md` с актуальным контекстом текущей итерации.
-- Выполнена валидация структуры: JSON парсится, количество задач 40, категории покрыты, статусы унифицированы (`pending`).
-
-### Что осталось
-- Текущая задача завершена.
-
-### Риски/блокеры
-- Не выявлены.
-
-### Следующий шаг
-- Запуск инкрементной реализации: выбор первой `critical` задачи из `tasks.json` и выполнение одной задачей за сессию.
-
----
-
-### Задача
-- ID/название: Архитектурный ревью `tasks.json` через субагентов + формирование `pre-tasks.json` для gap-analysis.
-- Ссылка на требования (PRD/тикет/сообщение):
-  - Пользовательский feedback: подключить `system-architect` и `sprint-prioritizer` для ревью backlog.
-  - Требование: добавить pre-backlog на сверку «код vs PRD» и последующую коррекцию `tasks.json`.
-  - `.clinerules/50-subagents-guidelines.md`.
-
-### Что уже сделано
-- Через subagents выполнен двойной ревью `tasks.json`:
-  - архитектурный (system-architect),
-  - приоритизационный/потоковый (sprint-prioritizer).
-- В `tasks.json` внесены правки:
-  - усилены инструкции выбора ready-to-start задач;
-  - добавлен tie-break по минимальному id;
-  - добавлена фиксация блокеров при отсутствии ready-задач;
-  - убрана конфликтная формулировка про запрет редактирования backlog;
-  - скорректированы зависимости `TASK-028`, `TASK-019`, `TASK-020`.
-- Создан `pre-tasks.json` (20 задач, `PRE-001..PRE-020`) для этапа gap-analysis с финальной задачей `PRE-020` на актуализацию `tasks.json`.
-- Проверена валидность JSON обоих файлов (`tasks.json`, `pre-tasks.json`).
-- Обновлён `memory-bank/02-active-context.md` под новую двухконтурную стратегию backlog.
-
-### Что осталось
-- Текущая задача завершена.
-
-### Риски/блокеры
-- При выполнении pre-phase возможно выявление большого объёма уже реализованного функционала, что потребует массовой (но контролируемой) переоценки статусов задач в `tasks.json` на шаге `PRE-020`.
-
-### Следующий шаг
-- Начать выполнение `pre-tasks.json` с `PRE-001` и последовательно дойти до `PRE-020`, после чего зафиксировать обновлённый baseline `tasks.json`.
+## Примечание
+- Файл сжат до индексного формата согласно правилу `.clinerules/10-memory-bank-workflow.md` для атомарных задач с отдельными артефактами.

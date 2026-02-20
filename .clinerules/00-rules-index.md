@@ -8,7 +8,6 @@
 - [30-code-writing-rules.md](./30-code-writing-rules.md)
 - [40-file-operation-guardrails.md](./40-file-operation-guardrails.md)
 - [50-subagents-guidelines.md](./50-subagents-guidelines.md)
-- [60-task-definition-and-analysis.md](./60-task-definition-and-analysis.md)
 
 ## Базовое правило применения
 1. Перед началом задачи читать `10-memory-bank-workflow.md`.
