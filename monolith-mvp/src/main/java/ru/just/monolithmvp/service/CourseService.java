@@ -50,19 +50,20 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<CourseSummaryDto> getCourseSummaries() {
         return courseRepository.findAll().stream()
-                .map(course -> {
-                    long theoryCount = course.getLessons().stream().filter(this::isTheoryLesson).count();
-                    long practiceCount = course.getLessons().size() - theoryCount;
-                    return new CourseSummaryDto(
-                            course.getId(),
-                            course.getTitle(),
-                            course.getDescription(),
-                            course.getCoverFilePath(),
-                            theoryCount,
-                            practiceCount
-                    );
-                })
+                .map(this::toCourseSummaryDto)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseSummaryDto> getReviewerCourseSummaries(Long adminId) {
+        return findCoursesThatAdminCanReview(adminId).stream()
+                .map(this::toCourseSummaryDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseSummaryDto> getMyReviewerCourseSummaries() {
+        return getReviewerCourseSummaries(securityUtils.currentUserId());
     }
 
     @Transactional(readOnly = true)
@@ -508,6 +509,19 @@ public class CourseService {
         return lesson.getLessonType() == LessonType.THEORY_TEXT
                 || lesson.getLessonType() == LessonType.THEORY_VIDEO
                 || lesson.getLessonType() == LessonType.THEORY_PDF;
+    }
+
+    private CourseSummaryDto toCourseSummaryDto(Course course) {
+        long theoryCount = course.getLessons().stream().filter(this::isTheoryLesson).count();
+        long practiceCount = course.getLessons().size() - theoryCount;
+        return new CourseSummaryDto(
+                course.getId(),
+                course.getTitle(),
+                course.getDescription(),
+                course.getCoverFilePath(),
+                theoryCount,
+                practiceCount
+        );
     }
 
     private void validatePracticeRequest(CreatePracticeLessonRequest request) {

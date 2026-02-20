@@ -5,6 +5,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ru.just.monolithmvp.dto.course.CourseSummaryDto;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
 import ru.just.monolithmvp.dto.learning.ReviewOpenSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
@@ -27,6 +28,11 @@ public class ProgressController {
     @GetMapping("/reviews/pending")
     public ResponseEntity<List<PendingSubmissionDto>> pendingReviews() {
         return ResponseEntity.ok(learningService.getPendingReviews());
+    }
+
+    @GetMapping("/reviews/courses")
+    public ResponseEntity<List<CourseSummaryDto>> reviewCourses() {
+        return ResponseEntity.ok(courseService.getMyReviewerCourseSummaries());
     }
 
     @PostMapping("/reviews/{submissionId}")

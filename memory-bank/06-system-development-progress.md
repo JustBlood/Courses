@@ -393,3 +393,20 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI critical задача по зависимостям: `TASK-013` (назначение reviewer и рабочая область проверки).
+
+### 2026-02-20 — Завершена TASK-013 (FR-011: reviewer assignment и reviewer workspace)
+- Что сделано (кратко):
+  - Расширена рабочая область reviewer: добавлен endpoint `GET /api/v1/admin/progress/reviews/courses` для списка назначенных курсов.
+  - В `CourseService` добавлены методы получения reviewer-курсов (`getReviewerCourseSummaries`, `getMyReviewerCourseSummaries`) и выделен общий маппинг `toCourseSummaryDto`.
+  - Подтверждена и покрыта тестами логика FR-011: назначение reviewer только из `ADMIN` и видимость pending-open-submissions только по назначенным курсам.
+  - В backlog `memory-bank/tasks.json` задача `TASK-013` переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/ProgressController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI critical задача по зависимостям: `TASK-014` (FR-012: прохождение THEORY-урока с фиксацией статуса и начислением баллов).

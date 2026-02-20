@@ -284,3 +284,24 @@
   1. Обновить `memory-bank/02-active-context.md` финальным описанием `TASK-012`.
   2. Дописать запись в `memory-bank/06-system-development-progress.md` по завершению `TASK-012`.
   3. Отправить пользователю финальный отчёт по задаче.
+
+## TASK-013 (done) — FR-011 назначение reviewer и рабочая область проверки
+- Что сделано:
+  - Расширен reviewer-workspace API:
+    - добавлен endpoint `GET /api/v1/admin/progress/reviews/courses` в `ProgressController`;
+    - endpoint возвращает только курсы, назначенные текущему reviewer.
+  - Расширен сервисный слой `CourseService`:
+    - добавлен метод `getReviewerCourseSummaries(adminId)`;
+    - добавлен метод `getMyReviewerCourseSummaries()` для текущего пользователя;
+    - выделен общий маппинг `toCourseSummaryDto(Course)`.
+  - Подтверждён контур ограничений reviewer:
+    - назначение reviewer только из пользователей с ролью `ADMIN`;
+    - pending-open-submissions доступны reviewer только по назначенным курсам.
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`:
+    - добавлены проверки `GET /api/v1/admin/progress/reviews/courses`;
+    - добавлены проверки `GET /api/v1/admin/progress/reviews/pending`.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 5, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-013` переведена в `done` в `memory-bank/tasks.json`.

@@ -988,6 +988,26 @@ class CourseLessonCrudIntegrationTest {
                                 """.formatted(otherAdminId)))
                 .andExpect(status().isOk());
 
+        String reviewerCoursesResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/courses")
+                        .header("Authorization", "Bearer " + otherAdminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode reviewerCourses = objectMapper.readTree(reviewerCoursesResponse);
+        assertThat(reviewerCourses.size()).isEqualTo(1);
+        assertThat(reviewerCourses.get(0).get("id").asLong()).isEqualTo(courseId);
+
+        String pendingReviewsResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/pending")
+                        .header("Authorization", "Bearer " + otherAdminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode pendingReviews = objectMapper.readTree(pendingReviewsResponse);
+        assertThat(pendingReviews.size()).isEqualTo(1);
+        assertThat(pendingReviews.get(0).get("submissionId").asLong()).isEqualTo(openSubmissionId);
+
         mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
                         .header("Authorization", "Bearer " + otherAdminToken)
                         .contentType(MediaType.APPLICATION_JSON)
