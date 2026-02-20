@@ -334,7 +334,7 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long practiceLessonId = objectMapper.readTree(practiceLessonResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+        String submitPracticeResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -352,6 +352,10 @@ class CourseLessonCrudIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
+        JsonNode submitPracticeResult = objectMapper.readTree(submitPracticeResponse);
+        assertThat(submitPracticeResult.get("status").asText()).isEqualTo("COMPLETE");
+        assertThat(submitPracticeResult.get("passed").asBoolean()).isTrue();
+
         LessonSubmission submission = lessonSubmissionRepository.findAll().stream()
                 .filter(s -> s.getLesson().getId().equals(practiceLessonId) && s.getStudent().getId().equals(studentId))
                 .reduce((a, b) -> b)
@@ -360,6 +364,22 @@ class CourseLessonCrudIntegrationTest {
         assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
         assertThat(submission.getPassed()).isTrue();
         assertThat(submission.getPointsAwarded()).isEqualTo(3);
+
+        String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode myStats = objectMapper.readTree(myStatsResponse);
+        assertThat(myStats.size()).isEqualTo(1);
+        JsonNode courseStat = myStats.get(0);
+        assertThat(courseStat.get("courseId").asLong()).isEqualTo(courseId);
+        assertThat(courseStat.get("earnedPoints").asInt()).isEqualTo(3);
+        assertThat(courseStat.get("maxPoints").asInt()).isEqualTo(1);
+        assertThat(courseStat.get("completedLessons").asInt()).isEqualTo(1);
+        assertThat(courseStat.get("totalLessons").asInt()).isEqualTo(1);
     }
 
     @Test

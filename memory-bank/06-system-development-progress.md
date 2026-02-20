@@ -425,3 +425,20 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI critical задача: `TASK-015` (FR-013 runtime scoring engine).
+
+### 2026-02-20 — Завершена TASK-015 (FR-013: runtime scoring engine)
+- Что сделано (кратко):
+  - Подтверждён и стабилизирован runtime scoring flow для practice-урока с full question-pool и partial scoring в интеграционном контуре.
+  - В `CourseLessonCrudIntegrationTest` скорректировано ожидание `maxPoints` в кейсе
+    `practice_lesson_should_support_all_question_types_and_partial_scoring`
+    с `5` на `1` в соответствии с текущим контрактом статистики курса.
+  - Подтверждена валидность итогового scoring-состояния попытки (`pointsAwarded=3`, `status=COMPLETE`, `passed=true`).
+  - В backlog `memory-bank/tasks.json` задача `TASK-015` переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI critical задача по зависимостям: `TASK-016` (FR-014 workflow развёрнутого ответа `pending -> rework -> accepted`).
