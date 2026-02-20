@@ -82,3 +82,125 @@
   - Дополнительно: `curl -sS http://localhost:8099/actuator/health` → `{"status":"UP","groups":["liveness","readiness"]}`.
 - Итоговый статус задачи:
   - `TASK-002` переведена в `done`.
+
+## TASK-003 (done) — JWT hardening
+- Что сделано:
+  - Добавлены новые обработчики security-ошибок:
+    - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/ApiAuthenticationEntryPoint.java`
+    - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/ApiAccessDeniedHandler.java`
+  - Обновлён `SecurityConfig`:
+    - подключены `authenticationEntryPoint` и `accessDeniedHandler` для единообразного безопасного формата auth-ответов.
+  - Обновлён `JwtAuthenticationFilter`:
+    - на ошибке парсинга/валидации JWT выполняется `SecurityContextHolder.clearContext()`.
+- Реализация (тесты):
+  - Обновлён `UserAuthStudentFlowIntegrationTest`:
+    - добавлены проверки valid/expired/tampered JWT;
+    - добавлены helper-методы генерации expired токена и tampered токена;
+    - скорректировано ожидание статуса в кейсе deactivated-user token (`401` вместо `403`) в новой security-модели.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest test` → `BUILD SUCCESS`.
+  - По тест-сценарию подтверждено: валидный JWT даёт доступ, просроченный и подменённый JWT возвращают `401 Unauthorized`.
+- Итоговый статус задачи:
+  - `TASK-003` переведена в `done`.
+
+## TASK-004 (done) — RBAC-ограничения API
+- Что сделано:
+  - Усилен RBAC для review-flow в `LearningService.reviewOpenSubmission`.
+  - Для неназначенного reviewer отказ переведён на security-семантику `403 Forbidden` через `AccessDeniedException`.
+  - Сохранён контроль назначения reviewer на уровне course-reviewer связей.
+- Реализация (тесты):
+  - Обновлён `CourseLessonCrudIntegrationTest`:
+    - скорректировано ожидание статуса для запроса review от неназначенного reviewer (`403` вместо `400`).
+  - Подтверждён сценарий: review endpoint доступен только назначенному reviewer.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-004` переведена в `done`.
+
+## Token-budget checkpoint (2026-02-20, post-TASK-003)
+- Причина фиксации:
+  - В ходе дополнительного запроса пользователя контекст превысил 350k токенов (сработал `Token Budget Gate` из `.clinerules/10-memory-bank-workflow.md`).
+- Что успели сделать до остановки:
+  - Прочитаны и повторно проанализированы все правила `.clinerules/*`.
+  - Зафиксированы ключевые зоны пересечения/конфликтов:
+    - конфликт по очистке `02-active-context.md` (`10-memory-bank-workflow` требует только по явному запросу; `20-task-flow-and-modes` формулирует как обязательное действие после полного завершения);
+    - дубли требований по обновлению `02/05/06` и по лимиту контекста в двух файлах (`10` и `20`);
+    - дубли pre-tool контроля между локальными правилами и системным требованием `task_progress`.
+  - Выполнена очистка `memory-bank/02-active-context.md` по явному запросу пользователя.
+- Что запланировано сделать в следующей итерации (/newtask):
+  1. Выдать структурированный аудит правил: группировка, дубли, конфликты, точки рефакторинга.
+  2. Предложить точечные правки в `.clinerules/10-memory-bank-workflow.md` и `.clinerules/20-task-flow-and-modes.md`, чтобы исключить повтор ошибки с очисткой `02-active-context.md`.
+  3. При подтверждении пользователя — внести согласованные изменения в rule-файлы.
+
+## Token-budget checkpoint (2026-02-20, TASK-004 in progress)
+- Причина фиксации:
+  - В ходе закрытия `TASK-004` контекст превысил лимит 350k токенов (сработал `Token Budget Gate`).
+- Что уже выполнено:
+  - По коду: в `LearningService.reviewOpenSubmission` отказ для неназначенного reviewer переведён в `AccessDeniedException` (RBAC semantics `403`).
+  - По тестам: обновлён `CourseLessonCrudIntegrationTest` под ожидаемый `403` для неназначенного reviewer.
+  - Валидация: `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS` (`Tests run: 4, Failures: 0, Errors: 0`).
+  - Backlog: `memory-bank/tasks.json` обновлён (`TASK-004` переведена в `done`).
+  - Контекст: `memory-bank/02-active-context.md` обновлён под текущее состояние `TASK-004`.
+- Что осталось сделать после `/newtask`:
+  1. Дописать финальную запись в `memory-bank/06-system-development-progress.md` по завершению `TASK-004`.
+  2. Сформировать и отправить итоговый отчёт пользователю по задаче.
+
+## Token-budget checkpoint (2026-02-20, TASK-006 in progress)
+- Причина фиксации:
+  - В ходе закрытия `TASK-006` контекст превысил лимит 350k токенов (сработал `Token Budget Gate`).
+- Что уже выполнено:
+  - В `CreateUserRequest` добавлены поля `groupIds` и `courseIds` для первичных назначений при создании пользователя.
+  - В `UserService.createUser` реализованы первичные назначения в рамках транзакции:
+    - валидация входных списков,
+    - проверка существования групп/курсов,
+    - защита от `null` и дублей,
+    - создание `GroupMembership` и `Enrollment`,
+    - ограничение на typed-группы (не более одной группы каждого типа).
+  - Обновлён import-flow CSV под новый конструктор `CreateUserRequest`.
+  - Обновлён интеграционный тест `UserAuthStudentFlowIntegrationTest`:
+    - добавлен сценарий создания пользователя с `groupIds/courseIds`,
+    - добавлены проверки сохранения membership/enrollment.
+  - Валидация пройдена:
+    - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Backlog: `memory-bank/tasks.json` обновлён, `TASK-006` переведена в `done`.
+  - Контекст: `memory-bank/02-active-context.md` обновлён под `TASK-006`.
+- Что осталось сделать после `/newtask`:
+  1. Дописать финальную запись в `memory-bank/06-system-development-progress.md` по завершению `TASK-006`.
+  2. Отправить пользователю финальный отчёт по выполненной задаче.
+
+## TASK-006 (done) — создание пользователя с первичными назначениями
+- Что сделано:
+  - Расширен DTO-контракт `CreateUserRequest`: добавлены `groupIds` и `courseIds`.
+  - В `UserService.createUser` реализованы первичные назначения при создании пользователя:
+    - валидация входных списков и запрет `null`-идентификаторов,
+    - проверка существования целевых групп/курсов,
+    - защита от дублей,
+    - создание `GroupMembership` и `Enrollment` в рамках одной транзакции,
+    - enforcement ограничения по typed-группам (не более одной группы каждого типа на пользователя).
+  - Обновлён import-flow CSV под новый конструктор `CreateUserRequest`.
+  - Обновлён интеграционный тест `UserAuthStudentFlowIntegrationTest`:
+    - добавлен сценарий создания пользователя с первичными `groupIds/courseIds`;
+    - добавлены проверки сохранённых связей в БД (`GroupMembershipRepository`, `EnrollmentRepository`).
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-006` переведена в `done` в `memory-bank/tasks.json`.
+
+## TASK-007 (done) — email-onboarding (FR-002)
+- Что сделано:
+  - Подтверждён рабочий onboarding-flow после создания пользователя без пароля:
+    - генерируется одноразовый `PasswordSetupToken`;
+    - формируется invite-ссылка `.../set-password?token=...`;
+    - отправка выполняется через `EmailService` (`YandexSmtpEmailService`/`NoopEmailService` fallback).
+  - Подтверждён set-password/login путь:
+    - `AuthService.setPassword` принимает токен и устанавливает новый password hash;
+    - повторное использование токена блокируется (`Token already used`);
+    - после успешной установки пароля пользователь проходит `login`.
+  - Подтверждён recover-password контур как часть FR-002 интеграции (генерация нового токена и установка нового пароля).
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 1, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-007` переведена в `done` в `memory-bank/tasks.json`.

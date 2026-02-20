@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import ru.just.monolithmvp.model.Role;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 public record CreateUserRequest(
         @NotBlank String fullName,
@@ -18,6 +20,8 @@ public record CreateUserRequest(
         LocalDateTime lastVisit,
         LocalDateTime deactivatedAt,
         String deactivatedBy,
-        String password
+        String password,
+        List<UUID> groupIds,
+        List<Long> courseIds
 ) {
 }

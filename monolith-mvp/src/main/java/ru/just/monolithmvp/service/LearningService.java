@@ -2,6 +2,7 @@ package ru.just.monolithmvp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
@@ -185,7 +186,7 @@ public class LearningService {
         }
 
         if (!courseService.canReviewCourse(submission.getLesson().getCourse().getId(), securityUtils.currentUserId())) {
-            throw new BadRequestException("Admin is not assigned as reviewer for this course");
+            throw new AccessDeniedException("Admin is not assigned as reviewer for this course");
         }
 
         boolean finalPassed = request.passed();

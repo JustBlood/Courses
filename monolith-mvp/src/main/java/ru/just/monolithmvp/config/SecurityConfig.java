@@ -16,6 +16,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import ru.just.monolithmvp.security.ApiAccessDeniedHandler;
+import ru.just.monolithmvp.security.ApiAuthenticationEntryPoint;
 import ru.just.monolithmvp.security.JwtAuthenticationFilter;
 
 @Configuration
@@ -25,6 +27,8 @@ import ru.just.monolithmvp.security.JwtAuthenticationFilter;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
+    private final ApiAccessDeniedHandler apiAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,6 +38,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/set-password", "/api/v1/auth/recover-password", "/h2-console/**", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(apiAuthenticationEntryPoint)
+                        .accessDeniedHandler(apiAccessDeniedHandler)
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authenticationProvider(authenticationProvider())

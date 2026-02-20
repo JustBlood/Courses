@@ -255,3 +255,79 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к `TASK-003` (усиление JWT-аутентификации) как следующей ready-to-start critical задаче.
+
+### 2026-02-20 — Завершена TASK-003 (JWT hardening)
+- Что сделано (кратко):
+  - Усилен контур JWT-аутентификации: добавлены единообразные security-обработчики `401/403` (`ApiAuthenticationEntryPoint`, `ApiAccessDeniedHandler`).
+  - `SecurityConfig` обновлён явной настройкой `exceptionHandling` с подключением кастомных `authenticationEntryPoint/accessDeniedHandler`.
+  - `JwtAuthenticationFilter` усилен очисткой `SecurityContext` при ошибке парсинга/валидации JWT.
+  - Расширен интеграционный тест `UserAuthStudentFlowIntegrationTest`: добавлены кейсы valid/expired/tampered JWT и скорректировано ожидаемое поведение для деактивированного пользователя (`401`).
+  - Подтверждён успешный прогон валидации: `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest test` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/config/SecurityConfig.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/JwtAuthenticationFilter.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/ApiAuthenticationEntryPoint.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/ApiAccessDeniedHandler.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к `TASK-004` (RBAC-ограничения API) как следующей ready-to-start critical задаче.
+
+### 2026-02-20 — Завершена TASK-004 (RBAC-ограничения API)
+- Что сделано (кратко):
+  - Усилен RBAC-контур review endpoint: неназначенный reviewer теперь получает `403 Forbidden` вместо бизнес-ошибки `400`.
+  - В `LearningService.reviewOpenSubmission` применён security-ориентированный отказ через `AccessDeniedException` при отсутствии назначения reviewer на курс.
+  - Обновлён интеграционный сценарий `CourseLessonCrudIntegrationTest` под новое ожидаемое поведение доступа.
+  - Подтверждён успешный прогон валидации: `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 4`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start задаче backlog с учётом приоритетов и зависимостей (кандидат: `TASK-005`).
+
+### 2026-02-20 — Завершена TASK-006 (создание пользователя с первичными назначениями)
+- Что сделано (кратко):
+  - Расширен контракт `CreateUserRequest`: добавлены `groupIds` и `courseIds` для первичных назначений при создании пользователя.
+  - В `UserService.createUser` реализованы первичные назначения в рамках транзакции: валидация входных ID, проверка существования групп/курсов, защита от дублей/null и создание `GroupMembership`/`Enrollment`.
+  - Добавлен контроль ограничения membership по typed-группам (не более одной группы каждого типа для пользователя).
+  - Обновлён CSV import-flow под новый DTO-конструктор.
+  - Расширен интеграционный тест `UserAuthStudentFlowIntegrationTest` сценарием создания пользователя с `groupIds/courseIds` и проверкой сохранения связей в БД.
+  - Подтверждена валидация: `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 4, Failures: 0, Errors: 0`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/user/CreateUserRequest.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче backlog критичного приоритета: `TASK-007` (FR-002 email-onboarding).
+
+### 2026-02-20 — Завершена TASK-007 (email-onboarding, FR-002)
+- Что сделано (кратко):
+  - Подтверждён полный onboarding-контур: создание пользователя без пароля генерирует одноразовый токен установки пароля и формирует ссылку для email-инвайта.
+  - Подтверждена интеграция с email-слоем (`EmailService` + fallback `NoopEmailService`) и сквозной сценарий `set-password -> login`.
+  - Подтверждена защита от повторного использования токена и рабочий recover-password flow с выдачей нового токена.
+  - В backlog `memory-bank/tasks.json` задача `TASK-007` переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/AuthService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/AuthController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/EmailService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/YandexSmtpEmailService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/NoopEmailService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче backlog: `TASK-008` (FR-003/FR-004: редактирование пользователя и смена роли).

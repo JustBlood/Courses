@@ -760,7 +760,7 @@ class CourseLessonCrudIntegrationTest {
                                   "comment": "Try"
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
 
         mockMvc.perform(post("/api/v1/admin/courses/{courseId}/reviewers", courseId)
                         .header("Authorization", "Bearer " + adminToken)

@@ -36,6 +36,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UserService {
     private final AppUserRepository userRepository;
+    private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonSubmissionRepository submissionRepository;
     private final PasswordEncoder passwordEncoder;
@@ -79,6 +80,8 @@ public class UserService {
         user.setDeactivatedAt(request.deactivatedAt());
         user.setDeactivatedBy(request.deactivatedBy());
         user = userRepository.save(user);
+
+        applyInitialAssignments(user, request.groupIds(), request.courseIds());
 
         if (sendInvite) {
             sendPasswordLink(user);
@@ -234,6 +237,8 @@ public class UserService {
                             parseDateTime(val(r, 21)),
                             parseDateTime(val(r, 22)),
                             val(r, 23),
+                            null,
+                            null,
                             null
                     );
 
@@ -375,6 +380,78 @@ public class UserService {
     private Optional<LearningGroup> findTypedGroup(Long userId, GroupType type) {
         return groupMembershipRepository.findByUserIdAndGroup_Type(userId, type)
                 .map(GroupMembership::getGroup);
+    }
+
+    private void applyInitialAssignments(AppUser user, List<UUID> groupIds, List<Long> courseIds) {
+        assignUserToGroups(user, groupIds);
+        assignUserToCourses(user, courseIds);
+    }
+
+    private void assignUserToGroups(AppUser user, List<UUID> groupIds) {
+        if (groupIds == null || groupIds.isEmpty()) {
+            return;
+        }
+
+        List<UUID> uniqueGroupIds = new ArrayList<>(new LinkedHashSet<>(groupIds));
+        if (uniqueGroupIds.stream().anyMatch(Objects::isNull)) {
+            throw new BadRequestException("groupIds must not contain null values");
+        }
+
+        List<LearningGroup> groups = learningGroupRepository.findAllById(uniqueGroupIds);
+        Set<UUID> foundGroupIds = groups.stream().map(LearningGroup::getId).collect(java.util.stream.Collectors.toSet());
+        List<UUID> missingGroupIds = uniqueGroupIds.stream().filter(id -> !foundGroupIds.contains(id)).toList();
+        if (!missingGroupIds.isEmpty()) {
+            throw new NotFoundException("Groups not found: " + missingGroupIds);
+        }
+
+        long nonGeneralTypeCount = groups.stream()
+                .map(LearningGroup::getType)
+                .filter(type -> type != GroupType.GENERAL)
+                .distinct()
+                .count();
+        long nonGeneralGroupsCount = groups.stream().filter(group -> group.getType() != GroupType.GENERAL).count();
+        if (nonGeneralTypeCount != nonGeneralGroupsCount) {
+            throw new BadRequestException("Only one group per typed category is allowed");
+        }
+
+        for (LearningGroup group : groups) {
+            if (groupMembershipRepository.existsByGroupIdAndUserId(group.getId(), user.getId())) {
+                continue;
+            }
+            GroupMembership membership = new GroupMembership();
+            membership.setGroup(group);
+            membership.setUser(user);
+            groupMembershipRepository.save(membership);
+        }
+    }
+
+    private void assignUserToCourses(AppUser user, List<Long> courseIds) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> uniqueCourseIds = new ArrayList<>(new LinkedHashSet<>(courseIds));
+        if (uniqueCourseIds.stream().anyMatch(Objects::isNull)) {
+            throw new BadRequestException("courseIds must not contain null values");
+        }
+
+        List<Course> courses = courseRepository.findAllById(uniqueCourseIds);
+        Set<Long> foundCourseIds = courses.stream().map(Course::getId).collect(java.util.stream.Collectors.toSet());
+        List<Long> missingCourseIds = uniqueCourseIds.stream().filter(id -> !foundCourseIds.contains(id)).toList();
+        if (!missingCourseIds.isEmpty()) {
+            throw new NotFoundException("Courses not found: " + missingCourseIds);
+        }
+
+        for (Course course : courses) {
+            if (enrollmentRepository.existsByUserIdAndCourseId(user.getId(), course.getId())) {
+                continue;
+            }
+            Enrollment enrollment = new Enrollment();
+            enrollment.setUser(user);
+            enrollment.setCourse(course);
+            enrollment.setEnrolledAt(LocalDateTime.now());
+            enrollmentRepository.save(enrollment);
+        }
     }
 
     private List<LearningGroup> findGeneralGroups(Long userId) {

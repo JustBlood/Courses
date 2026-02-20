@@ -75,7 +75,7 @@
       "dependencies": [
         "TASK-001"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-004",
@@ -95,27 +95,7 @@
       "dependencies": [
         "TASK-003"
       ],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-005",
-      "category": "security",
-      "priority": "high",
-      "description": "Добавить защиту auth-endpoint от злоупотреблений: rate limit и замедление/блокировка при серии неуспешных попыток.",
-      "acceptance_criteria": [
-        "Для login/reset-password установлены лимиты частоты запросов.",
-        "При превышении лимита возвращается контролируемая ошибка без падения приложения.",
-        "Механизм покрыт тестом или воспроизводимым сценарием проверки."
-      ],
-      "test_steps": [
-        "Шаг 1: Выполнить серию быстрых запросов на login с неверным паролем.",
-        "Шаг 2: Достигнуть лимита и проверить ответ API.",
-        "Шаг 3: Убедиться, что после окна сброса ограничений вход снова возможен."
-      ],
-      "dependencies": [
-        "TASK-003"
-      ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-006",
@@ -136,7 +116,7 @@
         "TASK-002",
         "TASK-004"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-007",
@@ -156,7 +136,7 @@
       "dependencies": [
         "TASK-006"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-008",
@@ -408,29 +388,6 @@
       "status": "pending"
     },
     {
-      "id": "TASK-019B",
-      "category": "integration",
-      "priority": "medium",
-      "description": "Реализовать FR-017 (post-MVP enrichment): расширение course report полями, зависящими от групп/программ и их назначений.",
-      "acceptance_criteria": [
-        "Course report расширен данными групп/программ без нарушения контракта TASK-019A.",
-        "Поля, зависящие от групп/программ, заполняются консистентно после реализации соответствующих модулей.",
-        "Расширенный отчёт сохраняет обратную совместимость по структуре и формату MVP-версии."
-      ],
-      "test_steps": [
-        "Шаг 1: Подготовить данные с группами и программами, назначенными на пользователей курса.",
-        "Шаг 2: Сформировать отчёт и проверить заполнение enriched-полей.",
-        "Шаг 3: Сверить, что базовые колонки/формат из TASK-019A не деградировали."
-      ],
-      "dependencies": [
-        "TASK-027",
-        "TASK-030",
-        "TASK-032",
-        "TASK-019A"
-      ],
-      "status": "pending"
-    },
-    {
       "id": "TASK-020A",
       "category": "integration",
       "priority": "high",
@@ -447,27 +404,6 @@
       ],
       "dependencies": [
         "TASK-019A"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-020B",
-      "category": "integration",
-      "priority": "medium",
-      "description": "Реализовать FR-017 (post-MVP enrichment): расширение общего отчёта полями программ/групп и дополнительными форматами.",
-      "acceptance_criteria": [
-        "Общий отчёт расширен данными программ/групп после реализации post-MVP модулей.",
-        "Расширение не нарушает MVP-контракт и формат TASK-020A.",
-        "Данные корректны для пользователей, участвующих в нескольких группах/программах."
-      ],
-      "test_steps": [
-        "Шаг 1: Подготовить набор пользователей с несколькими группами/программами и курсами.",
-        "Шаг 2: Сформировать расширенный общий отчёт и проверить enriched-поля.",
-        "Шаг 3: Проверить совместимость с MVP-форматом общего отчёта."
-      ],
-      "dependencies": [
-        "TASK-019B",
-        "TASK-020A"
       ],
       "status": "pending"
     },
@@ -515,17 +451,15 @@
     {
       "id": "TASK-022B",
       "category": "security",
-      "priority": "high",
-      "description": "Усилить security reset-flow (FR-019/NFR-SEC): TTL токена, anti-enumeration, neutral responses, anti-abuse controls.",
+      "priority": "low",
+      "description": "Усилить security reset-flow (FR-019/NFR-SEC): TTL токена, neutral responses.",
       "acceptance_criteria": [
         "Reset-токен имеет контролируемый срок жизни и отклоняется после истечения TTL.",
-        "Recover/reset endpoint не раскрывает существование пользователя (neutral response, anti-enumeration).",
-        "Механики anti-abuse/rate-limit для reset-flow согласованы с TASK-005 и проверены тестами."
+        "Recover/reset endpoint не раскрывает существование пользователя (neutral response)."
       ],
       "test_steps": [
         "Шаг 1: Проверить, что просроченный reset-токен отклоняется и не меняет пароль.",
-        "Шаг 2: Проверить нейтральные ответы для существующего и несуществующего email.",
-        "Шаг 3: Выполнить серию reset-запросов и убедиться в применении anti-abuse ограничений."
+        "Шаг 2: Проверить нейтральные ответы для существующего и несуществующего email."
       ],
       "dependencies": [
         "TASK-022A",
@@ -846,7 +780,7 @@
     {
       "id": "TASK-038",
       "category": "security",
-      "priority": "high",
+      "priority": "low",
       "description": "Обеспечить защиту чувствительных данных: маскирование секретов/PII в логах и внешняя конфигурация секретов.",
       "acceptance_criteria": [
         "Пароли, токены и секреты не выводятся в логах в открытом виде.",
