@@ -352,3 +352,44 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче backlog: `TASK-011`.
+
+### 2026-02-20 — Завершена TASK-011 (FR-008/FR-009: PRACTICE-вопросы и балльная модель)
+- Что сделано (кратко):
+  - Усилен data/model-контур PRACTICE: default points на вопросах теперь корректно наследуются с уровня урока (`PracticeLesson`) и могут переопределяться на уровне вопроса.
+  - Исправлена валидация позиций вопросов: проверка непрерывности применяется только при полном режиме явных позиций.
+  - Расширен контракт submit-practice: добавлено поле `questionAnswers` для передачи ответов по индексу вопроса с сохранением обратной совместимости (`selectedAnswers`).
+  - В `LearningService.submitPractice` реализована агрегация scoring по всему question pool, включая partial scoring для `MULTIPLE_CHOICE` и итоговый `passed` по `passingThresholdPercent`.
+  - Добавлен интеграционный тест на all question types (`single/multiple/matching/ordering`) и частично корректный multiple-choice ответ.
+  - Подтверждена валидация: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/learning/PracticeSubmissionRequest.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI critical задаче: `TASK-012` (двухсписочная модель enrollment: enrolled/not-enrolled).
+
+### 2026-02-20 — Завершена TASK-012 (FR-010: enrollment two-list model)
+- Что сделано (кратко):
+  - Реализован API-контракт двух списков enrollment по курсу: `enrolled` и `notEnrolled`.
+  - Добавлен endpoint `GET /api/v1/admin/courses/{courseId}/enrollments/lists` для получения обоих списков в одном ответе.
+  - В `CourseService` реализованы batch-операции `enroll/unenroll` через `IdsRequest` и валидация входных IDs (существование пользователей + роль `STUDENT`).
+  - Репозиторий пользователей расширен выборкой `findAllByRole(Role.STUDENT)` для построения списка `notEnrolled`.
+  - Расширен интеграционный тест `CourseLessonCrudIntegrationTest`: добавлен сценарий полного цикла (initial lists -> enroll -> доступ к курсу -> unenroll -> потеря доступа).
+  - В backlog `memory-bank/tasks.json` задача `TASK-012` переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/course/CourseEnrollmentListsDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/CoursesController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/AppUserRepository.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI critical задача по зависимостям: `TASK-013` (назначение reviewer и рабочая область проверки).

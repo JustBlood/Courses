@@ -121,33 +121,34 @@ public class LearningService {
             );
         }
 
-        if (request.selectedAnswers() == null || request.selectedAnswers().isEmpty()) {
-            throw new BadRequestException("selectedAnswers is required for choice tasks");
-        }
+        Map<Integer, List<String>> answersByQuestion = resolveAnswersByQuestion(practiceLesson, request);
 
-        PracticeQuestion firstQuestion = practiceLesson.getQuestions().stream()
-                .min(Comparator.comparing(PracticeQuestion::getQuestionIndex))
-                .orElseThrow(() -> new BadRequestException("Practice lesson has no questions"));
-
-        List<String> selectedAnswers = normalizeList(request.selectedAnswers());
-        List<String> correctAnswers = normalizeList(splitRaw(firstQuestion.getCorrectAnswersRaw()));
-
-        boolean correct = evaluateCorrectness(firstQuestion.getQuestionType(), selectedAnswers, correctAnswers);
-        int points = 0;
-        if (correct) {
-            points = lesson.getFullPoints();
-        } else if (firstQuestion.getQuestionType() == QuestionType.MULTIPLE_CHOICE) {
-            long matched = selectedAnswers.stream().filter(correctAnswers::contains).count();
-            if (matched > 0) {
-                points = lesson.getPartialPoints();
+        int pointsAwarded = 0;
+        int maxPoints = 0;
+        for (PracticeQuestion question : practiceLesson.getQuestions()) {
+            if (!QuestionType.TEST_QUESTIONS.contains(question.getQuestionType())) {
+                continue;
             }
+
+            maxPoints += question.getFullPoints() == null ? 0 : question.getFullPoints();
+            List<String> selectedAnswers = normalizeList(answersByQuestion.get(question.getQuestionIndex()));
+            if (selectedAnswers.isEmpty()) {
+                continue;
+            }
+
+            List<String> correctAnswers = normalizeList(splitRaw(question.getCorrectAnswersRaw()));
+            pointsAwarded += scoreQuestion(question, selectedAnswers, correctAnswers);
         }
-        submission.setAnswerRaw(String.join(";;", selectedAnswers));
-        submission.setStatus(correct ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        submission.setPassed(correct);
-        submission.setPointsAwarded(points);
+
+        boolean passed = maxPoints > 0
+                && pointsAwarded * 100 >= maxPoints * practiceLesson.getPassingThresholdPercent();
+
+        submission.setAnswerRaw(serializeAnswersByQuestion(answersByQuestion));
+        submission.setStatus(passed ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
+        submission.setPassed(passed);
+        submission.setPointsAwarded(pointsAwarded);
         submission = submissionRepository.save(submission);
-        if (correct) {
+        if (passed) {
             markEnrollmentCompletedIfDone(studentId, lesson.getCourse().getId());
         }
 
@@ -155,7 +156,7 @@ public class LearningService {
                 submission.getId(),
                 submission.getStatus(),
                 submission.getPassed(),
-                correct ? "Correct answer" : "Incorrect answer"
+                passed ? "Practice completed" : "Practice is not completed"
         );
     }
 
@@ -240,6 +241,45 @@ public class LearningService {
             return Objects.equals(selected, correct);
         }
         return new HashSet<>(selected).equals(new HashSet<>(correct));
+    }
+
+    private int scoreQuestion(PracticeQuestion question, List<String> selectedAnswers, List<String> correctAnswers) {
+        if (evaluateCorrectness(question.getQuestionType(), selectedAnswers, correctAnswers)) {
+            return question.getFullPoints() == null ? 0 : question.getFullPoints();
+        }
+
+        if (question.getQuestionType() == QuestionType.MULTIPLE_CHOICE
+                && selectedAnswers.stream().allMatch(correctAnswers::contains)
+                && !selectedAnswers.isEmpty()) {
+            return question.getPartialPoints() == null ? 0 : question.getPartialPoints();
+        }
+
+        return 0;
+    }
+
+    private Map<Integer, List<String>> resolveAnswersByQuestion(PracticeLesson lesson, PracticeSubmissionRequest request) {
+        if (request.questionAnswers() != null && !request.questionAnswers().isEmpty()) {
+            return request.questionAnswers();
+        }
+
+        if (request.selectedAnswers() == null || request.selectedAnswers().isEmpty()) {
+            throw new BadRequestException("selectedAnswers or questionAnswers is required for choice tasks");
+        }
+
+        PracticeQuestion firstQuestion = lesson.getQuestions().stream()
+                .filter(q -> QuestionType.TEST_QUESTIONS.contains(q.getQuestionType()))
+                .min(Comparator.comparing(PracticeQuestion::getQuestionIndex))
+                .orElseThrow(() -> new BadRequestException("Practice lesson has no test questions"));
+
+        return Map.of(firstQuestion.getQuestionIndex(), request.selectedAnswers());
+    }
+
+    private String serializeAnswersByQuestion(Map<Integer, List<String>> answersByQuestion) {
+        return answersByQuestion.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey() + "=" + String.join("|", normalizeList(e.getValue())))
+                .reduce((left, right) -> left + ";;" + right)
+                .orElse("");
     }
 
     private void markEnrollmentStarted(Long userId, Long courseId) {

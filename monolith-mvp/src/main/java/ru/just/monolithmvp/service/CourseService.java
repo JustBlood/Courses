@@ -12,6 +12,7 @@ import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.CourseMapper;
 import ru.just.monolithmvp.mapper.LessonMapper;
+import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.security.SecurityUtils;
@@ -35,6 +36,7 @@ public class CourseService {
     private final AppUserRepository userRepository;
     private final CourseMapper courseMapper;
     private final LessonMapper lessonMapper;
+    private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
 
     @Transactional
@@ -291,6 +293,45 @@ public class CourseService {
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
     }
 
+    @Transactional(readOnly = true)
+    public CourseEnrollmentListsDto getEnrollmentLists(Long courseId) {
+        getCourseEntity(courseId);
+
+        List<AppUser> allStudents = userRepository.findAllByRole(Role.STUDENT);
+        Set<Long> enrolledUserIds = enrollmentRepository.findByCourseId(courseId).stream()
+                .map(enrollment -> enrollment.getUser().getId())
+                .collect(Collectors.toSet());
+
+        List<AppUser> enrolledStudents = allStudents.stream()
+                .filter(user -> enrolledUserIds.contains(user.getId()))
+                .sorted(Comparator.comparing(AppUser::getId))
+                .toList();
+
+        List<AppUser> notEnrolledStudents = allStudents.stream()
+                .filter(user -> !enrolledUserIds.contains(user.getId()))
+                .sorted(Comparator.comparing(AppUser::getId))
+                .toList();
+
+        return new CourseEnrollmentListsDto(
+                enrolledStudents.stream().map(userMapper::toDto).toList(),
+                notEnrolledStudents.stream().map(userMapper::toDto).toList()
+        );
+    }
+
+    @Transactional
+    public void enrollStudentsToCourse(Long courseId, List<Long> userIds) {
+        getCourseEntity(courseId);
+        validateStudentsExist(userIds);
+        userIds.forEach(userId -> assignStudentToCourse(courseId, userId));
+    }
+
+    @Transactional
+    public void unenrollStudentsFromCourse(Long courseId, List<Long> userIds) {
+        getCourseEntity(courseId);
+        validateStudentsExist(userIds);
+        userIds.forEach(userId -> unassignStudentFromCourse(courseId, userId));
+    }
+
     @Transactional
     public void assignReviewerToCourse(Long courseId, Long reviewerId) {
         Course course = getCourseEntity(courseId);
@@ -455,8 +496,8 @@ public class CourseService {
             entity.setTrainerHint(q.trainerHint());
             entity.setOptionsRaw(joinValues(q.options()));
             entity.setCorrectAnswersRaw(joinValues(q.correctAnswers()));
-            entity.setFullPoints(q.fullPoints() == null ? 1 : q.fullPoints());
-            entity.setPartialPoints(q.partialPoints() == null ? 0 : q.partialPoints());
+            entity.setFullPoints(q.fullPoints() == null ? lesson.getFullPoints() : q.fullPoints());
+            entity.setPartialPoints(q.partialPoints() == null ? lesson.getPartialPoints() : q.partialPoints());
             mapped.add(entity);
         }
         lesson.getQuestions().clear();
@@ -478,11 +519,13 @@ public class CourseService {
             throw new BadRequestException("lesson should have 1 question");
         }
 
-        if (!request.questions().stream().allMatch(q -> q.position() == null) && !request.questions().stream().allMatch(q -> q.position() != null)) {
+        boolean allWithoutPosition = request.questions().stream().allMatch(q -> q.position() == null);
+        boolean allWithPosition = request.questions().stream().allMatch(q -> q.position() != null);
+        if (!allWithoutPosition && !allWithPosition) {
             throw new BadRequestException("Question positions must be defined for all questions or for no one");
         }
 
-        if (!request.questions().stream().map(PracticeQuestionRequest::position).collect(Collectors.toSet())
+        if (allWithPosition && !request.questions().stream().map(PracticeQuestionRequest::position).collect(Collectors.toSet())
                 .equals(IntStream.range(1, request.questions().size() + 1).boxed().collect(Collectors.toSet()))) {
             throw new BadRequestException("Questions positions must be without skipping numbers");
         }
@@ -527,5 +570,20 @@ public class CourseService {
             return Collections.emptyList();
         }
         return Arrays.stream(raw.split(";;", -1)).toList();
+    }
+
+    private void validateStudentsExist(List<Long> userIds) {
+        if (CollectionUtils.isEmpty(userIds)) {
+            throw new BadRequestException("ids must not be empty");
+        }
+        Set<Long> distinctIds = new HashSet<>(userIds);
+        List<AppUser> users = userRepository.findAllById(distinctIds);
+        if (users.size() != distinctIds.size()) {
+            throw new NotFoundException("Some users were not found");
+        }
+        boolean hasNonStudent = users.stream().anyMatch(user -> user.getRole() != Role.STUDENT);
+        if (hasNonStudent) {
+            throw new BadRequestException("Only STUDENT users are allowed for enrollment lists operations");
+        }
     }
 }

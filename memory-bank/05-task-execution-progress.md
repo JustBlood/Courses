@@ -235,3 +235,52 @@
 - Что осталось сделать после `/newtask`:
   1. Дописать финальную запись в `memory-bank/06-system-development-progress.md` по завершению `TASK-008`.
   2. Отправить пользователю итоговый отчёт по задаче.
+
+## TASK-011 (done) — FR-008/FR-009 practice-модель и scoring-контракт
+- Что сделано:
+  - В `CourseService.applyQuestionPool` изменена логика default points:
+    - `question.fullPoints` по умолчанию наследуется от `practiceLesson.fullPoints`;
+    - `question.partialPoints` по умолчанию наследуется от `practiceLesson.partialPoints`.
+  - В `CourseService.validatePracticeRequest` исправлена валидация question positions:
+    - проверка непрерывности позиций применяется только при режиме `allWithPosition`.
+  - Расширен DTO-контракт `PracticeSubmissionRequest`:
+    - добавлено поле `questionAnswers: Map<Integer, List<String>>`;
+    - сохранён legacy fallback через `selectedAnswers` для обратной совместимости.
+  - В `LearningService.submitPractice` реализован scoring по full question-pool:
+    - агрегация баллов по всем тестовым вопросам урока;
+    - partial scoring для `MULTIPLE_CHOICE` при выборе подмножества корректных ответов;
+    - вычисление `passed` по `passingThresholdPercent` урока;
+    - сериализация ответов в `answerRaw` в формате по индексам вопросов.
+  - Добавлен интеграционный тест `practice_lesson_should_support_all_question_types_and_partial_scoring` в `CourseLessonCrudIntegrationTest`:
+    - покрывает типы `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `MATCHING`, `ORDERING`;
+    - проверяет кейс частично правильного multiple-choice и итоговые поля submission.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-011` переведена в `done` в `memory-bank/tasks.json`.
+
+## Token-budget checkpoint (2026-02-20, TASK-012 near-complete)
+- Причина фиксации:
+  - Контекст текущей сессии превысил лимит 370k токенов (сработал `Token Budget Gate`).
+- Что уже выполнено по `TASK-012`:
+  - Реализована модель двух списков enrollment (`enrolled` / `notEnrolled`) в API:
+    - добавлен DTO `CourseEnrollmentListsDto`;
+    - добавлен endpoint `GET /api/v1/admin/courses/{courseId}/enrollments/lists` в `CoursesController`;
+    - в `CourseService` добавлены методы получения списков и batch-операций enrollment/unenrollment через `IdsRequest`.
+  - Усилена валидация enrollment-операций:
+    - проверка, что все ID существуют;
+    - проверка, что все переданные пользователи имеют роль `STUDENT`;
+    - защита от некорректных дублей ID на уровне валидации существования.
+  - Репозиторный слой расширен выборкой студентов:
+    - `AppUserRepository.findAllByRole(Role role)`.
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`:
+    - добавлен тест `enrollment_two_lists_flow_should_work` (добавление в курс, доступ к курсу, отчисление, проверка списков до/после).
+  - Валидация пройдена:
+    - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS` (`Tests run: 5, Failures: 0, Errors: 0`).
+  - Backlog обновлён:
+    - `memory-bank/tasks.json`: `TASK-012` переведена в `done`.
+- Что осталось сделать после `/newtask`:
+  1. Обновить `memory-bank/02-active-context.md` финальным описанием `TASK-012`.
+  2. Дописать запись в `memory-bank/06-system-development-progress.md` по завершению `TASK-012`.
+  3. Отправить пользователю финальный отчёт по задаче.

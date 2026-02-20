@@ -10,6 +10,7 @@ import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
 import ru.just.monolithmvp.dto.course.CourseAdminDetailsDto;
 import ru.just.monolithmvp.dto.course.CourseDto;
+import ru.just.monolithmvp.dto.course.CourseEnrollmentListsDto;
 import ru.just.monolithmvp.dto.course.CourseSummaryDto;
 import ru.just.monolithmvp.dto.course.CreateCourseRequest;
 import ru.just.monolithmvp.dto.lesson.CreatePracticeLessonRequest;
@@ -106,6 +107,25 @@ public class CoursesController {
                                                        @RequestBody @Valid IdsRequest request) {
         request.ids().forEach(userId -> courseService.unassignStudentFromCourse(courseId, userId));
         return ResponseEntity.ok(new ApiResponse("Student unassigned from course"));
+    }
+
+    @GetMapping("/{courseId}/enrollments/lists")
+    public ResponseEntity<CourseEnrollmentListsDto> getEnrollmentLists(@PathVariable Long courseId) {
+        return ResponseEntity.ok(courseService.getEnrollmentLists(courseId));
+    }
+
+    @PostMapping("/{courseId}/enrollments")
+    public ResponseEntity<ApiResponse> enrollStudents(@PathVariable Long courseId,
+                                                      @RequestBody @Valid IdsRequest request) {
+        courseService.enrollStudentsToCourse(courseId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Students enrolled to course"));
+    }
+
+    @DeleteMapping("/{courseId}/enrollments")
+    public ResponseEntity<ApiResponse> unenrollStudents(@PathVariable Long courseId,
+                                                        @RequestBody @Valid IdsRequest request) {
+        courseService.unenrollStudentsFromCourse(courseId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Students unenrolled from course"));
     }
 
     @PostMapping("/{courseId}/reviewers")

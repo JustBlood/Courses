@@ -9,7 +9,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.PasswordSetupToken;
+import ru.just.monolithmvp.model.SubmissionStatus;
+import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
 import java.util.UUID;
@@ -39,6 +42,219 @@ class CourseLessonCrudIntegrationTest {
 
     @Autowired
     private PasswordSetupTokenRepository passwordSetupTokenRepository;
+
+    @Autowired
+    private LessonSubmissionRepository lessonSubmissionRepository;
+
+    @Test
+    void enrollment_two_lists_flow_should_work() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String enrolledCandidateEmail = uniqueEmail("enrolled-candidate");
+        Long enrolledCandidateId = createUser(adminToken, "Enrolled Candidate", enrolledCandidateEmail, "STUDENT");
+        String enrolledCandidateToken = setPasswordAndLogin(enrolledCandidateId, enrolledCandidateEmail, "Stud123!");
+
+        String notEnrolledCandidateEmail = uniqueEmail("not-enrolled-candidate");
+        Long notEnrolledCandidateId = createUser(adminToken, "Not Enrolled Candidate", notEnrolledCandidateEmail, "STUDENT");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Enrollment Two Lists Course",
+                                  "description": "FR-010 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String initialListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments/lists", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode initialLists = objectMapper.readTree(initialListsResponse);
+        assertThat(initialLists.get("enrolled").isEmpty()).isTrue();
+        assertThat(initialLists.get("notEnrolled").toString()).contains("\"id\":" + enrolledCandidateId);
+        assertThat(initialLists.get("notEnrolled").toString()).contains("\"id\":" + notEnrolledCandidateId);
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(enrolledCandidateId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + enrolledCandidateToken))
+                .andExpect(status().isOk());
+
+        String afterEnrollListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments/lists", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode afterEnrollLists = objectMapper.readTree(afterEnrollListsResponse);
+        assertThat(afterEnrollLists.get("enrolled").toString()).contains("\"id\":" + enrolledCandidateId);
+        assertThat(afterEnrollLists.get("notEnrolled").toString()).doesNotContain("\"id\":" + enrolledCandidateId);
+
+        mockMvc.perform(delete("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(enrolledCandidateId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + enrolledCandidateToken))
+                .andExpect(status().isBadRequest());
+
+        String afterUnenrollListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments/lists", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode afterUnenrollLists = objectMapper.readTree(afterUnenrollListsResponse);
+        assertThat(afterUnenrollLists.get("enrolled").toString()).doesNotContain("\"id\":" + enrolledCandidateId);
+        assertThat(afterUnenrollLists.get("notEnrolled").toString()).contains("\"id\":" + enrolledCandidateId);
+    }
+
+    @Test
+    void practice_lesson_should_support_all_question_types_and_partial_scoring() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("practice-types-student");
+        Long studentId = createUser(adminToken, "Practice Types Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice Types Course",
+                                  "description": "FR-008/FR-009 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String practiceLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice All Types",
+                                  "description": "All question types",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "passingThresholdPercent": 60,
+                                  "fullPoints": 1,
+                                  "partialPoints": 0,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "2+2",
+                                      "options": ["3", "4"],
+                                      "correctAnswers": ["4"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 2,
+                                      "questionType": "MULTIPLE_CHOICE",
+                                      "questionText": "Prime numbers",
+                                      "options": ["2", "3", "4"],
+                                      "correctAnswers": ["2", "3"],
+                                      "fullPoints": 2,
+                                      "partialPoints": 1
+                                    },
+                                    {
+                                      "position": 3,
+                                      "questionType": "MATCHING",
+                                      "questionText": "Match Java",
+                                      "options": ["JVM=runtime", "JDK=tools"],
+                                      "correctAnswers": ["JVM=runtime", "JDK=tools"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 4,
+                                      "questionType": "ORDERING",
+                                      "questionText": "Order numbers",
+                                      "options": ["1", "2", "3"],
+                                      "correctAnswers": ["1", "2", "3"],
+                                      "fullPoints": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long practiceLessonId = objectMapper.readTree(practiceLessonResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["4"],
+                                    "2": ["2"],
+                                    "3": ["JVM=runtime", "JDK=tools"],
+                                    "4": ["3", "2", "1"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        LessonSubmission submission = lessonSubmissionRepository.findAll().stream()
+                .filter(s -> s.getLesson().getId().equals(practiceLessonId) && s.getStudent().getId().equals(studentId))
+                .reduce((a, b) -> b)
+                .orElseThrow();
+
+        assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
+        assertThat(submission.getPassed()).isTrue();
+        assertThat(submission.getPointsAwarded()).isEqualTo(3);
+    }
 
     @Test
     void admin_and_student_course_lesson_crud_flow_should_work() throws Exception {
