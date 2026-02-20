@@ -1,53 +1,35 @@
 # Активный контекст
 
 ## Текущая цель
-Сформировать и зафиксировать полный комплексный PRD для платформы корпоративного обучения на основе ТЗ, уже подготовленных глав 00–02 и новых глав 03–07.
+Подготовить двухконтурный backlog для разработки с учётом уже существующего кода:
+1) `pre-tasks.json` — задачи gap-analysis (сверка кодовой базы с PRD),
+2) `tasks.json` — основной backlog реализации/доработок, который будет актуализирован по итогам pre-phase.
 
 ## Что сделано в текущей итерации
-- Актуализирован `memory-bank/01-prd-index.md`:
-  - исправлена структура ссылок на главы;
-  - добавлены разделы PRD-05, PRD-06, PRD-07.
-- Полностью заполнен `memory-bank/prd/03-non-functional-requirements.md`:
-  - зафиксированы измеримые NFR (гибридный подход: MVP минимум + post-MVP целевой уровень);
-  - добавлены SLO/SLA ориентиры, безопасность, backup/recovery, observability;
-  - добавлена трассировка NFR к FR.
-- Полностью заполнен `memory-bank/prd/04-constraints-and-assumptions.md`:
-  - зафиксированы инфраструктурные, продуктовые и процессные ограничения;
-  - описаны допущения, trade-off решения и критические зависимости.
-- Полностью заполнен `memory-bank/prd/05-technical-architecture.md`:
-  - описан системный контекст, границы, модульная структура;
-  - зафиксированы слои backend, укрупнённая модель данных, интеграции, deployment, безопасность, масштабирование.
-- Полностью заполнен `memory-bank/prd/06-acceptance-criteria.md`:
-  - добавлены проверяемые критерии AC-001..AC-019 (MVP) и AC-101..AC-114 (post-MVP);
-  - добавлены exit criteria для MVP и post-MVP.
-- Полностью заполнен `memory-bank/prd/07-development-and-risks-and-future.md`:
-  - зафиксирована дорожная карта 2+2 недели;
-  - добавлены риски, mitigation, бюджетные guardrails и future extensions.
-
-- Для аналитики использованы субагенты:
-  - `backend-architect` — NFR/SLO/security baseline;
-  - `solution-architect` — ограничения/допущения и техархитектура;
-  - `sprint-prioritizer` — критерии приемки, этапы, риски, бюджетные рамки.
+- Проведён ревью `tasks.json` через субагентов `system-architect` и `sprint-prioritizer` согласно `.clinerules/50-subagents-guidelines.md`.
+- В `tasks.json` внесены правки структуры и зависимостей:
+  - улучшены `agent_instructions.before_start` (выбор только ready-to-start задач, tie-break по минимальному id, фиксация блокеров);
+  - убрана конфликтная формулировка про запрет редактирования backlog и очищен шумный текст в инструкции `before_finish`;
+  - исправлены зависимости `TASK-028` (связка с программами вместо параметров практики);
+  - усилены зависимости отчётов: `TASK-019`/`TASK-020` привязаны к группам/программам.
+- Создан новый файл `pre-tasks.json` с 20 атомарными pre-задачами (`PRE-001..PRE-020`) для полного gap-analysis:
+  - инвентаризация API/моделей/миграций/сервисов/security;
+  - трассировка FR/AC/NFR;
+  - подготовка change-set и финальная корректировка `tasks.json` в `PRE-020`.
+- Проверена JSON-валидность обоих файлов (`tasks.json`, `pre-tasks.json`).
 
 ## Источники требований
-- [00-project-brief.md](./00-project-brief.md)
-- [01-prd-index.md](./01-prd-index.md)
-- Пользовательское ТЗ: «Система корпоративного обучения» (вложенный файл в задаче).
-- Комментарии пользователя в чате (включая выбор гибридного подхода по NFR/acceptance для MVP и post-MVP).
-
-## Рамки и принятые решения
-- По требованию пользователя приоритетно использованы ТЗ + диалог + memory-bank; глубокий анализ кода не выполнялся в этой итерации.
-- Использованы ранее зафиксированные и подтверждённые из кода факты (из прошлых итераций):
-  - login через email/password;
-  - смена и восстановление пароля уже присутствуют в auth-контуре;
-  - импорт/экспорт пользователей реализован CSV;
-  - у пользователя нет отдельного поля login (в отчётах login выводится как производное/пустое по требованию);
-  - в моделях уже есть параметры `deadlineDays`, `lessonsFreeOrder`, `allowContinueAfterFail`, `attemptLimit`, `timeLimitMinutes`, `randomQuestionCount`, `shuffleOnEveryAttempt`, `stopLesson`;
-  - review open-answer поддерживает отправку на повторную проверку (`toNextReview`).
-- Принято решение: NFR и критерии приемки фиксируются в гибридном режиме:
-  - MVP — минимально реализуемый уровень;
-  - post-MVP — целевой уровень качества.
+- `memory-bank/prd/00-overview-and-goals.md`
+- `memory-bank/prd/01-user-scenarios.md`
+- `memory-bank/prd/02-functional-requirements.md`
+- `memory-bank/prd/03-non-functional-requirements.md`
+- `memory-bank/prd/04-constraints-and-assumptions.md`
+- `memory-bank/prd/05-technical-architecture.md`
+- `memory-bank/prd/06-acceptance-criteria.md`
+- `memory-bank/prd/07-development-and-risks-and-future.md`
+- `.clinerules/50-subagents-guidelines.md`
 
 ## Что дальше
-- Ожидается ревью пользователем полного PRD (главы 00–07).
-- После обратной связи — точечные правки и финальное согласование версии для реализации.
+1. Выполнять `pre-tasks.json` по порядку ready-to-start (начиная с `PRE-001`).
+2. По итогам `PRE-018/019` сформировать согласованный пакет изменений backlog.
+3. В `PRE-020` синхронизировать `tasks.json` с фактическим состоянием проекта (done/partial/pending/new/obsolete в рамках принятой схемы).
