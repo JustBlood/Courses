@@ -1,0 +1,53 @@
+services:
+  monolith-postgres:
+    image: postgres:16-alpine
+    container_name: monolith-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-courses}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - monolith_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-courses}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  monolith-mvp:
+    build:
+      context: .
+      dockerfile: monolith-mvp/Dockerfile
+    container_name: monolith-mvp
+    restart: unless-stopped
+    depends_on:
+      monolith-postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: ${APP_PORT:-8099}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-stage}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monolith-postgres:5432/${POSTGRES_DB:-courses}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET}
+      APP_SECURITY_JWT_EXPIRATION_MS: ${APP_SECURITY_JWT_EXPIRATION_MS:-86400000}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-noreply@example.com}
+      APP_MAIL_INVITE_BASE_URL: ${APP_MAIL_INVITE_BASE_URL:-http://localhost:8099}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-admin123}
+      APP_BOOTSTRAP_ADMIN_FULL_NAME: ${APP_BOOTSTRAP_ADMIN_FULL_NAME:-System Admin}
+      APP_BOOTSTRAP_ADMIN_EMAIL: ${APP_BOOTSTRAP_ADMIN_EMAIL:-admin@local}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-465}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROTOCOL: ${SPRING_MAIL_PROTOCOL:-smtps}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:-true}
+    ports:
+      - "${APP_PORT:-8099}:8099"
+
+volumes:
+  monolith_pg_data:

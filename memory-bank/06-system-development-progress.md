@@ -218,3 +218,26 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Pre-phase завершён (`PRE-001..PRE-020`); перейти к реализации основной очереди из `tasks.json` с первой ready-to-start critical-задачи `TASK-001`.
+
+### 2026-02-20 — Завершена TASK-001 (runtime-конфигурации MVP)
+- Что сделано (кратко):
+  - Подготовлен runtime-контур `dev/stage/prod` с profile-groups и выносом чувствительных параметров в env.
+  - Добавлены Docker/runtime-артефакты (`monolith-mvp/Dockerfile`, `docker-compose.monolith.yml`, `monolith.env.example`, `monolith-mvp/README-runtime.md`) и health-check через actuator.
+  - Обновлён дефолт в `monolith.env.example` на `pg,mail-noop` для локального smoke-check без внешнего SMTP.
+  - Пройдено тестирование задачи: docker compose запуск, проверка логов подключения к БД, `/actuator/health = UP`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/resources/application.yml`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/config/SecurityConfig.java`
+  - `monolith-mvp/pom.xml`
+  - `monolith-mvp/Dockerfile`
+  - `monolith-mvp/.dockerignore`
+  - `docker-compose.monolith.yml`
+  - `monolith.env.example`
+  - `monolith-mvp/README-runtime.md`
+  - `.gitignore`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к `TASK-002` (Flyway migration stabilization) как следующей ready-to-start critical задаче.

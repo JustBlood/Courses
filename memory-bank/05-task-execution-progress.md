@@ -54,3 +54,18 @@
 
 ## Примечание
 - Файл сжат до индексного формата согласно правилу `.clinerules/10-memory-bank-workflow.md` для атомарных задач с отдельными артефактами.
+
+## TASK-001 (done) — runtime-конфигурации MVP
+- Что сделано:
+  - В `monolith-mvp` реализованы profile groups `dev/stage/prod` и вынос секретов в env.
+  - Добавлены actuator health endpoint и допуск к нему в security.
+  - Добавлены контейнерные артефакты: `monolith-mvp/Dockerfile`, `monolith-mvp/.dockerignore`, `docker-compose.monolith.yml`.
+  - Добавлен пример env: `monolith.env.example`.
+  - Добавлена документация запуска/переключения профилей: `monolith-mvp/README-runtime.md`.
+  - Проверена сборка: `mvn -pl monolith-mvp -DskipTests package` (`BUILD SUCCESS`).
+- Финальная валидация test-steps:
+  - `docker compose -f docker-compose.monolith.yml --env-file monolith.env.example up -d --build` — успешно.
+  - Логи monolith подтверждают запуск приложения и подключение к PostgreSQL (`pg,mail-noop`, Flyway/JPA/Tomcat старт).
+  - `curl http://localhost:8099/actuator/health` → `{"status":"UP","groups":["liveness","readiness"]}`.
+- Итоговый статус задачи:
+  - `TASK-001` переведена в `done`.

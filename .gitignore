@@ -30,3 +30,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local env files
+.env
+.env.*
+*.env
+*.env.*
+!*.env.example

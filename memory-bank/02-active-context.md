@@ -177,3 +177,14 @@
    - брать только `pending` + ready-to-start задачи;
    - при равном приоритете выбирать минимальный id.
 3. Следующая ready-to-start critical-задача: `TASK-001`.
+
+## Обновление по TASK-001 (runtime-конфигурации MVP)
+- `TASK-001` завершена полностью (`status=done` в `memory-bank/tasks.json`).
+- Финально подтверждено выполнение `test_steps`:
+  1. Поднят docker-контур через `docker compose -f docker-compose.monolith.yml --env-file monolith.env.example up -d --build`.
+  2. Проверен запуск приложения и подключение к PostgreSQL в логах (`pg,mail-noop`, Tomcat 8099, Hikari/Flyway OK).
+  3. Проверен health-check: `curl http://localhost:8099/actuator/health` → `{"status":"UP"...}`.
+- Внесено уточнение runtime-профиля для smoke-check:
+  - `monolith.env.example`: дефолт `SPRING_PROFILES_ACTIVE=pg,mail-noop` (без зависимости от внешнего SMTP при локальном запуске).
+  - `monolith-mvp/README-runtime.md`: обновлены инструкции по запуску и пояснение по `mail-noop`.
+- Следующая ready-to-start critical-задача по backlog: `TASK-002`.

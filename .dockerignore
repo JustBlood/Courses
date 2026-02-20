@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.vscode
+**/target
+**/build
+**/out
+**/.gradle
+data
+media-service
+init-policies
+memory-bank
+**/*.log
