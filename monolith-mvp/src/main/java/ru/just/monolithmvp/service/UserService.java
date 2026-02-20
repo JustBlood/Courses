@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
+import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
 import ru.just.monolithmvp.dto.user.*;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
@@ -121,6 +122,33 @@ public class UserService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
         user.setRole(request.role());
+        return userMapper.toDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserDto updateMyProfile(Long userId, UpdateMyProfileRequest request) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+
+        if (request.fullName() == null && request.phone() == null && request.comment() == null) {
+            throw new BadRequestException("At least one field must be provided for profile update");
+        }
+
+        if (request.fullName() != null) {
+            if (request.fullName().isBlank()) {
+                throw new BadRequestException("fullName must not be blank");
+            }
+            user.setFullName(request.fullName().trim());
+        }
+
+        if (request.phone() != null) {
+            user.setPhone(request.phone().trim());
+        }
+
+        if (request.comment() != null) {
+            user.setComment(request.comment().trim());
+        }
+
         return userMapper.toDto(userRepository.save(user));
     }
 

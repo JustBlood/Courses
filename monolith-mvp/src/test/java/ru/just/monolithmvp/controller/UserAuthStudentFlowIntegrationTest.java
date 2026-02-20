@@ -308,6 +308,29 @@ class UserAuthStudentFlowIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Student Self Updated",
+                                  "phone": "+79992223344",
+                                  "comment": "self updated"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "hacker@example.com",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
         // Негативный кейс: студент не может ходить в admin endpoints
         mockMvc.perform(get("/api/v1/admin/users")
                         .header("Authorization", "Bearer " + studentToken))
@@ -344,6 +367,11 @@ class UserAuthStudentFlowIntegrationTest {
                                   "role": "ADMIN"
                                 }
                                 """))
+                .andExpect(status().isOk());
+
+        // Роль применяется немедленно: существующий token student получает доступ к admin endpoints
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/v1/admin/users/{userId}/password", studentId)

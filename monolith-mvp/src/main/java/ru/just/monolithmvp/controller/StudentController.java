@@ -1,5 +1,6 @@
 package ru.just.monolithmvp.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
+import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.security.SecurityUtils;
 import ru.just.monolithmvp.service.*;
@@ -44,6 +46,13 @@ public class StudentController {
                 userService.getUser(userId),
                 groupService.getUserGroups(userId)
         ));
+    }
+
+    @PatchMapping("/my/profile")
+    public ResponseEntity<StudentProfileDto> updateMyProfile(@Valid @RequestBody UpdateMyProfileRequest request) {
+        Long userId = securityUtils.currentUserId();
+        UserDto updatedUser = userService.updateMyProfile(userId, request);
+        return ResponseEntity.ok(new StudentProfileDto(updatedUser, groupService.getUserGroups(userId)));
     }
 
     @PostMapping(value = "/my/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

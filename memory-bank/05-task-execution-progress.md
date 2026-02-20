@@ -204,3 +204,34 @@
   - Результат: `Tests run: 1, Failures: 0, Errors: 0`.
 - Итоговый статус задачи:
   - `TASK-007` переведена в `done` в `memory-bank/tasks.json`.
+
+## TASK-008 (done) — редактирование пользователя и смена роли (FR-003/FR-004)
+- Что сделано:
+  - Реализован self-profile update endpoint `PATCH /api/v1/student/my/profile` с whitelist разрешённых полей (`fullName`, `phone`, `comment`).
+  - Добавлен DTO `UpdateMyProfileRequest` и сервисный метод `UserService.updateMyProfile`:
+    - запрет пустого обновления;
+    - валидация `fullName` (не blank);
+    - обновление только разрешённых полей профиля.
+  - Подтверждён отказ на попытку изменения запрещённых полей в self-profile payload (контролируемый `400 Bad Request`).
+  - Подтверждён немедленный эффект смены роли: после admin role patch существующий JWT получает новые права без повторного login.
+  - Обновлён интеграционный тест `UserAuthStudentFlowIntegrationTest`:
+    - добавлены кейсы self-profile update (разрешённые/запрещённые поля);
+    - добавлена проверка immediate-role-effect на существующем токене.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-008` переведена в `done` в `memory-bank/tasks.json`.
+
+## Token-budget checkpoint (2026-02-20, TASK-008 post-implementation)
+- Причина фиксации:
+  - Контекст текущей сессии превысил 370k токенов (сработал `Token Budget Gate`).
+- Что уже выполнено:
+  - Реализация TASK-008 в коде завершена (`StudentController`, `UserService`, `UpdateMyProfileRequest`, `GlobalExceptionHandler`, `UserAuthStudentFlowIntegrationTest`).
+  - Прогон тестов выполнен успешно:
+    - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - `memory-bank/tasks.json` обновлён: `TASK-008` переведена в `done`.
+  - `memory-bank/02-active-context.md` и `memory-bank/05-task-execution-progress.md` обновлены по факту реализации.
+- Что осталось сделать после `/newtask`:
+  1. Дописать финальную запись в `memory-bank/06-system-development-progress.md` по завершению `TASK-008`.
+  2. Отправить пользователю итоговый отчёт по задаче.

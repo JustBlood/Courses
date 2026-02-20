@@ -331,3 +331,24 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче backlog: `TASK-008` (FR-003/FR-004: редактирование пользователя и смена роли).
+
+### 2026-02-20 — Завершена TASK-008 (FR-003/FR-004: редактирование пользователя и смена роли)
+- Что сделано (кратко):
+  - Реализован self-profile update endpoint `PATCH /api/v1/student/my/profile` с whitelist разрешённых полей (`fullName`, `phone`, `comment`).
+  - Добавлен `UpdateMyProfileRequest` и сервисный метод `UserService.updateMyProfile` с валидацией и запретом пустого/некорректного обновления.
+  - В `GlobalExceptionHandler` добавана обработка `HttpMessageNotReadableException` для контролируемого `400` на payload с запрещёнными полями.
+  - Подтверждён немедленный эффект смены роли: после admin role patch существующий JWT-token начинает работать с новыми правами без повторного login.
+  - Обновлён интеграционный тест `UserAuthStudentFlowIntegrationTest` (self-profile update + immediate role effect).
+  - В backlog `memory-bank/tasks.json` задача `TASK-008` переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/StudentController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/student/UpdateMyProfileRequest.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/exception/GlobalExceptionHandler.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче backlog: `TASK-011`.
