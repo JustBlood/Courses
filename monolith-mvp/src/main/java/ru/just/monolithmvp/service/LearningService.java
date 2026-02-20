@@ -165,7 +165,15 @@ public class LearningService {
         Long adminId = securityUtils.currentUserId();
         final List<Long> courseIdsThatCanReview = courseService.findCoursesThatAdminCanReview(adminId).stream()
                 .map(Course::getId).toList();
-        return submissionRepository.findAllByStatusAndLessonCourseIdIn(SubmissionStatus.PENDING_REVIEW, courseIdsThatCanReview).stream()
+        final List<LessonSubmission> pendingOrReworkSubmissions = new ArrayList<>();
+        pendingOrReworkSubmissions.addAll(
+                submissionRepository.findAllByStatusAndLessonCourseIdIn(SubmissionStatus.PENDING_REVIEW, courseIdsThatCanReview)
+        );
+        pendingOrReworkSubmissions.addAll(
+                submissionRepository.findAllByStatusAndLessonCourseIdIn(SubmissionStatus.REWORK, courseIdsThatCanReview)
+        );
+
+        return pendingOrReworkSubmissions.stream()
                 .map(s -> new PendingSubmissionDto(
                         s.getId(),
                         s.getLesson().getId(),
@@ -182,8 +190,9 @@ public class LearningService {
         LessonSubmission submission = submissionRepository.findWithLockingById(submissionId)
                 .orElseThrow(() -> new NotFoundException("Submission not found: " + submissionId));
 
-        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW) {
-            throw new BadRequestException("Submission is not pending review");
+        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW
+                && submission.getStatus() != SubmissionStatus.REWORK) {
+            throw new BadRequestException("Submission is not in reviewable status");
         }
 
         if (!courseService.canReviewCourse(submission.getLesson().getCourse().getId(), securityUtils.currentUserId())) {
@@ -191,9 +200,9 @@ public class LearningService {
         }
 
         boolean finalPassed = request.passed();
-        SubmissionStatus finalStatus = request.passed() ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE;
+        SubmissionStatus finalStatus = request.passed() ? SubmissionStatus.ACCEPTED : SubmissionStatus.INCOMPLETE;
         if (request.toNextReview()) {
-            finalStatus = SubmissionStatus.PENDING_REVIEW;
+            finalStatus = SubmissionStatus.REWORK;
             finalPassed = false;
         }
         final int pointsAwarded = finalPassed

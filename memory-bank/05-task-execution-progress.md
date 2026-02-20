@@ -384,3 +384,28 @@
   - Результат: `Tests run: 6, Failures: 0, Errors: 0`.
 - Итоговый статус задачи:
   - `TASK-015` переведена в `done` в `memory-bank/tasks.json`.
+
+## TASK-016 (done) — FR-014 workflow развёрнутого ответа
+- Что сделано:
+  - Реализован целевой workflow open-ended review: `PENDING_REVIEW -> REWORK -> ACCEPTED`.
+  - В `LearningService.reviewOpenSubmission`:
+    - `toNextReview=true` переводит submission в `REWORK`;
+    - финальное принятие выставляет `ACCEPTED`;
+    - разрешён повторный review для статуса `REWORK`.
+  - В `LearningService.getPendingReviews` в pending-очередь добавлены submissions со статусом `REWORK` (вместе с `PENDING_REVIEW`).
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest` под новый промежуточный статус `REWORK`.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 6, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-016` переведена в `done` в `memory-bank/tasks.json`.
+
+## Token-budget checkpoint (2026-02-20, post-TASK-016 feedback)
+- Причина фиксации:
+  - Context Window Usage превысил порог 350k токенов (сработал `Token Budget Gate` из `.clinerules/10-memory-bank-workflow.md`).
+- Что уже зафиксировано:
+  - `TASK-016` закрыта: код, тесты и memory-bank обновлены.
+  - Финальная валидация пройдена: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 6, Failures: 0, Errors: 0`).
+- Что осталось на следующую итерацию:
+  1. Ответить на уточняющий вопрос пользователя по смыслу статусов `ACCEPTED` vs `COMPLETE`.
+  2. При необходимости согласовать упрощение модели статусов в отдельной задаче/рефакторинге.

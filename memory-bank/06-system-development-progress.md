@@ -442,3 +442,20 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI critical задача по зависимостям: `TASK-016` (FR-014 workflow развёрнутого ответа `pending -> rework -> accepted`).
+
+### 2026-02-20 — Завершена TASK-016 (FR-014: workflow open-ended ответа pending -> rework -> accepted)
+- Что сделано (кратко):
+  - Реализованы явные переходы review-статусов для open-ended submission: `PENDING_REVIEW -> REWORK -> ACCEPTED`.
+  - Обновлён `LearningService.reviewOpenSubmission`: возврат на доработку переводит в `REWORK`, финальное принятие — в `ACCEPTED`.
+  - Расширен reviewer pending-list: учитываются submissions в статусах `PENDING_REVIEW` и `REWORK`.
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest` под новый контракт статусов.
+  - Подтверждена валидация: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 6, Failures: 0, Errors: 0`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI задача по зависимостям: `TASK-017`.

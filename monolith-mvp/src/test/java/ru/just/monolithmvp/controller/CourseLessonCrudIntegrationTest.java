@@ -694,7 +694,7 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         JsonNode reReview = objectMapper.readTree(reReviewResponse);
-        assertThat(reReview.get("status").asText()).isEqualTo("PENDING_REVIEW");
+        assertThat(reReview.get("status").asText()).isEqualTo("REWORK");
         assertThat(reReview.get("passed").asBoolean()).isFalse();
 
         String learnerCourseResponse = mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
