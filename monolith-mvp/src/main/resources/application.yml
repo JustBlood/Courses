@@ -19,7 +19,7 @@ spring:
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:false}
   jpa:
     open-in-view: false
     hibernate:

@@ -188,3 +188,15 @@
   - `monolith.env.example`: дефолт `SPRING_PROFILES_ACTIVE=pg,mail-noop` (без зависимости от внешнего SMTP при локальном запуске).
   - `monolith-mvp/README-runtime.md`: обновлены инструкции по запуску и пояснение по `mail-noop`.
 - Следующая ready-to-start critical-задача по backlog: `TASK-002`.
+
+## Обновление по TASK-002 (стабилизация Flyway migrations)
+- `TASK-002` завершена полностью (`status=done` в `memory-bank/tasks.json`).
+- По итогам проверки дополнительная доработка production-кода/миграций не потребовалась:
+  - текущая цепочка миграций (`V1__init_schema.sql`) стабильно применяется на чистой PostgreSQL;
+  - повторный запуск monolith подтверждает идемпотентность (`Schema "public" is up to date. No migration necessary.`).
+- Подтверждено выполнение `test_steps`:
+  1. Поднят пустой контур PostgreSQL + monolith через `docker compose -f docker-compose.monolith.yml --env-file monolith.env.example up -d --build`.
+  2. Проверена `flyway_schema_history` (запись по `V1__init_schema.sql`, `success=true`) и отсутствие migration-ошибок в логах.
+  3. Выполнен повторный запуск приложения (`restart monolith-mvp`), подтверждён корректный no-op прогон Flyway.
+- Дополнительно подтверждён runtime smoke-check после перезапуска: `GET /actuator/health` возвращает `UP`.
+- Следующая ready-to-start critical-задача по backlog: `TASK-003`.

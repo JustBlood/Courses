@@ -241,3 +241,17 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к `TASK-002` (Flyway migration stabilization) как следующей ready-to-start critical задаче.
+
+### 2026-02-20 — Завершена TASK-002 (Flyway migration stabilization)
+- Что сделано (кратко):
+  - Проведена проверка стабильности Flyway-миграций на чистой PostgreSQL в docker-compose контуре.
+  - Подтверждено успешное первичное применение миграции `V1__init_schema.sql` и корректное состояние `flyway_schema_history`.
+  - Подтверждён повторный идемпотентный прогон миграций после restart приложения (`Schema "public" is up to date. No migration necessary.`).
+  - Дополнительно проверен runtime health-check: `/actuator/health` возвращает `UP`.
+- Какие модули затронуты:
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к `TASK-003` (усиление JWT-аутентификации) как следующей ready-to-start critical задаче.
