@@ -37,3 +37,7 @@ build/
 *.env
 *.env.*
 !*.env.example
+
+# Data
+data/
+/monolith-mvp/data/
