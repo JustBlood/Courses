@@ -47,6 +47,112 @@ class CourseLessonCrudIntegrationTest {
     private LessonSubmissionRepository lessonSubmissionRepository;
 
     @Test
+    void theory_lesson_completion_should_update_progress_and_stats() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("theory-student");
+        Long studentId = createUser(adminToken, "Theory Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory Completion Course",
+                                  "description": "FR-012 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String theoryLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory FR-012",
+                                  "description": "Theory description",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Theory content",
+                                  "fullPoints": 5
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long theoryLessonId = objectMapper.readTree(theoryLessonResponse).get("id").asLong();
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        String completeTheoryResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode completeTheoryResult = objectMapper.readTree(completeTheoryResponse);
+        assertThat(completeTheoryResult.get("status").asText()).isEqualTo("COMPLETE");
+        assertThat(completeTheoryResult.get("passed").asBoolean()).isTrue();
+
+        String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode myStats = objectMapper.readTree(myStatsResponse);
+        assertThat(myStats.size()).isEqualTo(1);
+        JsonNode myCourseStat = myStats.get(0);
+        assertThat(myCourseStat.get("courseId").asLong()).isEqualTo(courseId);
+        assertThat(myCourseStat.get("earnedPoints").asInt()).isEqualTo(5);
+        assertThat(myCourseStat.get("maxPoints").asInt()).isEqualTo(5);
+        assertThat(myCourseStat.get("completedLessons").asInt()).isEqualTo(1);
+        assertThat(myCourseStat.get("totalLessons").asInt()).isEqualTo(1);
+
+        String courseStatsResponse = mockMvc.perform(get("/api/v1/admin/progress/courses/{courseId}/stats", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode courseStats = objectMapper.readTree(courseStatsResponse);
+        assertThat(courseStats.size()).isEqualTo(1);
+        JsonNode studentCourseStat = courseStats.get(0);
+        assertThat(studentCourseStat.get("studentId").asLong()).isEqualTo(studentId);
+        assertThat(studentCourseStat.get("earnedPoints").asInt()).isEqualTo(5);
+        assertThat(studentCourseStat.get("maxPoints").asInt()).isEqualTo(5);
+        assertThat(studentCourseStat.get("completedLessons").asInt()).isEqualTo(1);
+        assertThat(studentCourseStat.get("totalLessons").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void enrollment_two_lists_flow_should_work() throws Exception {
         String adminToken = login("admin@local", "admin123");
 

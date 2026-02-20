@@ -1,26 +1,30 @@
 # Активный контекст
 
 ## Текущая задача
-- `TASK-013` завершена: FR-011 (назначение reviewer и рабочая область проверки).
+- `TASK-014` завершена: FR-012 (прохождение THEORY-урока с фиксацией статуса и начислением баллов).
 
-## Что реализовано
-- Расширен reviewer-workspace API:
-  - добавлен endpoint `GET /api/v1/admin/progress/reviews/courses` в `ProgressController`;
-  - endpoint возвращает только курсы, назначенные текущему reviewer.
-- Расширен сервисный слой `CourseService`:
-  - добавлен метод `getReviewerCourseSummaries(adminId)`;
-  - добавлен convenience-метод `getMyReviewerCourseSummaries()` для текущего пользователя;
-  - выделен переиспользуемый маппинг `toCourseSummaryDto(Course)`.
-- Существующий reviewer-flow подтверждён как соответствующий FR-011:
-  - назначение reviewer доступно только для `ADMIN` (`assignReviewerToCourse` + валидация роли);
-  - pending-open-submissions доступны только по назначенным reviewer курсам (`getPendingReviews`).
-- Интеграционное покрытие расширено в `CourseLessonCrudIntegrationTest`:
-  - проверка `GET /api/v1/admin/progress/reviews/courses` (видны только назначенные reviewer курсы);
-  - проверка `GET /api/v1/admin/progress/reviews/pending` (видны pending-ответы по назначенным курсам).
+## Что сделано в текущей итерации
+- Проведён анализ требований `FR-012 / AC-012` и текущей реализации `completeTheoryLesson`.
+- Подтверждено, что базовая backend-логика уже соответствует FR-012:
+  - доступ к теории только при enrollment;
+  - создание `LessonSubmission` со статусом `COMPLETE`;
+  - начисление `pointsAwarded = lesson.fullPoints`.
+- Добавлен интеграционный тест
+  `theory_lesson_completion_should_update_progress_and_stats`
+  в `CourseLessonCrudIntegrationTest`, который проверяет:
+  - отказ до enrollment;
+  - успешное завершение THEORY-урока после enrollment;
+  - обновление статистики студента (`/api/v1/student/my/stats`);
+  - обновление статистики курса (`/api/v1/admin/progress/courses/{courseId}/stats`).
 
 ## Валидация
-- `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS` (`Tests run: 5, Failures: 0, Errors: 0`).
+- Выполнен прогон:  
+  `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test`
+- Результат: `BUILD SUCCESS`, `Tests run: 6, Failures: 0, Errors: 0`.
 
-## Статус
-- `TASK-013` переведена в `done` в `memory-bank/tasks.json`.
-- Следующая ready-to-start critical non-UI задача по зависимостям: `TASK-014`.
+## Что осталось
+- Выбрать следующую ready-to-start non-UI задачу из `memory-bank/tasks.json` по приоритету и зависимостям (кандидат: `TASK-015`).
+- При старте следующей задачи обновить этот файл под новый in-progress контекст.
+
+## Ограничение текущей итерации
+- Context Window Usage превысил порог 350k; продолжение реализации переносится в следующую итерацию (`/newtask`) по Token Budget Gate.

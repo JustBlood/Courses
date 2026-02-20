@@ -3,7 +3,7 @@
 ## Token Budget Gate (обязательно)
 - После КАЖДОГО действия (tool call / существенный reasoning-шаг) агент обязан:
     1. Проверить текущее значение Context Window Usage.
-    2. Если usage > 370000 токенов:
+    2. Если usage > 350000 токенов:
         - немедленно приостановить реализацию,
         - записать сжатый контекст и артефакты в `memory-bank/05-task-execution-progress.md`,
         - обновить `memory-bank/02-active-context.md`,

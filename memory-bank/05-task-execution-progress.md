@@ -305,3 +305,47 @@
   - Результат: `Tests run: 5, Failures: 0, Errors: 0`.
 - Итоговый статус задачи:
   - `TASK-013` переведена в `done` в `memory-bank/tasks.json`.
+
+## Token-budget checkpoint (2026-02-20, TASK-014 near-complete)
+- Причина фиксации:
+  - Контекст текущей сессии превысил лимит 370k токенов (сработал `Token Budget Gate` из `.clinerules/10-memory-bank-workflow.md`).
+- Что уже выполнено по `TASK-014`:
+  - Подтверждён выбор задачи `TASK-014` как следующей ready-to-start critical non-UI задачи.
+  - Подтверждено соответствие текущей backend-логики `FR-012`:
+    - прохождение THEORY только для зачисленного студента;
+    - фиксация submission со статусом `COMPLETE`;
+    - начисление баллов по `lesson.fullPoints`.
+  - Добавлен интеграционный тест `theory_lesson_completion_should_update_progress_and_stats` в
+    `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`.
+  - Тест проверяет:
+    - отказ доступа к уроку до enrollment;
+    - успешное `complete-theory` после enrollment;
+    - обновление `student/my/stats`;
+    - обновление `admin/progress/courses/{courseId}/stats`.
+  - Выполнена валидация:
+    - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS` (`Tests run: 6, Failures: 0, Errors: 0`).
+  - Обновлён `memory-bank/02-active-context.md` под состояние `TASK-014` in-progress.
+- Что осталось сделать после `/newtask`:
+  1. Обновить `memory-bank/tasks.json`: перевести `TASK-014` в `done`.
+  2. Дописать финальный блок по `TASK-014` в `memory-bank/05-task-execution-progress.md`.
+  3. Добавить запись о завершении `TASK-014` в `memory-bank/06-system-development-progress.md`.
+  4. Отправить пользователю финальный отчёт по задаче.
+
+## TASK-014 (done) — FR-012 прохождение THEORY-урока
+- Что сделано:
+  - Подтверждено соответствие backend-логики требованиям `FR-012 / AC-012`:
+    - прохождение THEORY доступно только для зачисленного студента;
+    - при завершении урока фиксируется submission со статусом `COMPLETE`;
+    - баллы начисляются в размере `lesson.fullPoints`.
+  - Добавлен интеграционный тест
+    `theory_lesson_completion_should_update_progress_and_stats`
+    в `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`.
+  - Тест покрывает сценарий отказа до enrollment и успешного завершения после enrollment,
+    а также проверяет обновление статистики:
+    - `/api/v1/student/my/stats`;
+    - `/api/v1/admin/progress/courses/{courseId}/stats`.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 6, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-014` переведена в `done` в `memory-bank/tasks.json`.

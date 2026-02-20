@@ -410,3 +410,18 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI critical задача по зависимостям: `TASK-014` (FR-012: прохождение THEORY-урока с фиксацией статуса и начислением баллов).
+
+### 2026-02-20 — Завершена TASK-014 (FR-012: прохождение THEORY-урока)
+- Что сделано (кратко):
+  - Подтверждено соответствие backend-логики требованиям `FR-012 / AC-012`: THEORY доступна только при enrollment, завершение фиксируется как `LessonSubmission(status=COMPLETE)`, баллы начисляются по `lesson.fullPoints`.
+  - Добавлен интеграционный тест `theory_lesson_completion_should_update_progress_and_stats` в `CourseLessonCrudIntegrationTest`.
+  - Тест покрывает полный сценарий: отказ до enrollment, успешное `complete-theory` после enrollment, обновление статистики студента и статистики курса.
+  - В backlog `memory-bank/tasks.json` задача `TASK-014` переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI critical задача: `TASK-015` (FR-013 runtime scoring engine).
