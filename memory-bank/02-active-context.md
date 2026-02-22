@@ -1,16 +1,21 @@
 # Активный контекст
 
 ## Текущая задача
-- `TASK-016` (FR-014 workflow развёрнутого ответа `pending -> rework -> accepted`) — реализация и валидация завершены.
+- `TASK-017` (FR-015: личная статистика студента/пользователя с едиными формулами эффективности и % выполнения).
 
 ## Что сделано в текущей итерации
-- В `LearningService.reviewOpenSubmission` реализованы целевые переходы статусов:
-  - `toNextReview=true` -> `SubmissionStatus.REWORK`;
-  - финальное принятие (`passed=true`, `toNextReview=false`) -> `SubmissionStatus.ACCEPTED`.
-- Разрешён повторный review для submission в статусе `REWORK` (финализированные статусы повторно не ревьюятся).
-- Обновлён reviewer-pending список (`getPendingReviews`) — теперь включает `PENDING_REVIEW` и `REWORK`.
-- Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`:
-  - промежуточный статус после first review изменён на `REWORK`.
+- Выбран и подтверждён следующий ready-to-start non-UI task: `TASK-017`.
+- Прочитаны релевантные PRD-главы: `PRD-01`, `PRD-02 (FR-015)`, `PRD-06 (AC-015)`.
+- Реализованы изменения backend:
+  - в `StudentCourseStatDto` добавлено поле `progressPercent`;
+  - в `StatisticsService`:
+    - `myCourseStats()` переведён на переиспользуемый метод `userCourseStats(userId)`;
+    - добавлен метод `userCourseStats(Long userId)` для admin-view статистики конкретного пользователя;
+    - добавлен расчёт `progressPercent = completedLessons * 100 / totalLessons`;
+  - в `UsersController` добавлен endpoint `GET /api/v1/admin/users/{userId}/stats`.
+- Обновлены интеграционные тесты `CourseLessonCrudIntegrationTest`:
+  - добавлены проверки `efficiencyPercent` и `progressPercent`;
+  - добавлен сценарий получения статистики того же пользователя через admin endpoint `/api/v1/admin/users/{userId}/stats`.
 
 ## Валидация
 - Выполнен прогон:
@@ -18,4 +23,5 @@
 - Результат: `BUILD SUCCESS`, `Tests run: 6, Failures: 0, Errors: 0`.
 
 ## Что осталось
-- Задача `TASK-016` закрыта, следующий шаг — переход к следующей ready-to-start задаче backlog.
+- `TASK-017` завершена: backlog обновлён (`status=done`), валидация пройдена.
+- Следующий кандидат из ready-to-start non-UI задач по зависимостям: `TASK-018`.

@@ -132,8 +132,28 @@ class CourseLessonCrudIntegrationTest {
         assertThat(myCourseStat.get("courseId").asLong()).isEqualTo(courseId);
         assertThat(myCourseStat.get("earnedPoints").asInt()).isEqualTo(5);
         assertThat(myCourseStat.get("maxPoints").asInt()).isEqualTo(5);
+        assertThat(myCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(100.0);
+        assertThat(myCourseStat.get("progressPercent").asDouble()).isEqualTo(100.0);
         assertThat(myCourseStat.get("completedLessons").asInt()).isEqualTo(1);
         assertThat(myCourseStat.get("totalLessons").asInt()).isEqualTo(1);
+
+        String adminUserStatsResponse = mockMvc.perform(get("/api/v1/admin/users/{userId}/stats", studentId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode adminUserStats = objectMapper.readTree(adminUserStatsResponse);
+        assertThat(adminUserStats.size()).isEqualTo(1);
+        JsonNode adminUserCourseStat = adminUserStats.get(0);
+        assertThat(adminUserCourseStat.get("courseId").asLong()).isEqualTo(courseId);
+        assertThat(adminUserCourseStat.get("earnedPoints").asInt()).isEqualTo(5);
+        assertThat(adminUserCourseStat.get("maxPoints").asInt()).isEqualTo(5);
+        assertThat(adminUserCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(100.0);
+        assertThat(adminUserCourseStat.get("progressPercent").asDouble()).isEqualTo(100.0);
+        assertThat(adminUserCourseStat.get("completedLessons").asInt()).isEqualTo(1);
+        assertThat(adminUserCourseStat.get("totalLessons").asInt()).isEqualTo(1);
 
         String courseStatsResponse = mockMvc.perform(get("/api/v1/admin/progress/courses/{courseId}/stats", courseId)
                         .header("Authorization", "Bearer " + adminToken))
@@ -378,6 +398,8 @@ class CourseLessonCrudIntegrationTest {
         assertThat(courseStat.get("courseId").asLong()).isEqualTo(courseId);
         assertThat(courseStat.get("earnedPoints").asInt()).isEqualTo(3);
         assertThat(courseStat.get("maxPoints").asInt()).isEqualTo(1);
+        assertThat(courseStat.get("efficiencyPercent").asDouble()).isEqualTo(300.0);
+        assertThat(courseStat.get("progressPercent").asDouble()).isEqualTo(100.0);
         assertThat(courseStat.get("completedLessons").asInt()).isEqualTo(1);
         assertThat(courseStat.get("totalLessons").asInt()).isEqualTo(1);
     }

@@ -409,3 +409,41 @@
 - Что осталось на следующую итерацию:
   1. Ответить на уточняющий вопрос пользователя по смыслу статусов `ACCEPTED` vs `COMPLETE`.
   2. При необходимости согласовать упрощение модели статусов в отдельной задаче/рефакторинге.
+
+## Token-budget checkpoint (2026-02-20, TASK-017 in progress)
+- Причина фиксации:
+  - Context Window Usage превысил порог 350k токенов (сработал `Token Budget Gate` из `.clinerules/10-memory-bank-workflow.md`).
+- Что уже выполнено по `TASK-017`:
+  - Прочитаны релевантные PRD-главы для `FR-015/AC-015`.
+  - Обновлён DTO `StudentCourseStatDto`: добавлено поле `progressPercent`.
+  - В `StatisticsService`:
+    - `myCourseStats()` переведён на `userCourseStats(userId)`;
+    - добавлен `userCourseStats(Long userId)`;
+    - добавлен расчёт `progressPercent` по формуле `completedLessons * 100 / totalLessons`.
+  - В `UsersController` добавлен endpoint `GET /api/v1/admin/users/{userId}/stats`.
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`:
+    - проверки `efficiencyPercent` и `progressPercent`;
+    - проверка admin-view статистики конкретного пользователя.
+  - Валидация пройдена:
+    - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS` (`Tests run: 6, Failures: 0, Errors: 0`).
+- Что осталось сделать после `/newtask`:
+  1. Обновить `memory-bank/tasks.json`: перевести `TASK-017` в `done`.
+  2. Дополнить финальные записи по `TASK-017` в `memory-bank/05-task-execution-progress.md` и `memory-bank/06-system-development-progress.md`.
+  3. Отправить пользователю итоговый отчёт по задаче.
+
+## TASK-017 (done) — FR-015 личная статистика студента/пользователя
+- Что сделано:
+  - В `StudentCourseStatDto` добавлено поле `progressPercent`.
+  - В `StatisticsService` реализовано единое переиспользуемое вычисление статистики:
+    - `myCourseStats()` переведён на `userCourseStats(userId)`;
+    - добавлен `userCourseStats(Long userId)` для admin-view статистики выбранного пользователя;
+    - добавлена формула `% выполнения`: `progressPercent = completedLessons * 100 / totalLessons`.
+  - В `UsersController` добавлен endpoint `GET /api/v1/admin/users/{userId}/stats`.
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`:
+    - добавлены проверки `efficiencyPercent` и `progressPercent`;
+    - добавлен сценарий получения статистики того же пользователя через admin endpoint.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 6, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-017` переведена в `done` в `memory-bank/tasks.json`.

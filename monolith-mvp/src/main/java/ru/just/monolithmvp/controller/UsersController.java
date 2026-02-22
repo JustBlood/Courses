@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
+import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.user.*;
 import ru.just.monolithmvp.service.*;
 
@@ -40,6 +41,12 @@ public class UsersController {
     @GetMapping("/users/{userId}")
     public ResponseEntity<UserDto> getUser(@PathVariable Long userId) {
         return ResponseEntity.ok(userService.getUser(userId));
+    }
+
+    @GetMapping("/users/{userId}/stats")
+    public ResponseEntity<List<StudentCourseStatDto>> getUserStats(@PathVariable Long userId) {
+        userService.getUser(userId);
+        return ResponseEntity.ok(statisticsService.userCourseStats(userId));
     }
 
     @PutMapping("/users/{userId}")

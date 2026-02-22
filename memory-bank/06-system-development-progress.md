@@ -459,3 +459,23 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI задача по зависимостям: `TASK-017`.
+
+### 2026-02-20 — Завершена TASK-017 (FR-015: личная статистика студента/пользователя)
+- Что сделано (кратко):
+  - В личной статистике добавлен явный показатель `% выполнения` (`progressPercent`) наряду с баллами и `efficiencyPercent`.
+  - В `StatisticsService` унифицирован расчёт статистики через переиспользуемый метод `userCourseStats(userId)`.
+  - Добавлен admin-view endpoint `GET /api/v1/admin/users/{userId}/stats` для просмотра статистики любого пользователя.
+  - Формула `% выполнения` реализована как `completedLessons * 100 / totalLessons`, что синхронизировано с PRD (`FR-015/AC-015`).
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`: проверки student-view/admin-view, `efficiencyPercent` и `progressPercent`.
+  - Подтверждена валидация: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 6, Failures: 0, Errors: 0`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/stat/StudentCourseStatDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/StatisticsService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/UsersController.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI задача по зависимостям: `TASK-018` (FR-016: статистика по конкретному курсу для администратора).

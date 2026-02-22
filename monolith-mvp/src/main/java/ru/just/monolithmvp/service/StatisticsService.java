@@ -29,6 +29,11 @@ public class StatisticsService {
     @Transactional(readOnly = true)
     public List<StudentCourseStatDto> myCourseStats() {
         Long userId = securityUtils.currentUserId();
+        return userCourseStats(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentCourseStatDto> userCourseStats(Long userId) {
         return enrollmentRepository.findByUserId(userId).stream()
                 .map(e -> toStudentCourseStat(e, userId))
                 .toList();
@@ -116,6 +121,7 @@ public class StatisticsService {
         long completed = submissionRepository.countDistinctPassedLessons(userId, courseId);
         long totalLessons = lessonRepository.countByCourseId(courseId);
         double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
+        double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
 
         return new StudentCourseStatDto(
                 courseId,
@@ -123,6 +129,7 @@ public class StatisticsService {
                 earned,
                 maxPoints,
                 efficiency,
+                progress,
                 completed,
                 totalLessons,
                 fmt(e.getEnrolledAt()),
