@@ -1,0 +1,19 @@
+## TASK-003 (done) — JWT hardening
+- Что сделано:
+  - Добавлены новые обработчики security-ошибок:
+    - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/ApiAuthenticationEntryPoint.java`
+    - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/ApiAccessDeniedHandler.java`
+  - Обновлён `SecurityConfig`:
+    - подключены `authenticationEntryPoint` и `accessDeniedHandler` для единообразного безопасного формата auth-ответов.
+  - Обновлён `JwtAuthenticationFilter`:
+    - на ошибке парсинга/валидации JWT выполняется `SecurityContextHolder.clearContext()`.
+- Реализация (тесты):
+  - Обновлён `UserAuthStudentFlowIntegrationTest`:
+    - добавлены проверки valid/expired/tampered JWT;
+    - добавлены helper-методы генерации expired токена и tampered токена;
+    - скорректировано ожидание статуса в кейсе deactivated-user token (`401` вместо `403`) в новой security-модели.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest test` → `BUILD SUCCESS`.
+  - По тест-сценарию подтверждено: валидный JWT даёт доступ, просроченный и подменённый JWT возвращают `401 Unauthorized`.
+- Итоговый статус задачи:
+  - `TASK-003` переведена в `done`.

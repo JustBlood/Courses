@@ -1,0 +1,16 @@
+## TASK-017 (done) — FR-015 личная статистика студента/пользователя
+- Что сделано:
+  - В `StudentCourseStatDto` добавлено поле `progressPercent`.
+  - В `StatisticsService` реализовано единое переиспользуемое вычисление статистики:
+    - `myCourseStats()` переведён на `userCourseStats(userId)`;
+    - добавлен `userCourseStats(Long userId)` для admin-view статистики выбранного пользователя;
+    - добавлена формула `% выполнения`: `progressPercent = completedLessons * 100 / totalLessons`.
+  - В `UsersController` добавлен endpoint `GET /api/v1/admin/users/{userId}/stats`.
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest`:
+    - добавлены проверки `efficiencyPercent` и `progressPercent`;
+    - добавлен сценарий получения статистики того же пользователя через admin endpoint.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 6, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-017` переведена в `done` в `memory-bank/tasks.json`.

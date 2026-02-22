@@ -1,0 +1,17 @@
+## TASK-008 (done) — редактирование пользователя и смена роли (FR-003/FR-004)
+- Что сделано:
+  - Реализован self-profile update endpoint `PATCH /api/v1/student/my/profile` с whitelist разрешённых полей (`fullName`, `phone`, `comment`).
+  - Добавлен DTO `UpdateMyProfileRequest` и сервисный метод `UserService.updateMyProfile`:
+    - запрет пустого обновления;
+    - валидация `fullName` (не blank);
+    - обновление только разрешённых полей профиля.
+  - Подтверждён отказ на попытку изменения запрещённых полей в self-profile payload (контролируемый `400 Bad Request`).
+  - Подтверждён немедленный эффект смены роли: после admin role patch существующий JWT получает новые права без повторного login.
+  - Обновлён интеграционный тест `UserAuthStudentFlowIntegrationTest`:
+    - добавлены кейсы self-profile update (разрешённые/запрещённые поля);
+    - добавлена проверка immediate-role-effect на существующем токене.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-008` переведена в `done` в `memory-bank/tasks.json`.

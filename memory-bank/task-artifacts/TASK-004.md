@@ -1,0 +1,14 @@
+## TASK-004 (done) — RBAC-ограничения API
+- Что сделано:
+  - Усилен RBAC для review-flow в `LearningService.reviewOpenSubmission`.
+  - Для неназначенного reviewer отказ переведён на security-семантику `403 Forbidden` через `AccessDeniedException`.
+  - Сохранён контроль назначения reviewer на уровне course-reviewer связей.
+- Реализация (тесты):
+  - Обновлён `CourseLessonCrudIntegrationTest`:
+    - скорректировано ожидание статуса для запроса review от неназначенного reviewer (`403` вместо `400`).
+  - Подтверждён сценарий: review endpoint доступен только назначенному reviewer.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-004` переведена в `done`.

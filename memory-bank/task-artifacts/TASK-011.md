@@ -1,0 +1,23 @@
+## TASK-011 (done) — FR-008/FR-009 practice-модель и scoring-контракт
+- Что сделано:
+  - В `CourseService.applyQuestionPool` изменена логика default points:
+    - `question.fullPoints` по умолчанию наследуется от `practiceLesson.fullPoints`;
+    - `question.partialPoints` по умолчанию наследуется от `practiceLesson.partialPoints`.
+  - В `CourseService.validatePracticeRequest` исправлена валидация question positions:
+    - проверка непрерывности позиций применяется только при режиме `allWithPosition`.
+  - Расширен DTO-контракт `PracticeSubmissionRequest`:
+    - добавлено поле `questionAnswers: Map<Integer, List<String>>`;
+    - сохранён legacy fallback через `selectedAnswers` для обратной совместимости.
+  - В `LearningService.submitPractice` реализован scoring по full question-pool:
+    - агрегация баллов по всем тестовым вопросам урока;
+    - partial scoring для `MULTIPLE_CHOICE` при выборе подмножества корректных ответов;
+    - вычисление `passed` по `passingThresholdPercent` урока;
+    - сериализация ответов в `answerRaw` в формате по индексам вопросов.
+  - Добавлен интеграционный тест `practice_lesson_should_support_all_question_types_and_partial_scoring` в `CourseLessonCrudIntegrationTest`:
+    - покрывает типы `SINGLE_CHOICE`, `MULTIPLE_CHOICE`, `MATCHING`, `ORDERING`;
+    - проверяет кейс частично правильного multiple-choice и итоговые поля submission.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-011` переведена в `done` в `memory-bank/tasks.json`.
