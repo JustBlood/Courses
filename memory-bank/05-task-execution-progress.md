@@ -82,6 +82,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-020A.md`
 - `TASK-022A` — FR-019 (base flow) восстановление пароля по email-токену
   - Артефакт: `memory-bank/task-artifacts/TASK-022A.md`
+- `TASK-026` — FR-101/FR-102 CRUD разделов каталога и создание курса в контексте раздела
+  - Артефакт: `memory-bank/task-artifacts/TASK-026.md`
+
 
 
 

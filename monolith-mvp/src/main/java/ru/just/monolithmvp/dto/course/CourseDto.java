@@ -12,6 +12,9 @@ public record CourseDto(
         Boolean allowContinueAfterFail,
         Boolean blockAfterDeadline,
         Boolean keepAccessAfterDeadline,
-        Boolean includeInOverallStats
+        Boolean includeInOverallStats,
+        Long sectionId,
+        String sectionTitle,
+        Integer sectionPriority
 ) {
 }

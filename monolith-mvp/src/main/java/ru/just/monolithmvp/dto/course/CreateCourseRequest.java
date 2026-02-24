@@ -18,6 +18,7 @@ public record CreateCourseRequest(
         Boolean blockAfterDeadline,
         Boolean keepAccessAfterDeadline,
         Boolean includeInOverallStats,
+        Long sectionId,
         Map<Long, Integer> lessonIdToPosition
 ) {
 }

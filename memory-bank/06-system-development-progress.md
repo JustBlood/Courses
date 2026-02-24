@@ -561,3 +561,35 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI high-priority задача: `TASK-026` (FR-101/FR-102: CRUD разделов каталога и создание курса в контексте раздела).
+
+### 2026-02-24 — Завершена TASK-026 (FR-101/FR-102: sections + course-in-section)
+- Что сделано (кратко):
+  - Добавлен полноценный backend-модуль разделов каталога: `Section` entity, `SectionRepository`, DTO, `SectionService`, `SectionsController`.
+  - Реализована связь `Course -> Section` и расширены course DTO/mapper section-полями (`sectionId`, `sectionTitle`, `sectionPriority`).
+  - Добавлен endpoint создания курса в контексте раздела: `POST /api/v1/admin/sections/{sectionId}/courses`.
+  - Реализована сортировка каталога курсов по разделам (`section.priority`, `section.id`, `course.id`) с корректной обработкой `section = null`.
+  - Обновлена Flyway-схема: таблица `sections`, FK `courses.section_id`, индекс.
+  - Добавлен интеграционный `SectionCatalogIntegrationTest`; устранена нестабильность проверок каталога (убрана зависимость от фиксированного общего размера).
+  - Подтверждён прогон: `mvn -pl monolith-mvp -Dtest=SectionCatalogIntegrationTest,CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 11`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/model/Course.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/model/Section.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/SectionRepository.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/CourseRepository.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/section/*`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/course/CreateCourseRequest.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/course/CourseDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/course/CourseSummaryDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/mapper/CourseMapper.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/SectionService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/SectionsController.java`
+  - `monolith-mvp/src/main/resources/db/migration/V1__init_schema.sql`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/SectionCatalogIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-026.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче из `memory-bank/tasks.json` по приоритету и зависимостям.

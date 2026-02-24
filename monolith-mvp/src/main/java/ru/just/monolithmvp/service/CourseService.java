@@ -38,6 +38,7 @@ public class CourseService {
     private final LessonMapper lessonMapper;
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
+    private final SectionService sectionService;
 
     @Transactional
     public CourseDto createCourse(CreateCourseRequest request) {
@@ -47,9 +48,36 @@ public class CourseService {
         return courseMapper.toDto(courseRepository.save(course));
     }
 
+    @Transactional
+    public CourseDto createCourseInSection(Long sectionId, CreateCourseRequest request) {
+        CreateCourseRequest requestWithSection = new CreateCourseRequest(
+                request.title(),
+                request.description(),
+                request.authorFullName(),
+                request.coverFilePath(),
+                request.passingThresholdPercent(),
+                request.deadlineDays(),
+                request.lessonsFreeOrder(),
+                request.allowContinueAfterFail(),
+                request.blockAfterDeadline(),
+                request.keepAccessAfterDeadline(),
+                request.includeInOverallStats(),
+                sectionId,
+                request.lessonIdToPosition()
+        );
+        return createCourse(requestWithSection);
+    }
+
     @Transactional(readOnly = true)
     public List<CourseSummaryDto> getCourseSummaries() {
         return courseRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparing((Course c) -> c.getSection(), Comparator.nullsLast(
+                                Comparator.comparing(Section::getPriority)
+                                        .thenComparing(Section::getId)
+                        ))
+                        .thenComparing(Course::getId)
+                )
                 .map(this::toCourseSummaryDto)
                 .toList();
     }
@@ -440,6 +468,7 @@ public class CourseService {
         course.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
         course.setKeepAccessAfterDeadline(Boolean.TRUE.equals(request.keepAccessAfterDeadline()));
         course.setIncludeInOverallStats(request.includeInOverallStats() == null || request.includeInOverallStats());
+        course.setSection(request.sectionId() == null ? null : sectionService.getSectionEntity(request.sectionId()));
     }
 
     private void applyCommonLessonFields(Lesson lesson,
@@ -519,6 +548,9 @@ public class CourseService {
                 course.getTitle(),
                 course.getDescription(),
                 course.getCoverFilePath(),
+                course.getSection() == null ? null : course.getSection().getId(),
+                course.getSection() == null ? null : course.getSection().getTitle(),
+                course.getSection() == null ? null : course.getSection().getPriority(),
                 theoryCount,
                 practiceCount
         );

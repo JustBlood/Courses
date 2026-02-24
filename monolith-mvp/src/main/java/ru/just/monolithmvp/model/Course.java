@@ -52,6 +52,10 @@ public class Course {
     @Column(nullable = false)
     private Long createdByAdminId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "section_id")
+    private Section section;
+
     private LocalDateTime deadlineAt;
 
     @Column(nullable = false)
