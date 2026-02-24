@@ -471,7 +471,7 @@
     {
       "id": "TASK-023",
       "category": "ui",
-      "priority": "high",
+      "priority": "low",
       "description": "Реализовать UX-режимы ролей: переключение контекста student/admin для пользователей с ролью ADMIN.",
       "acceptance_criteria": [
         "Пользователь-администратор может явно переключать активный режим в UI.",
@@ -487,12 +487,12 @@
         "TASK-004",
         "TASK-006"
       ],
-      "status": "pending"
+      "status": "obsolete"
     },
     {
       "id": "TASK-024",
       "category": "ui",
-      "priority": "high",
+      "priority": "low",
       "description": "Сделать UI рабочей области проверки для reviewer: список курсов, очереди ответов, действия rework/accept.",
       "acceptance_criteria": [
         "Назначенный reviewer видит только свои курсы и pending-submissions.",
@@ -508,7 +508,7 @@
         "TASK-013",
         "TASK-016"
       ],
-      "status": "pending"
+      "status": "obsolete"
     },
     {
       "id": "TASK-025",
@@ -595,7 +595,7 @@
     {
       "id": "TASK-029",
       "category": "ui",
-      "priority": "medium",
+      "priority": "low",
       "description": "Реализовать FR-109: поиск и фильтрация в каталогах курсов, пользователей и групп с учётом прав доступа.",
       "acceptance_criteria": [
         "На трёх страницах есть быстрый поиск по имени/ФИО/названию.",
@@ -612,7 +612,7 @@
         "TASK-026",
         "TASK-027"
       ],
-      "status": "pending"
+      "status": "obsolete"
     },
     {
       "id": "TASK-030",
