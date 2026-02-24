@@ -16,6 +16,7 @@ import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
+import ru.just.monolithmvp.repository.LessonRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionStatusHistoryRepository;
 import ru.just.monolithmvp.security.SecurityUtils;
@@ -27,6 +28,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class LearningService {
     private final CourseService courseService;
+    private final LessonRepository lessonRepository;
     private final LessonSubmissionRepository submissionRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AppUserRepository userRepository;
@@ -37,6 +39,7 @@ public class LearningService {
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
         final Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(userId, lesson.getCourse().getId());
+        assertStopLessonAccessAllowed(userId, lesson);
 
         LearnerLessonDto.LearnerLessonDtoBuilder learnerLessonDtoBuilder = LearnerLessonDto.builder()
                 .id(lesson.getId())
@@ -87,6 +90,7 @@ public class LearningService {
         Long studentId = securityUtils.currentUserId();
         Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(studentId, lesson.getCourse().getId());
+        assertStopLessonAccessAllowed(studentId, lesson);
         courseService.assertCourseDeadlineNotExceededForStudent(studentId, lesson.getCourse().getId());
 
         if (lesson.getLessonType() != LessonType.THEORY_TEXT
@@ -114,6 +118,7 @@ public class LearningService {
         Long studentId = securityUtils.currentUserId();
         Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(studentId, lesson.getCourse().getId());
+        assertStopLessonAccessAllowed(studentId, lesson);
         courseService.assertCourseDeadlineNotExceededForStudent(studentId, lesson.getCourse().getId());
 
         if (lesson instanceof PracticeLesson practiceLesson) {
@@ -286,6 +291,21 @@ public class LearningService {
     private void validateStudentEnrolled(Long userId, Long courseId) {
         if (!courseService.isUserEnrolled(userId, courseId)) {
             throw new BadRequestException("Student is not enrolled in this course");
+        }
+    }
+
+    private void assertStopLessonAccessAllowed(Long studentId, Lesson lesson) {
+        if (lesson.getPosition() == null) {
+            return;
+        }
+
+        boolean hasBlockingStopLesson = lessonRepository.existsUnpassedStopLessonBeforePosition(
+                lesson.getCourse().getId(),
+                studentId,
+                lesson.getPosition()
+        );
+        if (hasBlockingStopLesson) {
+            throw new BadRequestException("Previous stop lesson is not passed");
         }
     }
 

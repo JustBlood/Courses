@@ -60,6 +60,150 @@ class CourseLessonCrudIntegrationTest {
     private EnrollmentRepository enrollmentRepository;
 
     @Test
+    void stop_lesson_should_block_next_lessons_even_when_lessons_free_order_enabled() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("stop-lesson-student");
+        Long studentId = createUser(adminToken, "Stop Lesson Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Stop Lesson Course",
+                                  "description": "FR-114 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30,
+                                  "lessonsFreeOrder": true
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String blockingTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Blocking Theory",
+                                  "description": "Must be passed first",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Blocking content",
+                                  "fullPoints": 5,
+                                  "stopLesson": true
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long blockingTheoryId = objectMapper.readTree(blockingTheoryResponse).get("id").asLong();
+
+        String nextTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Next Theory",
+                                  "description": "Should be blocked until first passed",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Next content",
+                                  "fullPoints": 4
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long nextTheoryId = objectMapper.readTree(nextTheoryResponse).get("id").asLong();
+
+        String nextPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Next Practice",
+                                  "description": "Should be blocked until first passed",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "fullPoints": 2,
+                                  "partialPoints": 0,
+                                  "passingThresholdPercent": 100,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "2 + 2 = ?",
+                                      "options": ["3", "4"],
+                                      "correctAnswers": ["4"],
+                                      "fullPoints": 2
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long nextPracticeId = objectMapper.readTree(nextPracticeResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", nextTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", nextTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", nextPracticeId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["4"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", blockingTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", nextTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", nextPracticeId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["4"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void theory_lesson_completion_should_update_progress_and_stats() throws Exception {
         String adminToken = login("admin@local", "admin123");
 

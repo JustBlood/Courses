@@ -100,6 +100,8 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-034.md`
 - `TASK-035` — FR-113 randomQuestionCount + shuffleOnEveryAttempt в runtime-выдаче practice-вопросов
   - Артефакт: `memory-bank/task-artifacts/TASK-035.md`
+- `TASK-036` — FR-114 stop-lesson блокировка перехода к следующему уроку (включая lessonsFreeOrder=true)
+  - Артефакт: `memory-bank/task-artifacts/TASK-036.md`
 - `TASK-037` — observability-контур (correlation-id, structured events, metrics)
   - Артефакт: `memory-bank/task-artifacts/TASK-037.md`
 - `TASK-037-ANALYSIS` — аналитическая оценка observability-реализации (standard tracing vs over-engineering)
@@ -112,6 +114,7 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-043.md`
 - `TASK-044` — FR-014/AC-014: workflow open-ended review `PENDING_REVIEW -> REWORK -> ACCEPTED` + FK cascade для history
   - Артефакт: `memory-bank/task-artifacts/TASK-044.md`
+
 
 
 

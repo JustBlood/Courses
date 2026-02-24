@@ -14,6 +14,7 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     List<LessonSubmission> findByStatus(SubmissionStatus status);
     List<LessonSubmission> findAllByStatusAndLessonCourseIdIn(SubmissionStatus status, List<Long> courseId);
     List<LessonSubmission> findByStudentIdAndLessonCourseId(Long studentId, Long courseId);
+    boolean existsByStudentIdAndLessonIdAndPassedTrue(Long studentId, Long lessonId);
     long countByStudentIdAndLessonId(Long studentId, Long lessonId);
     Optional<LessonSubmission> findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(Long studentId, Long lessonId);
 
