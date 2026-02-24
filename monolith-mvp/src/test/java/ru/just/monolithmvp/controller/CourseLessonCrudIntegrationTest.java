@@ -166,10 +166,145 @@ class CourseLessonCrudIntegrationTest {
         assertThat(courseStats.size()).isEqualTo(1);
         JsonNode studentCourseStat = courseStats.get(0);
         assertThat(studentCourseStat.get("studentId").asLong()).isEqualTo(studentId);
+        assertThat(studentCourseStat.get("fullName").asText()).isEqualTo("Theory Student");
         assertThat(studentCourseStat.get("earnedPoints").asInt()).isEqualTo(5);
         assertThat(studentCourseStat.get("maxPoints").asInt()).isEqualTo(5);
+        assertThat(studentCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(100.0);
+        assertThat(studentCourseStat.get("progressPercent").asDouble()).isEqualTo(100.0);
         assertThat(studentCourseStat.get("completedLessons").asInt()).isEqualTo(1);
         assertThat(studentCourseStat.get("totalLessons").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void course_stats_should_return_progress_percent_and_match_user_stats() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Course Stats FR-016",
+                                  "description": "FR-016 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String theoryLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Stats Theory",
+                                  "description": "One lesson",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Theory",
+                                  "fullPoints": 10
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long theoryLessonId = objectMapper.readTree(theoryLessonResponse).get("id").asLong();
+
+        String studentDoneEmail = uniqueEmail("stats-done");
+        Long studentDoneId = createUser(adminToken, "Stats Done", studentDoneEmail, "STUDENT");
+        String studentDoneToken = setPasswordAndLogin(studentDoneId, studentDoneEmail, "Stud123!");
+
+        String studentNewEmail = uniqueEmail("stats-new");
+        Long studentNewId = createUser(adminToken, "Stats New", studentNewEmail, "STUDENT");
+        setPasswordAndLogin(studentNewId, studentNewEmail, "Stud123!");
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d, %d]
+                                }
+                                """.formatted(studentDoneId, studentNewId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        String courseStatsResponse = mockMvc.perform(get("/api/v1/admin/progress/courses/{courseId}/stats", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode courseStats = objectMapper.readTree(courseStatsResponse);
+        assertThat(courseStats.size()).isEqualTo(2);
+
+        JsonNode doneCourseStat = null;
+        JsonNode newCourseStat = null;
+        for (JsonNode stat : courseStats) {
+            if (stat.get("studentId").asLong() == studentDoneId) {
+                doneCourseStat = stat;
+            }
+            if (stat.get("studentId").asLong() == studentNewId) {
+                newCourseStat = stat;
+            }
+        }
+
+        assertThat(doneCourseStat).isNotNull();
+        assertThat(doneCourseStat.get("fullName").asText()).isEqualTo("Stats Done");
+        assertThat(doneCourseStat.get("earnedPoints").asInt()).isEqualTo(10);
+        assertThat(doneCourseStat.get("maxPoints").asInt()).isEqualTo(10);
+        assertThat(doneCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(100.0);
+        assertThat(doneCourseStat.get("progressPercent").asDouble()).isEqualTo(100.0);
+        assertThat(doneCourseStat.get("completedLessons").asInt()).isEqualTo(1);
+        assertThat(doneCourseStat.get("totalLessons").asInt()).isEqualTo(1);
+
+        assertThat(newCourseStat).isNotNull();
+        assertThat(newCourseStat.get("fullName").asText()).isEqualTo("Stats New");
+        assertThat(newCourseStat.get("earnedPoints").asInt()).isEqualTo(0);
+        assertThat(newCourseStat.get("maxPoints").asInt()).isEqualTo(10);
+        assertThat(newCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(0.0);
+        assertThat(newCourseStat.get("progressPercent").asDouble()).isEqualTo(0.0);
+        assertThat(newCourseStat.get("completedLessons").asInt()).isEqualTo(0);
+        assertThat(newCourseStat.get("totalLessons").asInt()).isEqualTo(1);
+
+        String doneUserStatsResponse = mockMvc.perform(get("/api/v1/admin/users/{userId}/stats", studentDoneId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode doneUserStats = objectMapper.readTree(doneUserStatsResponse);
+        JsonNode doneUserCourseStat = doneUserStats.get(0);
+        assertThat(doneUserCourseStat.get("courseId").asLong()).isEqualTo(courseId);
+        assertThat(doneUserCourseStat.get("earnedPoints").asInt()).isEqualTo(doneCourseStat.get("earnedPoints").asInt());
+        assertThat(doneUserCourseStat.get("maxPoints").asInt()).isEqualTo(doneCourseStat.get("maxPoints").asInt());
+        assertThat(doneUserCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(doneCourseStat.get("efficiencyPercent").asDouble());
+        assertThat(doneUserCourseStat.get("progressPercent").asDouble()).isEqualTo(doneCourseStat.get("progressPercent").asDouble());
+
+        String newUserStatsResponse = mockMvc.perform(get("/api/v1/admin/users/{userId}/stats", studentNewId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode newUserStats = objectMapper.readTree(newUserStatsResponse);
+        JsonNode newUserCourseStat = newUserStats.get(0);
+        assertThat(newUserCourseStat.get("courseId").asLong()).isEqualTo(courseId);
+        assertThat(newUserCourseStat.get("earnedPoints").asInt()).isEqualTo(newCourseStat.get("earnedPoints").asInt());
+        assertThat(newUserCourseStat.get("maxPoints").asInt()).isEqualTo(newCourseStat.get("maxPoints").asInt());
+        assertThat(newUserCourseStat.get("efficiencyPercent").asDouble()).isEqualTo(newCourseStat.get("efficiencyPercent").asDouble());
+        assertThat(newUserCourseStat.get("progressPercent").asDouble()).isEqualTo(newCourseStat.get("progressPercent").asDouble());
     }
 
     @Test

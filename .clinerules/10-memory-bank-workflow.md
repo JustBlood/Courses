@@ -15,8 +15,8 @@
 3. `memory-bank/02-active-context.md`
 4. `memory-bank/tasks.json`
 5. `memory-bank/01-prd-index.md`
-6. Только релевантные главы из `memory-bank/prd/*` под текущую задачу по ссылкам из `memory-bank/01-prd-index.md` на основании контекста задачи (`memory-bank/02-active-context.md`)
-7. Чтение файлов из `memory-bank/pre-task-artifacts` не нужно без явной необходимости анализа артефактов предыдущих задач.
+6. Только релевантные главы из `memory-bank/prd/*` под текущую задачу по ссылкам из `memory-bank/01-prd-index.md`
+7. Чтение файлов из `memory-bank/pre-task-artifacts` и `memory-bank/task-artifacts` не нужно без явной необходимости анализа артефактов предыдущих задач.
 8. Чтение файла `memory-bank/05-task-execution-progress.md`
 
 ## Обязательные требования к обновлению файлов

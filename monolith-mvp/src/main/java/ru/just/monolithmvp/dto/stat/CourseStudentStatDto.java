@@ -8,6 +8,7 @@ public record CourseStudentStatDto(
         Integer earnedPoints,
         Integer maxPoints,
         Double efficiencyPercent,
+        Double progressPercent,
         Long completedLessons,
         Long totalLessons,
         String enrolledAt,

@@ -479,3 +479,22 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI задача по зависимостям: `TASK-018` (FR-016: статистика по конкретному курсу для администратора).
+
+### 2026-02-22 — Завершена TASK-018 (FR-016: статистика по конкретному курсу для администратора)
+- Что сделано (кратко):
+  - В course statistics добавлен явный показатель `% выполнения` (`progressPercent`) для каждого студента курса.
+  - В `StatisticsService.courseStats(Long courseId)` реализован и закреплён расчёт `progressPercent` по формуле `completedLessons * 100 / totalLessons`.
+  - Обеспечена консистентность course stats с личной статистикой пользователя (admin-view), включая `fullName`, `earnedPoints/maxPoints`, `efficiencyPercent`, `progressPercent`.
+  - Добавлен и подтверждён интеграционный сценарий на двух студентов с разным прогрессом и сверкой значений между endpoint-ами.
+  - Обновлён task-артефакт и индексы memory-bank; `TASK-018` переведена в `done` в `memory-bank/tasks.json`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/stat/CourseStudentStatDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/StatisticsService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-018.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI задача по зависимостям: `TASK-019A` (FR-017: сводный отчёт по конкретному курсу).

@@ -74,4 +74,7 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-016.md`
 - `TASK-017` — FR-015 личная статистика студента/пользователя
   - Артефакт: `memory-bank/task-artifacts/TASK-017.md`
+- `TASK-018` — FR-016 статистика по конкретному курсу для администратора
+  - Артефакт: `memory-bank/task-artifacts/TASK-018.md`
+
 

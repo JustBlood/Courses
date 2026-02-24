@@ -53,6 +53,7 @@ public class StatisticsService {
                     int earned = earnedPoints(e.getUser().getId(), courseId);
                     long completed = submissionRepository.countDistinctPassedLessons(e.getUser().getId(), courseId);
                     double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
+                    double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
                     return new CourseStudentStatDto(
                             e.getUser().getId(),
                             e.getUser().getFullName(),
@@ -61,6 +62,7 @@ public class StatisticsService {
                             earned,
                             maxPoints,
                             efficiency,
+                            progress,
                             completed,
                             totalLessons,
                             fmt(e.getEnrolledAt()),
