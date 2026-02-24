@@ -45,7 +45,7 @@ public class LearningService {
                 .description(lesson.getDescription())
                 .lessonType(lesson.getLessonType());
         if (LessonType.LessonSubType.PRACTICE.equals(lesson.getLessonType().getSubType())) {
-            final List<PracticeQuestion> practiceQuestions = courseService.getPracticeQuestionForLesson(lessonId);
+            final List<PracticeQuestion> practiceQuestions = selectPracticeQuestionsForAttempt((PracticeLesson) lesson);
             final List<LearnerPracticeQuestionDto> questions = practiceQuestions.stream().map(question -> new LearnerPracticeQuestionDto(
                     question.getQuestionIndex(),
                     question.getQuestionType(),
@@ -64,11 +64,30 @@ public class LearningService {
         return learnerLessonDtoBuilder.build();
     }
 
+    private List<PracticeQuestion> selectPracticeQuestionsForAttempt(PracticeLesson practiceLesson) {
+        List<PracticeQuestion> selectedQuestions = new ArrayList<>(courseService.getPracticeQuestionForLesson(practiceLesson.getId()));
+
+        Integer randomQuestionCount = practiceLesson.getRandomQuestionCount();
+        if (randomQuestionCount != null && randomQuestionCount > 0 && randomQuestionCount < selectedQuestions.size()) {
+            Collections.shuffle(selectedQuestions);
+            selectedQuestions = new ArrayList<>(selectedQuestions.subList(0, randomQuestionCount));
+        }
+
+        if (Boolean.TRUE.equals(practiceLesson.getShuffleOnEveryAttempt())) {
+            Collections.shuffle(selectedQuestions);
+        } else {
+            selectedQuestions.sort(Comparator.comparing(PracticeQuestion::getQuestionIndex));
+        }
+
+        return selectedQuestions;
+    }
+
     @Transactional
     public SubmissionResultDto completeTheoryLesson(Long lessonId) {
         Long studentId = securityUtils.currentUserId();
         Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(studentId, lesson.getCourse().getId());
+        courseService.assertCourseDeadlineNotExceededForStudent(studentId, lesson.getCourse().getId());
 
         if (lesson.getLessonType() != LessonType.THEORY_TEXT
                 && lesson.getLessonType() != LessonType.THEORY_VIDEO
@@ -95,9 +114,11 @@ public class LearningService {
         Long studentId = securityUtils.currentUserId();
         Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(studentId, lesson.getCourse().getId());
+        courseService.assertCourseDeadlineNotExceededForStudent(studentId, lesson.getCourse().getId());
 
         if (lesson instanceof PracticeLesson practiceLesson) {
             validatePracticeAttemptLimit(studentId, lessonId, practiceLesson.getAttemptLimit());
+            validatePracticeTimeLimit(studentId, lessonId, practiceLesson.getTimeLimitMinutes());
         }
 
         LessonSubmission submission = new LessonSubmission();
@@ -367,6 +388,23 @@ public class LearningService {
         long attempts = submissionRepository.countByStudentIdAndLessonId(studentId, lessonId);
         if (attempts >= attemptLimit) {
             throw new BadRequestException("Attempt limit exceeded for this lesson");
+        }
+    }
+
+    private void validatePracticeTimeLimit(Long studentId, Long lessonId, Integer timeLimitMinutes) {
+        if (timeLimitMinutes == null || timeLimitMinutes <= 0) {
+            return;
+        }
+
+        Optional<LessonSubmission> firstAttempt = submissionRepository
+                .findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(studentId, lessonId);
+        if (firstAttempt.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime deadlineAt = firstAttempt.get().getSubmittedAt().plusMinutes(timeLimitMinutes);
+        if (LocalDateTime.now().isAfter(deadlineAt)) {
+            throw new BadRequestException("Time limit exceeded for this lesson");
         }
     }
 

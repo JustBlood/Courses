@@ -12,10 +12,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.model.SubmissionStatus;
+import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionStatusHistoryRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +55,9 @@ class CourseLessonCrudIntegrationTest {
 
     @Autowired
     private LessonSubmissionStatusHistoryRepository lessonSubmissionStatusHistoryRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     @Test
     void theory_lesson_completion_should_update_progress_and_stats() throws Exception {
@@ -816,6 +825,172 @@ class CourseLessonCrudIntegrationTest {
     }
 
     @Test
+    void learner_practice_questions_should_apply_random_question_count_and_shuffle_on_every_attempt() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("random-shuffle-student");
+        Long studentId = createUser(adminToken, "Random Shuffle Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Random Question Count Course",
+                                  "description": "FR-113 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String practiceLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Randomized Practice",
+                                  "description": "FR-113",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "randomQuestionCount": 5,
+                                  "shuffleOptions": true,
+                                  "passingThresholdPercent": 60,
+                                  "fullPoints": 1,
+                                  "partialPoints": 0,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q1",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 2,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q2",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 3,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q3",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 4,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q4",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 5,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q5",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 6,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q6",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 7,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q7",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 8,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q8",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 9,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q9",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    },
+                                    {
+                                      "position": 10,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q10",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long practiceLessonId = objectMapper.readTree(practiceLessonResponse).get("id").asLong();
+
+        Set<String> attemptSignatures = new HashSet<>();
+        for (int i = 0; i < 12; i++) {
+            String learnerLessonResponse = mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", practiceLessonId)
+                            .header("Authorization", "Bearer " + studentToken))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            JsonNode learnerLesson = objectMapper.readTree(learnerLessonResponse);
+            JsonNode questions = learnerLesson.get("questions");
+            assertThat(questions.size()).isEqualTo(5);
+
+            List<Integer> indexes = new ArrayList<>();
+            for (JsonNode question : questions) {
+                int questionIndex = question.get("index").asInt();
+                indexes.add(questionIndex);
+                assertThat(questionIndex).isBetween(1, 10);
+            }
+
+            assertThat(new HashSet<>(indexes)).hasSize(5);
+            attemptSignatures.add(indexes.toString());
+        }
+
+        assertThat(attemptSignatures.size()).isGreaterThan(1);
+    }
+
+    @Test
     void practice_attempt_limit_should_block_third_attempt_after_two_failed() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
@@ -918,6 +1093,158 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(failedAttemptPayload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void time_limits_should_block_after_course_deadline_and_practice_time_limit() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("time-limit-student");
+        Long studentId = createUser(adminToken, "Time Limit Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createDeadlineCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Deadline Course",
+                                  "description": "FR-112 deadlineDays check",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 1
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long deadlineCourseId = objectMapper.readTree(createDeadlineCourseResponse).get("id").asLong();
+
+        String theoryLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", deadlineCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Deadline Theory",
+                                  "description": "Theory",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Theory",
+                                  "fullPoints": 5
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long theoryLessonId = objectMapper.readTree(theoryLessonResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", deadlineCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        var enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, deadlineCourseId).orElseThrow();
+        enrollment.setEnrolledAt(LocalDateTime.now().minusDays(2));
+        enrollmentRepository.save(enrollment);
+
+        mockMvc.perform(get("/api/v1/student/courses/{courseId}", deadlineCourseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+
+        String createPracticeCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice Time Limit Course",
+                                  "description": "FR-112 timeLimitMinutes check",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long practiceCourseId = objectMapper.readTree(createPracticeCourseResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", practiceCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String practiceLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", practiceCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice Time Limit",
+                                  "description": "Limited by time",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "timeLimitMinutes": 1,
+                                  "passingThresholdPercent": 100,
+                                  "fullPoints": 1,
+                                  "partialPoints": 0,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "2 + 2 = ?",
+                                      "options": ["3", "4"],
+                                      "correctAnswers": ["4"],
+                                      "fullPoints": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long practiceLessonId = objectMapper.readTree(practiceLessonResponse).get("id").asLong();
+
+        String successfulAttemptPayload = """
+                {
+                  "questionAnswers": {
+                    "1": ["4"]
+                  }
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(successfulAttemptPayload))
+                .andExpect(status().isOk());
+
+        LessonSubmission firstAttempt = lessonSubmissionRepository.findAll().stream()
+                .filter(s -> s.getLesson().getId().equals(practiceLessonId) && s.getStudent().getId().equals(studentId))
+                .findFirst()
+                .orElseThrow();
+        firstAttempt.setSubmittedAt(LocalDateTime.now().minusMinutes(2));
+        lessonSubmissionRepository.save(firstAttempt);
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(successfulAttemptPayload))
                 .andExpect(status().isBadRequest());
     }
 

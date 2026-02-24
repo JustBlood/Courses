@@ -818,3 +818,40 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-034 (FR-112: course/lesson time limits)
+- Что сделано (кратко):
+  - Реализовано ограничение срока прохождения курса через `deadlineDays`: проверка дедлайна по `Enrollment.enrolledAt` добавлена в learner-course view и student learning-flow.
+  - Реализовано ограничение времени practice-урока через `timeLimitMinutes`: в `submitPractice` добавлена валидация окна времени на основе первой попытки по уроку.
+  - Добавлен repository-метод для получения первой попытки урока студента в хронологическом порядке.
+  - Добавлен интеграционный тест `time_limits_should_block_after_course_deadline_and_practice_time_limit`, покрывающий оба ограничения (course deadline + lesson time limit).
+  - Подтверждён прогон: `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 11`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/LessonSubmissionRepository.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-034.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-035 (FR-113: randomQuestionCount + shuffleOnEveryAttempt)
+- Что сделано (кратко):
+  - В learner runtime-выдаче practice-урока реализовано применение параметров `shuffleOnEveryAttempt` и `randomQuestionCount`.
+  - Логика выдачи теперь поддерживает ограниченную выборку вопросов из банка и рандомизацию порядка между попытками чтения урока.
+  - Добавлен/обновлён интеграционный сценарий `AC-113` в `CourseLessonCrudIntegrationTest` (урок с 10 вопросами, `randomQuestionCount=5`, `shuffle=true`).
+  - Подтверждён релевантный прогон: `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 12, Failures: 0, Errors: 0`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-035.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.

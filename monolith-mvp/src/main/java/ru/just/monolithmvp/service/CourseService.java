@@ -280,6 +280,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public CourseLearnerDto getCourseForLearner(Long userId, Long courseId) {
         validateStudentEnrolled(userId, courseId);
+        assertCourseDeadlineNotExceededForStudent(userId, courseId);
         Course course = getCourseEntity(courseId);
         List<LearnerLessonSummaryDto> lessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId).stream()
                 .map(lesson -> new LearnerLessonSummaryDto(
@@ -495,6 +496,21 @@ public class CourseService {
     @Transactional(readOnly = true)
     public boolean isUserEnrolled(Long userId, Long courseId) {
         return enrollmentRepository.existsByUserIdAndCourseId(userId, courseId);
+    }
+
+    @Transactional(readOnly = true)
+    public void assertCourseDeadlineNotExceededForStudent(Long userId, Long courseId) {
+        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new BadRequestException("Student is not enrolled in this course"));
+        Integer deadlineDays = enrollment.getCourse().getDeadlineDays();
+        if (deadlineDays == null || deadlineDays <= 0) {
+            return;
+        }
+
+        LocalDateTime deadlineAt = enrollment.getEnrolledAt().plusDays(deadlineDays);
+        if (LocalDateTime.now().isAfter(deadlineAt)) {
+            throw new BadRequestException("Course deadline exceeded");
+        }
     }
 
     private void validateStudentEnrolled(Long userId, Long courseId) {
