@@ -14,6 +14,7 @@ import ru.just.monolithmvp.mapper.CourseMapper;
 import ru.just.monolithmvp.mapper.LessonMapper;
 import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.security.SecurityUtils;
 
@@ -41,6 +42,7 @@ public class CourseService {
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
     private final SectionService sectionService;
+    private final BusinessEventLogger businessEventLogger;
 
     @Transactional
     public CourseDto createCourse(CreateCourseRequest request) {
@@ -300,12 +302,18 @@ public class CourseService {
 
     @Transactional
     public void assignStudentToCourse(Long courseId, Long userId) {
+        String actor = resolveCurrentActor();
         Course course = getCourseEntity(courseId);
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
         if (enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
             log.warn("Student already assigned to this course");
+            businessEventLogger.log("course.enrollment.assign", "noop",
+                    "actor", actor,
+                    "courseId", courseId,
+                    "userId", userId,
+                    "reason", "already_assigned");
             return;
         }
 
@@ -314,14 +322,23 @@ public class CourseService {
         enrollment.setUser(user);
         enrollment.setEnrolledAt(LocalDateTime.now());
         enrollmentRepository.save(enrollment);
+        businessEventLogger.log("course.enrollment.assign", "success",
+                "actor", actor,
+                "courseId", courseId,
+                "userId", userId);
     }
 
     @Transactional
     public void unassignStudentFromCourse(Long courseId, Long userId) {
+        String actor = resolveCurrentActor();
         if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
             throw new NotFoundException("User not assigned to course");
         }
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
+        businessEventLogger.log("course.enrollment.unassign", "success",
+                "actor", actor,
+                "courseId", courseId,
+                "userId", userId);
     }
 
     @Transactional(readOnly = true)
@@ -365,6 +382,7 @@ public class CourseService {
 
     @Transactional
     public void assignReviewerToCourse(Long courseId, Long reviewerId) {
+        String actor = resolveCurrentActor();
         Course course = getCourseEntity(courseId);
         AppUser reviewer = userRepository.findById(reviewerId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + reviewerId));
@@ -373,17 +391,31 @@ public class CourseService {
         }
         if (courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, reviewerId)) {
             log.warn("User already reviewer on course");
+            businessEventLogger.log("course.reviewer.assign", "noop",
+                    "actor", actor,
+                    "courseId", courseId,
+                    "reviewerId", reviewerId,
+                    "reason", "already_assigned");
             return;
         }
         CourseReviewer cr = new CourseReviewer();
         cr.setCourse(course);
         cr.setReviewer(reviewer);
         courseReviewerRepository.save(cr);
+        businessEventLogger.log("course.reviewer.assign", "success",
+                "actor", actor,
+                "courseId", courseId,
+                "reviewerId", reviewerId);
     }
 
     @Transactional
     public void unassignReviewerFromCourse(Long courseId, Long reviewerId) {
+        String actor = resolveCurrentActor();
         courseReviewerRepository.deleteByCourseIdAndReviewerId(courseId, reviewerId);
+        businessEventLogger.log("course.reviewer.unassign", "success",
+                "actor", actor,
+                "courseId", courseId,
+                "reviewerId", reviewerId);
     }
 
     @Transactional
@@ -645,6 +677,14 @@ public class CourseService {
         boolean hasNonStudent = users.stream().anyMatch(user -> user.getRole() != Role.STUDENT);
         if (hasNonStudent) {
             throw new BadRequestException("Only STUDENT users are allowed for enrollment lists operations");
+        }
+    }
+
+    private String resolveCurrentActor() {
+        try {
+            return securityUtils.currentUser().getUsername();
+        } catch (Exception ex) {
+            return "system";
         }
     }
 }

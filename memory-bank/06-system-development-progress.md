@@ -712,3 +712,30 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-037 (observability-контур)
+- Что сделано (кратко):
+  - Реализован end-to-end observability-контур: correlation-id, structured business events, auth/email/http метрики.
+  - В security chain подключены `CorrelationIdFilter` и `HttpServerMetricsFilter`.
+  - Интегрированы structured-события в ключевые сервисы (`AuthService`, `UserService`, `CourseService`, `LearningService`, email-сервисы).
+  - Усилен `GlobalExceptionHandler` structured error-логированием.
+  - Добавлен `ObservabilityIntegrationTest` (проверка `X-Correlation-Id` и `/actuator/metrics`).
+  - Подтверждён релевантный прогон: `mvn -f monolith-mvp/pom.xml -Dtest=ObservabilityIntegrationTest,UserAuthStudentFlowIntegrationTest test` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/observability/*`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/CorrelationIdFilter.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/config/SecurityConfig.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/AuthService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/YandexSmtpEmailService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/NoopEmailService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/exception/GlobalExceptionHandler.java`
+  - `monolith-mvp/src/main/resources/application.yml`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/ObservabilityIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-037.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.

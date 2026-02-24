@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
@@ -19,6 +20,7 @@ import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.security.SecurityUtils;
 
@@ -33,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -49,6 +52,7 @@ public class UserService {
     private final GroupMembershipRepository groupMembershipRepository;
     private final ProgramEnrollmentRepository programEnrollmentRepository;
     private final SecurityUtils securityUtils;
+    private final BusinessEventLogger businessEventLogger;
 
     @Value("${app.storage.user-avatar-dir:data/users/avatars}")
     private String userAvatarDir;
@@ -57,56 +61,87 @@ public class UserService {
 
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new BadRequestException("Email already exists");
+        String actor = resolveCurrentActor();
+        try {
+            if (userRepository.existsByEmail(request.email())) {
+                throw new BadRequestException("Email already exists");
+            }
+
+            boolean sendInvite = request.password() == null || request.password().isBlank();
+
+            AppUser user = new AppUser();
+            user.setFullName(request.fullName());
+            user.setEmail(request.email());
+            user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
+            user.setRole(request.role());
+            user.setEnabled(true);
+            user.setPhone(request.phone());
+            user.setComment(request.comment());
+            user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
+            user.setCreatedBy(
+                    request.createdBy() == null || request.createdBy().isBlank()
+                            ? actor
+                            : request.createdBy()
+            );
+            user.setLastVisit(request.lastVisit());
+            user.setDeactivatedAt(request.deactivatedAt());
+            user.setDeactivatedBy(request.deactivatedBy());
+            user = userRepository.save(user);
+
+            applyInitialAssignments(user, request.groupIds(), request.courseIds());
+
+            if (sendInvite) {
+                sendPasswordLink(user);
+            }
+
+            businessEventLogger.log("user.create", "success",
+                    "actor", actor,
+                    "userId", user.getId(),
+                    "email", user.getEmail(),
+                    "role", user.getRole(),
+                    "invite", sendInvite);
+
+            return userMapper.toDto(user);
+        } catch (RuntimeException ex) {
+            businessEventLogger.log("user.create", "failure",
+                    "actor", actor,
+                    "email", request.email(),
+                    "reason", ex.getClass().getSimpleName());
+            throw ex;
         }
-
-        boolean sendInvite = request.password() == null || request.password().isBlank();
-
-        AppUser user = new AppUser();
-        user.setFullName(request.fullName());
-        user.setEmail(request.email());
-        user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
-        user.setRole(request.role());
-        user.setEnabled(true);
-        user.setPhone(request.phone());
-        user.setComment(request.comment());
-        user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
-        user.setCreatedBy(
-                request.createdBy() == null || request.createdBy().isBlank()
-                        ? resolveCurrentActor()
-                        : request.createdBy()
-        );
-        user.setLastVisit(request.lastVisit());
-        user.setDeactivatedAt(request.deactivatedAt());
-        user.setDeactivatedBy(request.deactivatedBy());
-        user = userRepository.save(user);
-
-        applyInitialAssignments(user, request.groupIds(), request.courseIds());
-
-        if (sendInvite) {
-            sendPasswordLink(user);
-        }
-
-        return userMapper.toDto(user);
     }
 
     @Transactional
     public UserDto updateUser(Long userId, UpdateUserRequest request) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        String actor = resolveCurrentActor();
+        try {
+            AppUser user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        if (userRepository.existsByEmailAndIdNot(request.email(), userId)) {
-            throw new BadRequestException("Email already exists");
+            if (userRepository.existsByEmailAndIdNot(request.email(), userId)) {
+                throw new BadRequestException("Email already exists");
+            }
+
+            user.setFullName(request.fullName());
+            user.setEmail(request.email());
+            user.setRole(request.role());
+            user.setPhone(request.phone());
+            user.setComment(request.comment());
+
+            AppUser savedUser = userRepository.save(user);
+            businessEventLogger.log("user.update", "success",
+                    "actor", actor,
+                    "userId", savedUser.getId(),
+                    "email", savedUser.getEmail(),
+                    "role", savedUser.getRole());
+            return userMapper.toDto(savedUser);
+        } catch (RuntimeException ex) {
+            businessEventLogger.log("user.update", "failure",
+                    "actor", actor,
+                    "userId", userId,
+                    "reason", ex.getClass().getSimpleName());
+            throw ex;
         }
-
-        user.setFullName(request.fullName());
-        user.setEmail(request.email());
-        user.setRole(request.role());
-        user.setPhone(request.phone());
-        user.setComment(request.comment());
-
-        return userMapper.toDto(userRepository.save(user));
     }
 
     @Transactional

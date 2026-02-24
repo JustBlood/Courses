@@ -13,6 +13,7 @@ import ru.just.monolithmvp.dto.lesson.LearnerPracticeQuestionDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
@@ -29,6 +30,7 @@ public class LearningService {
     private final EnrollmentRepository enrollmentRepository;
     private final AppUserRepository userRepository;
     private final SecurityUtils securityUtils;
+    private final BusinessEventLogger businessEventLogger;
 
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
         final Lesson lesson = courseService.getLessonEntity(lessonId);
@@ -191,15 +193,18 @@ public class LearningService {
 
     @Transactional
     public SubmissionResultDto reviewOpenSubmission(Long submissionId, ReviewOpenSubmissionRequest request) {
+        Long reviewerId = securityUtils.currentUserId();
         LessonSubmission submission = submissionRepository.findWithLockingById(submissionId)
                 .orElseThrow(() -> new NotFoundException("Submission not found: " + submissionId));
+
+        SubmissionStatus previousStatus = submission.getStatus();
 
         if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW
                 && submission.getStatus() != SubmissionStatus.REWORK) {
             throw new BadRequestException("Submission is not in reviewable status");
         }
 
-        if (!courseService.canReviewCourse(submission.getLesson().getCourse().getId(), securityUtils.currentUserId())) {
+        if (!courseService.canReviewCourse(submission.getLesson().getCourse().getId(), reviewerId)) {
             throw new AccessDeniedException("Admin is not assigned as reviewer for this course");
         }
 
@@ -219,13 +224,25 @@ public class LearningService {
         submission.setStatus(finalStatus);
         submission.setPointsAwarded(pointsAwarded);
         submission.setReviewComment(request.comment());
-        submission.setReviewedByAdminId(securityUtils.currentUserId());
+        submission.setReviewedByAdminId(reviewerId);
         submission.setReviewedAt(LocalDateTime.now());
 
         submission = submissionRepository.save(submission);
         if (finalPassed) {
             markEnrollmentCompletedIfDone(submission.getStudent().getId(), submission.getLesson().getCourse().getId());
         }
+
+        businessEventLogger.log("learning.open_submission.review", "success",
+                "submissionId", submission.getId(),
+                "courseId", submission.getLesson().getCourse().getId(),
+                "lessonId", submission.getLesson().getId(),
+                "studentId", submission.getStudent().getId(),
+                "reviewerId", reviewerId,
+                "fromStatus", previousStatus,
+                "toStatus", finalStatus,
+                "passed", finalPassed,
+                "points", pointsAwarded);
+
         return new SubmissionResultDto(
                 submission.getId(),
                 submission.getStatus(),

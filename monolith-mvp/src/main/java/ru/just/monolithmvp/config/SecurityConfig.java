@@ -16,8 +16,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import ru.just.monolithmvp.observability.HttpServerMetricsFilter;
 import ru.just.monolithmvp.security.ApiAccessDeniedHandler;
 import ru.just.monolithmvp.security.ApiAuthenticationEntryPoint;
+import ru.just.monolithmvp.security.CorrelationIdFilter;
 import ru.just.monolithmvp.security.JwtAuthenticationFilter;
 
 @Configuration
@@ -26,6 +28,8 @@ import ru.just.monolithmvp.security.JwtAuthenticationFilter;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final CorrelationIdFilter correlationIdFilter;
+    private final HttpServerMetricsFilter httpServerMetricsFilter;
     private final UserDetailsService userDetailsService;
     private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
     private final ApiAccessDeniedHandler apiAccessDeniedHandler;
@@ -45,7 +49,10 @@ public class SecurityConfig {
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(correlationIdFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        http.addFilterAfter(httpServerMetricsFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

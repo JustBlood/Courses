@@ -96,6 +96,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-032.md`
 - `TASK-033` — FR-110/FR-111 порог прохождения практики и лимит попыток
   - Артефакт: `memory-bank/task-artifacts/TASK-033.md`
+- `TASK-037` — observability-контур (correlation-id, structured events, metrics)
+  - Артефакт: `memory-bank/task-artifacts/TASK-037.md`
+
 
 
 

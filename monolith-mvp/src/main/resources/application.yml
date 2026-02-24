@@ -48,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       probes:
@@ -110,3 +110,7 @@ spring:
 springdoc:
   api-docs:
     enabled: true
+
+logging:
+  pattern:
+    level: "%5p [corr:%X{correlationId:-na}]"

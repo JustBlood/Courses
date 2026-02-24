@@ -15,6 +15,8 @@ import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.AppUser;
 import ru.just.monolithmvp.model.PasswordSetupToken;
+import ru.just.monolithmvp.observability.BusinessEventLogger;
+import ru.just.monolithmvp.observability.ObservabilityMetricsService;
 import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 import ru.just.monolithmvp.security.AuthenticatedUser;
@@ -31,47 +33,85 @@ public class AuthService {
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
+    private final ObservabilityMetricsService metricsService;
+    private final BusinessEventLogger businessEventLogger;
 
     public LoginResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
-        AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
-        final String token = jwtService.generateToken(user.getId(), user.getUsername(), user.getRole());
-        return new LoginResponse(token, user.getId(), user.getUsername(), user.getRole());
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+            AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
+            final String token = jwtService.generateToken(user.getId(), user.getUsername(), user.getRole());
+
+            metricsService.incrementAuth("login", "success");
+            businessEventLogger.log("auth.login", "success", "userId", user.getId(), "email", request.email());
+            return new LoginResponse(token, user.getId(), user.getUsername(), user.getRole());
+        } catch (RuntimeException ex) {
+            metricsService.incrementAuth("login", "failure");
+            businessEventLogger.log("auth.login", "failure", "email", request.email(), "reason", ex.getClass().getSimpleName());
+            throw ex;
+        }
     }
 
     @Transactional
     public void setPassword(String token, SetPasswordRequest request) {
-        PasswordSetupToken setupToken = passwordSetupTokenRepository.findByTokenWithUser(token)
-                .orElseThrow(() -> new NotFoundException("Invalid token"));
+        try {
+            PasswordSetupToken setupToken = passwordSetupTokenRepository.findByTokenWithUser(token)
+                    .orElseThrow(() -> new NotFoundException("Invalid token"));
 
-        if (setupToken.getUsedAt() != null) {
-            throw new BadRequestException("Token already used");
+            if (setupToken.getUsedAt() != null) {
+                throw new BadRequestException("Token already used");
+            }
+
+            setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
+            setupToken.setUsedAt(java.time.LocalDateTime.now());
+            passwordSetupTokenRepository.save(setupToken);
+
+            metricsService.incrementAuth("set_password", "success");
+            businessEventLogger.log("auth.set_password", "success", "userId", setupToken.getUser().getId());
+        } catch (RuntimeException ex) {
+            metricsService.incrementAuth("set_password", "failure");
+            businessEventLogger.log("auth.set_password", "failure", "reason", ex.getClass().getSimpleName());
+            throw ex;
         }
-
-        setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
-        setupToken.setUsedAt(java.time.LocalDateTime.now());
-        passwordSetupTokenRepository.save(setupToken);
     }
 
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
         Long userId = securityUtils.currentUserId();
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        try {
+            AppUser user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new BadRequestException("Current password is invalid");
+            if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+                throw new BadRequestException("Current password is invalid");
+            }
+
+            user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+            userRepository.save(user);
+
+            metricsService.incrementAuth("change_password", "success");
+            businessEventLogger.log("auth.change_password", "success", "userId", userId);
+        } catch (RuntimeException ex) {
+            metricsService.incrementAuth("change_password", "failure");
+            businessEventLogger.log("auth.change_password", "failure", "userId", userId, "reason", ex.getClass().getSimpleName());
+            throw ex;
         }
-
-        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
     }
 
     public void recoverPassword(String email) {
-        final AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found by email"));
-        userService.sendPasswordLink(user);
+        try {
+            final AppUser user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new NotFoundException("User not found by email"));
+            userService.sendPasswordLink(user);
+
+            metricsService.incrementAuth("recover_password", "success");
+            businessEventLogger.log("auth.recover_password", "success", "userId", user.getId(), "email", email);
+        } catch (RuntimeException ex) {
+            metricsService.incrementAuth("recover_password", "failure");
+            businessEventLogger.log("auth.recover_password", "failure", "email", email, "reason", ex.getClass().getSimpleName());
+            throw ex;
+        }
     }
 }
