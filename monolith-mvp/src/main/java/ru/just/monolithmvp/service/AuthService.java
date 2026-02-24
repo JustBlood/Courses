@@ -11,6 +11,7 @@ import ru.just.monolithmvp.dto.auth.ChangePasswordRequest;
 import ru.just.monolithmvp.dto.auth.LoginRequest;
 import ru.just.monolithmvp.dto.auth.LoginResponse;
 import ru.just.monolithmvp.dto.auth.SetPasswordRequest;
+import ru.just.monolithmvp.config.properties.PasswordResetProperties;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.AppUser;
@@ -23,6 +24,8 @@ import ru.just.monolithmvp.security.AuthenticatedUser;
 import ru.just.monolithmvp.security.JwtService;
 import ru.just.monolithmvp.security.SecurityUtils;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -33,6 +36,7 @@ public class AuthService {
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
+    private final PasswordResetProperties passwordResetProperties;
     private final ObservabilityMetricsService metricsService;
     private final BusinessEventLogger businessEventLogger;
 
@@ -62,6 +66,11 @@ public class AuthService {
 
             if (setupToken.getUsedAt() != null) {
                 throw new BadRequestException("Token already used");
+            }
+
+            LocalDateTime expiresAt = setupToken.getCreatedAt().plus(passwordResetProperties.tokenTtl());
+            if (LocalDateTime.now().isAfter(expiresAt)) {
+                throw new BadRequestException("Invalid token");
             }
 
             setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
@@ -103,12 +112,13 @@ public class AuthService {
 
     public void recoverPassword(String email) {
         try {
-            final AppUser user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new NotFoundException("User not found by email"));
-            userService.sendPasswordLink(user);
+            final AppUser user = userRepository.findByEmail(email).orElse(null);
+            if (user != null) {
+                userService.sendPasswordLink(user);
+            }
 
             metricsService.incrementAuth("recover_password", "success");
-            businessEventLogger.log("auth.recover_password", "success", "userId", user.getId(), "email", email);
+            businessEventLogger.log("auth.recover_password", "success", "email", email, "userFound", user != null);
         } catch (RuntimeException ex) {
             metricsService.incrementAuth("recover_password", "failure");
             businessEventLogger.log("auth.recover_password", "failure", "email", email, "reason", ex.getClass().getSimpleName());

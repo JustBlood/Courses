@@ -895,3 +895,24 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-ui задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-040 (сквозной e2e-набор приемки AC-001..AC-019 и AC-101..AC-114)
+- Что сделано (кратко):
+  - Сформирован и подтверждён воспроизводимый e2e-набор на базе интеграционных тестов:
+    `UserAuthStudentFlowIntegrationTest`, `CourseLessonCrudIntegrationTest`,
+    `SectionCatalogIntegrationTest`, `GroupManagementIntegrationTest`, `ProgramManagementIntegrationTest`.
+  - Выполнен целевой прогон набора с итогом `BUILD SUCCESS` и `Tests run: 22, Failures: 0, Errors: 0`.
+  - Зафиксирована трассировка покрытия AC для MVP и post-MVP; отдельно отмечено ограничение по AC-109 (поиск/фильтры) в текущем backend e2e-срезе.
+  - Создан артефакт задачи: `memory-bank/task-artifacts/TASK-040.md`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/SectionCatalogIntegrationTest.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/GroupManagementIntegrationTest.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/ProgramManagementIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-040.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-ui задаче по приоритету и зависимостям из `memory-bank/tasks.json`.

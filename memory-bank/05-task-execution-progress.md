@@ -82,6 +82,8 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-020A.md`
 - `TASK-022A` — FR-019 (base flow) восстановление пароля по email-токену
   - Артефакт: `memory-bank/task-artifacts/TASK-022A.md`
+- `TASK-022B` — security hardening reset-flow: TTL reset-токена + neutral responses
+  - Артефакт: `memory-bank/task-artifacts/TASK-022B.md`
 - `TASK-026` — FR-101/FR-102 CRUD разделов каталога и создание курса в контексте раздела
   - Артефакт: `memory-bank/task-artifacts/TASK-026.md`
 - `TASK-027` — FR-106/FR-107 группы пользователей и правила typed-membership
@@ -118,6 +120,10 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-039.md`
 - `TASK-046` — backup/restore readiness: измеримые RPO/RTO + retention verification
   - Артефакт: `memory-bank/task-artifacts/TASK-046.md`
+- `TASK-040` — сквозной e2e-набор приемки AC-001..AC-019 и AC-101..AC-114
+  - Артефакт: `memory-bank/task-artifacts/TASK-040.md`
+
+
 
 
 

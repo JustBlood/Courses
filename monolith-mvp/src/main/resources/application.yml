@@ -39,6 +39,8 @@ app:
       # Для non-dev окружений задаётся ТОЛЬКО через env/secret-store.
       secret: ${APP_SECURITY_JWT_SECRET:local-dev-jwt-secret-change-me-please-1234567890}
       expiration-ms: ${APP_SECURITY_JWT_EXPIRATION_MS:86400000}
+    password-reset:
+      token-ttl: ${APP_SECURITY_PASSWORD_RESET_TOKEN_TTL:PT24H}
   bootstrap-admin:
     password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:admin123}
     full-name: ${APP_BOOTSTRAP_ADMIN_FULL_NAME:System Admin}

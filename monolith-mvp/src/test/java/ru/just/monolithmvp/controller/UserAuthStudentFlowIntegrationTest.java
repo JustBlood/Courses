@@ -22,6 +22,7 @@ import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
@@ -39,7 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.password=",
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=none",
-        "spring.profiles.active=h2"
+        "spring.profiles.active=h2",
+        "app.security.password-reset.token-ttl=PT24H"
 })
 class UserAuthStudentFlowIntegrationTest {
 
@@ -265,7 +267,7 @@ class UserAuthStudentFlowIntegrationTest {
                                   "email": "unexpected@unexpected.unexpected"
                                 }
                                 """))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
 
         // Позитивное воостановление пароля студента
         mockMvc.perform(post("/api/v1/auth/recover-password")
@@ -278,6 +280,32 @@ class UserAuthStudentFlowIntegrationTest {
                 .andExpect(status().isOk());
 
         PasswordSetupToken recoverToken = passwordSetupTokenRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(studentId) && t.getUsedAt() == null)
+                .reduce((a, b) -> b)
+                .orElseThrow();
+
+        recoverToken.setCreatedAt(LocalDateTime.now().minusDays(2));
+        passwordSetupTokenRepository.save(recoverToken);
+
+        mockMvc.perform(post("/api/v1/auth/set-password?token=" + recoverToken.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "password": "StudPass3!"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/auth/recover-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "student1@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        recoverToken = passwordSetupTokenRepository.findAll().stream()
                 .filter(t -> t.getUser().getId().equals(studentId) && t.getUsedAt() == null)
                 .reduce((a, b) -> b)
                 .orElseThrow();

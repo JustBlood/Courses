@@ -466,7 +466,7 @@
         "TASK-005",
         "TASK-003"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-023",
@@ -841,7 +841,7 @@
         "TASK-028",
         "TASK-036"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-041",
