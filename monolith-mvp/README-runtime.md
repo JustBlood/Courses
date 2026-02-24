@@ -60,3 +60,57 @@ mvn -pl monolith-mvp spring-boot:run -Dspring-boot.run.profiles=stage
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
+
+## 4) Backup / Restore (TASK-039)
+
+Скрипты:
+- `scripts/backup/backup-monolith.sh` — backup PostgreSQL + файлового хранилища.
+- `scripts/backup/restore-monolith.sh` — restore из конкретного snapshot.
+
+Ключевые env-переменные (см. `monolith.env.example`):
+- `BACKUP_ROOT` (по умолчанию `backups/monolith`)
+- `BACKUP_RETENTION_DAYS` (по умолчанию `7`)
+- `POSTGRES_CONTAINER` (по умолчанию `monolith-postgres`)
+- `APP_CONTAINER` (по умолчанию `monolith-mvp`)
+- `BACKUP_FILES_SOURCE` (по умолчанию `/opt/app/data`)
+- `RESTORE_RECREATE_SCHEMA` (по умолчанию `true`)
+- `BACKUP_VERIFY_RETENTION` (по умолчанию `true`, проверяет соблюдение retention после backup)
+
+Запуск backup:
+
+```bash
+sh scripts/backup/backup-monolith.sh
+```
+
+Запуск backup c проверкой retention (рекомендуется для эксплуатации):
+
+```bash
+sh scripts/backup/backup.sh
+```
+
+Результат: каталог snapshot вида `backups/monolith/<UTC timestamp>`, внутри:
+- `db/<db>.sql`
+- `files/app-data.tar`
+- `metadata.env` (включая `snapshot_epoch` для расчёта фактического RPO)
+
+Запуск restore:
+
+```bash
+sh scripts/backup/restore-monolith.sh backups/monolith/<UTC timestamp>
+```
+
+Результат: рядом с snapshot создаётся `restore-report.env` c:
+- `restore_duration_sec` (фактический RTO для теста)
+- `rpo_seconds` (фактический RPO по `snapshot_epoch`)
+
+Проверка retention отдельно:
+
+```bash
+sh scripts/backup/check-backup-retention.sh
+```
+
+### Пример cron (ежедневный backup)
+
+```bash
+0 2 * * * cd /opt/courses && /bin/sh scripts/backup/backup-monolith.sh >> /var/log/courses-backup.log 2>&1
+```

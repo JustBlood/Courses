@@ -855,3 +855,43 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-039 (backup/restore контур, MVP RPO/RTO)
+- Что сделано (кратко):
+  - Подтверждён рабочий backup/restore pipeline для монолита (`PostgreSQL + /opt/app/data`) через `scripts/backup/backup-monolith.sh` и `scripts/backup/restore-monolith.sh`.
+  - Выполнен практический сценарий: backup -> симуляция потери данных (БД + файл) -> restore из snapshot.
+  - Зафиксированы фактические метрики из отчёта восстановления: `rpo_seconds=38`, `restore_duration_sec=2`.
+  - Подтверждено соответствие retention-требованию MVP: `retention_days=7`.
+  - Создан task-артефакт: `memory-bank/task-artifacts/TASK-039.md`.
+- Какие модули затронуты:
+  - `scripts/backup/backup-monolith.sh`
+  - `scripts/backup/restore-monolith.sh`
+  - `docker-compose.monolith.yml`
+  - `monolith.env.example`
+  - `monolith-mvp/README-runtime.md`
+  - `memory-bank/task-artifacts/TASK-039.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче из `memory-bank/tasks.json` по приоритету и зависимостям.
+
+### 2026-02-24 — Завершена TASK-046 (backup/restore readiness + retention verification)
+- Что сделано (кратко):
+  - Подтверждена эксплуатационная готовность backup/restore-контура на базе ранее внедрённых скриптов.
+  - Выполнен новый backup + restore-drill для snapshot `backups/monolith/20260224T185336Z`.
+  - Зафиксированы фактические метрики восстановления: `restore_duration_sec=2`, `rpo_seconds=18`.
+  - Подтверждена регулярная проверка retention: `check-backup-retention.sh` возвращает `OK` для окна `7d`.
+  - Сформирован артефакт задачи `memory-bank/task-artifacts/TASK-046.md` и обновлён индекс выполненных задач.
+- Какие модули затронуты:
+  - `scripts/backup/backup.sh`
+  - `scripts/backup/check-backup-retention.sh`
+  - `scripts/backup/restore-monolith.sh`
+  - `monolith.env.example`
+  - `monolith-mvp/README-runtime.md`
+  - `memory-bank/task-artifacts/TASK-046.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-ui задаче по зависимостям и приоритету из `memory-bank/tasks.json`.

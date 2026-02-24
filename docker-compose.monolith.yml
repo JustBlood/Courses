@@ -29,6 +29,7 @@ services:
     environment:
       SERVER_PORT: ${APP_PORT:-8099}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-stage}
+      APP_STORAGE_USER_AVATAR_DIR: ${APP_STORAGE_USER_AVATAR_DIR:-/opt/app/data/users/avatars}
       SPRING_DATASOURCE_URL: jdbc:postgresql://monolith-postgres:5432/${POSTGRES_DB:-courses}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -48,6 +49,9 @@ services:
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:-true}
     ports:
       - "${APP_PORT:-8099}:8099"
+    volumes:
+      - monolith_files_data:/opt/app/data
 
 volumes:
   monolith_pg_data:
+  monolith_files_data:

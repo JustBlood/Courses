@@ -114,6 +114,12 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-043.md`
 - `TASK-044` — FR-014/AC-014: workflow open-ended review `PENDING_REVIEW -> REWORK -> ACCEPTED` + FK cascade для history
   - Артефакт: `memory-bank/task-artifacts/TASK-044.md`
+- `TASK-039` — backup/restore контур (БД + файловые материалы), проверка фактических MVP RPO/RTO
+  - Артефакт: `memory-bank/task-artifacts/TASK-039.md`
+- `TASK-046` — backup/restore readiness: измеримые RPO/RTO + retention verification
+  - Артефакт: `memory-bank/task-artifacts/TASK-046.md`
+
+
 
 
 
