@@ -812,6 +812,112 @@ class CourseLessonCrudIntegrationTest {
     }
 
     @Test
+    void practice_attempt_limit_should_block_third_attempt_after_two_failed() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("attempt-limit-student");
+        Long studentId = createUser(adminToken, "Attempt Limit Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Attempt Limit Course",
+                                  "description": "FR-110/FR-111 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String practiceLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Attempt Limit Practice",
+                                  "description": "Limited attempts",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "attemptLimit": 2,
+                                  "passingThresholdPercent": 100,
+                                  "fullPoints": 1,
+                                  "partialPoints": 0,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "2 + 2 = ?",
+                                      "options": ["3", "4"],
+                                      "correctAnswers": ["4"],
+                                      "fullPoints": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long practiceLessonId = objectMapper.readTree(practiceLessonResponse).get("id").asLong();
+
+        String failedAttemptPayload = """
+                {
+                  "questionAnswers": {
+                    "1": ["3"]
+                  }
+                }
+                """;
+
+        String firstAttemptResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(failedAttemptPayload))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String secondAttemptResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(failedAttemptPayload))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode firstAttempt = objectMapper.readTree(firstAttemptResponse);
+        JsonNode secondAttempt = objectMapper.readTree(secondAttemptResponse);
+        assertThat(firstAttempt.get("status").asText()).isEqualTo("INCOMPLETE");
+        assertThat(firstAttempt.get("passed").asBoolean()).isFalse();
+        assertThat(secondAttempt.get("status").asText()).isEqualTo("INCOMPLETE");
+        assertThat(secondAttempt.get("passed").asBoolean()).isFalse();
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(failedAttemptPayload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void admin_and_student_course_lesson_crud_flow_should_work() throws Exception {
         String adminToken = login("admin@local", "admin123");
 

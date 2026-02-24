@@ -693,3 +693,22 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-033 (FR-110/FR-111: threshold + attemptLimit)
+- Что сделано (кратко):
+  - Добавлен runtime-контроль лимита попыток practice-урока (`attemptLimit`) в `LearningService.submitPractice(...)` до создания новой submission.
+  - Для подсчёта использованных попыток добавлен метод репозитория `countByStudentIdAndLessonId(...)`.
+  - Сохранён текущий API-контракт `POST /api/v1/student/lessons/{lessonId}/submit-practice` и действующая логика threshold.
+  - Добавлен интеграционный тест `practice_attempt_limit_should_block_third_attempt_after_two_failed()`.
+  - Подтверждён прогон: `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/LessonSubmissionRepository.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/LearningService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-033.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.

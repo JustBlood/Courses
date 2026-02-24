@@ -94,6 +94,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-031.md`
 - `TASK-032` — FR-105 назначение программ пользователю и группе
   - Артефакт: `memory-bank/task-artifacts/TASK-032.md`
+- `TASK-033` — FR-110/FR-111 порог прохождения практики и лимит попыток
+  - Артефакт: `memory-bank/task-artifacts/TASK-033.md`
+
 
 
 

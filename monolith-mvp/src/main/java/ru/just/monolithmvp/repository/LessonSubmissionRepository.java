@@ -14,6 +14,7 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     List<LessonSubmission> findByStatus(SubmissionStatus status);
     List<LessonSubmission> findAllByStatusAndLessonCourseIdIn(SubmissionStatus status, List<Long> courseId);
     List<LessonSubmission> findByStudentIdAndLessonCourseId(Long studentId, Long courseId);
+    long countByStudentIdAndLessonId(Long studentId, Long lessonId);
 
     @Query("select count(distinct s.lesson.id) from LessonSubmission s where s.student.id = :studentId and s.lesson.course.id = :courseId and s.passed = true")
     long countDistinctPassedLessons(Long studentId, Long courseId);

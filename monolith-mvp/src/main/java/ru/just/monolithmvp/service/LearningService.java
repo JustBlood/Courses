@@ -92,6 +92,10 @@ public class LearningService {
         Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(studentId, lesson.getCourse().getId());
 
+        if (lesson instanceof PracticeLesson practiceLesson) {
+            validatePracticeAttemptLimit(studentId, lessonId, practiceLesson.getAttemptLimit());
+        }
+
         LessonSubmission submission = new LessonSubmission();
         submission.setLesson(lesson);
         submission.setStudent(getStudent(studentId));
@@ -325,5 +329,16 @@ public class LearningService {
             return List.of();
         }
         return Arrays.stream(raw.split(";;", -1)).toList();
+    }
+
+    private void validatePracticeAttemptLimit(Long studentId, Long lessonId, Integer attemptLimit) {
+        if (attemptLimit == null || attemptLimit <= 0) {
+            return;
+        }
+
+        long attempts = submissionRepository.countByStudentIdAndLessonId(studentId, lessonId);
+        if (attempts >= attemptLimit) {
+            throw new BadRequestException("Attempt limit exceeded for this lesson");
+        }
     }
 }
