@@ -739,3 +739,26 @@
   - `memory-bank/tasks.json`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-041 (FR-002/AC-002: activation-state пользователя)
+- Что сделано (кратко):
+  - В доменной модели `AppUser` добавлен явный флаг `activated` с миграцией Flyway `V5__users_activation_state.sql`.
+  - В onboarding-логике зафиксированы правила активации: invite-пользователь создаётся неактивированным, после `set-password` переводится в активный.
+  - В auth-контуре вход ограничен условием `enabled && activated` через `AppUserDetailsService`.
+  - Расширен API-контракт `UserDto` полем `activated` для консистентного отражения activation-state.
+  - Подтверждён интеграционный сценарий `UserAuthStudentFlowIntegrationTest`: до set-password login отклоняется, после set-password login успешен.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/model/AppUser.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/user/UserDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/AuthService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/security/AppUserDetailsService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/init/BootstrapAdminInitializer.java`
+  - `monolith-mvp/src/main/resources/db/migration/V5__users_activation_state.sql`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-041.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.

@@ -98,6 +98,12 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-033.md`
 - `TASK-037` — observability-контур (correlation-id, structured events, metrics)
   - Артефакт: `memory-bank/task-artifacts/TASK-037.md`
+- `TASK-037-ANALYSIS` — аналитическая оценка observability-реализации (standard tracing vs over-engineering)
+  - Артефакт: `memory-bank/task-artifacts/TASK-037-ANALYSIS.md`
+- `TASK-041` — FR-002/AC-002: явное activation-state пользователя до/после set-password
+  - Артефакт: `memory-bank/task-artifacts/TASK-041.md`
+
+
 
 
 

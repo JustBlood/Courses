@@ -65,6 +65,7 @@ public class AuthService {
             }
 
             setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
+            setupToken.getUser().setActivated(true);
             setupToken.setUsedAt(java.time.LocalDateTime.now());
             passwordSetupTokenRepository.save(setupToken);
 

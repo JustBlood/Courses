@@ -10,6 +10,7 @@ public record UserDto(
         String email,
         Role role,
         boolean enabled,
+        boolean activated,
         String phone,
         String comment,
         String avatarFilePath,

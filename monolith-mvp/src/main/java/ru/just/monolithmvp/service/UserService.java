@@ -75,6 +75,7 @@ public class UserService {
             user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
             user.setRole(request.role());
             user.setEnabled(true);
+            user.setActivated(!sendInvite);
             user.setPhone(request.phone());
             user.setComment(request.comment());
             user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
@@ -149,6 +150,7 @@ public class UserService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setActivated(true);
         userRepository.save(user);
     }
 

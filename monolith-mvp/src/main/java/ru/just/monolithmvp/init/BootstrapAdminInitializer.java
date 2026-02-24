@@ -29,6 +29,7 @@ public class BootstrapAdminInitializer implements CommandLineRunner {
             admin.setPasswordHash(passwordEncoder.encode(properties.password()));
             admin.setRole(Role.ADMIN);
             admin.setEnabled(true);
+            admin.setActivated(true);
             return userRepository.save(admin);
         });
     }

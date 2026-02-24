@@ -180,7 +180,9 @@ class UserAuthStudentFlowIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long studentId = objectMapper.readTree(createStudentResponse).get("id").asLong();
+        JsonNode createdStudent = objectMapper.readTree(createStudentResponse);
+        Long studentId = createdStudent.get("id").asLong();
+        assertThat(createdStudent.get("activated").asBoolean()).isFalse();
 
         assertThat(groupMembershipRepository.existsByGroupIdAndUserId(onboardingGroup.getId(), studentId)).isTrue();
         assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, onboardingCourseId)).isTrue();
@@ -189,6 +191,17 @@ class UserAuthStudentFlowIntegrationTest {
                 .filter(t -> t.getUser().getId().equals(studentId))
                 .reduce((a, b) -> b)
                 .orElseThrow();
+
+        // До set-password пользователь не считается активированным и не может войти
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "student1@example.com",
+                                  "password": "StudPass1!"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
 
         // Установка пароля по токену
         mockMvc.perform(post("/api/v1/auth/set-password?token=" + inviteToken.getToken())
@@ -199,6 +212,14 @@ class UserAuthStudentFlowIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isOk());
+
+        String studentAfterActivation = mockMvc.perform(get("/api/v1/admin/users/{userId}", studentId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(objectMapper.readTree(studentAfterActivation).get("activated").asBoolean()).isTrue();
 
         // Негативный кейс: повторное использование того же токена
         mockMvc.perform(post("/api/v1/auth/set-password?token=" + inviteToken.getToken())
