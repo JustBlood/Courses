@@ -37,7 +37,7 @@ app:
   security:
     jwt:
       # Для non-dev окружений задаётся ТОЛЬКО через env/secret-store.
-      secret: ${APP_SECURITY_JWT_SECRET:local-dev-jwt-secret-change-me-please-1234567890}
+      secret: ${APP_SECURITY_JWT_SECRET}
       expiration-ms: ${APP_SECURITY_JWT_EXPIRATION_MS:86400000}
     password-reset:
       token-ttl: ${APP_SECURITY_PASSWORD_RESET_TOKEN_TTL:PT24H}
@@ -81,7 +81,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/courses}
     driver-class-name: org.postgresql.Driver
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
 ---
 spring:

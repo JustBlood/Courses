@@ -120,8 +120,14 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-039.md`
 - `TASK-046` — backup/restore readiness: измеримые RPO/RTO + retention verification
   - Артефакт: `memory-bank/task-artifacts/TASK-046.md`
+- `TASK-038` — security hardening: redaction чувствительных данных в логах + env-only секреты
+  - Артефакт: `memory-bank/task-artifacts/TASK-038.md`
 - `TASK-040` — сквозной e2e-набор приемки AC-001..AC-019 и AC-101..AC-114
   - Артефакт: `memory-bank/task-artifacts/TASK-040.md`
+- `TASK-OPENAPI-DOCS-2026-02-24` — детальная OpenAPI-документация backend API
+  - Артефакт: `memory-bank/task-artifacts/TASK-OPENAPI-DOCS-2026-02-24.md`
+
+
 
 
 

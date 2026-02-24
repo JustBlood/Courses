@@ -25,6 +25,6 @@ public class NoopEmailService implements EmailService {
     public void sendPasswordLink(String toEmail, String fullName, String link) {
         metricsService.incrementEmail("noop", "failure");
         businessEventLogger.log("email.password_link.send", "failure", "provider", "noop", "to", toEmail, "reason", "mail_sender_not_configured");
-        log.warn("Mail sender is not configured. Invite was NOT sent. to={}, fullName={}, link={}", toEmail, fullName, link);
+        log.warn("Mail sender is not configured. Invite was NOT sent. provider=noop");
     }
 }

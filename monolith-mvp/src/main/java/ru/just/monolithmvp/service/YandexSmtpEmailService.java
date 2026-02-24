@@ -34,7 +34,7 @@ public class YandexSmtpEmailService implements EmailService {
             mailSender.send(message);
             metricsService.incrementEmail("yandex-smtp", "success");
             businessEventLogger.log("email.password_link.send", "success", "provider", "yandex-smtp", "to", toEmail);
-            log.info("Invite email sent to {}", toEmail);
+            log.info("Invite email sent via provider={}", "yandex-smtp");
         } catch (RuntimeException ex) {
             metricsService.incrementEmail("yandex-smtp", "failure");
             businessEventLogger.log("email.password_link.send", "failure", "provider", "yandex-smtp", "to", toEmail, "reason", ex.getClass().getSimpleName());

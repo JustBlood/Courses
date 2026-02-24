@@ -916,3 +916,42 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-ui задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-038 (security hardening логов и секретов)
+- Что сделано (кратко):
+  - Удалены fallback-секреты из runtime-конфига: `APP_SECURITY_JWT_SECRET` и `SPRING_DATASOURCE_PASSWORD` теперь берутся только из env.
+  - В `BusinessEventLogger` добавлена централизованная маскировка чувствительных ключей (`email`, `to`, `password`, `token`, `secret`, `authorization`, `link`) c выводом `[REDACTED]`.
+  - Убрано небезопасное логирование PII/ссылок из `NoopEmailService` и `YandexSmtpEmailService`.
+  - Добавлен тест `BusinessEventLoggerTest` и обновлены интеграционные тесты на test-конфиг JWT secret.
+  - Подтверждён прогон: `mvn -pl monolith-mvp -Dtest=BusinessEventLoggerTest,UserAuthStudentFlowIntegrationTest,ObservabilityIntegrationTest test` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/resources/application.yml`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/observability/BusinessEventLogger.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/YandexSmtpEmailService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/NoopEmailService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/observability/BusinessEventLoggerTest.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/ObservabilityIntegrationTest.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-038.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-ui задаче из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена OpenAPI-детализация backend API
+- Что сделано (кратко):
+  - Доведена подробная OpenAPI-документация контроллеров admin/student/auth-контуров с единым стилем аннотаций.
+  - В текущем финальном проходе детализированы `ProgressController` и оставшиеся endpoint-ы в `CoursesController` (response-коды, error-контракты, content-типы, включая CSV).
+  - Подтверждена компиляция после изменений: `mvn -f monolith-mvp/pom.xml -DskipTests compile` (`BUILD SUCCESS`).
+  - Сформирован артефакт завершения: `memory-bank/task-artifacts/TASK-OPENAPI-DOCS-2026-02-24.md`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/ProgressController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/CoursesController.java`
+  - `memory-bank/task-artifacts/TASK-OPENAPI-DOCS-2026-02-24.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - При необходимости выполнить отдельный проход по quality-gates OpenAPI (генерация/публикация спецификации в CI).

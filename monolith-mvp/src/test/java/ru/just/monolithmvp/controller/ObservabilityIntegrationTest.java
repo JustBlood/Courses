@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
+        "app.security.jwt.secret=test-jwt-secret-key-at-least-32-bytes-12345",
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=none",
         "spring.profiles.active=h2"
