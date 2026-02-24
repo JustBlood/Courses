@@ -102,6 +102,12 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-037-ANALYSIS.md`
 - `TASK-041` — FR-002/AC-002: явное activation-state пользователя до/после set-password
   - Артефакт: `memory-bank/task-artifacts/TASK-041.md`
+- `TASK-042` — FR-003/AC-003: self-profile update endpoint с whitelist разрешённых полей
+  - Артефакт: `memory-bank/task-artifacts/TASK-042.md`
+- `TASK-043` — FR-010/AC-010: API-модель двух списков enrolled/not-enrolled для курса
+  - Артефакт: `memory-bank/task-artifacts/TASK-043.md`
+
+
 
 
 

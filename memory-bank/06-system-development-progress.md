@@ -762,3 +762,42 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-042 (FR-003/AC-003: self-profile update whitelist)
+- Что сделано (кратко):
+  - Подтверждено и формально закрыто соответствие `FR-003/AC-003` для self-profile update.
+  - Зафиксировано, что endpoint `PATCH /api/v1/student/my/profile` работает по whitelist (`fullName`, `phone`, `comment`) и отклоняет попытки изменения запрещённых полей.
+  - Подтверждена недеградация админского update-flow и релевантный прогон интеграционного теста `UserAuthStudentFlowIntegrationTest` (`BUILD SUCCESS`).
+  - Статус `TASK-042` переведён в `done`, создан артефакт `memory-bank/task-artifacts/TASK-042.md` и обновлён индекс выполненных задач.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/StudentController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/student/UpdateMyProfileRequest.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-042.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-043 (FR-010/AC-010: enrolled/not-enrolled lists API)
+- Что сделано (кратко):
+  - Подтверждено соответствие FR-010/AC-010 для API-контракта двух списков зачисления: `enrolled` и `notEnrolled`.
+  - Зафиксировано наличие и корректность endpoint-ов списка и операций перемещения пользователей между списками.
+  - Выполнена валидация релевантным интеграционным тестом `CourseLessonCrudIntegrationTest#enrollment_two_lists_flow_should_work` (`BUILD SUCCESS`).
+  - Статус `TASK-043` переведён в `done`, создан артефакт `memory-bank/task-artifacts/TASK-043.md`, обновлён индекс выполненных задач.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/course/CourseEnrollmentListsDto.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/CoursesController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/CourseService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/EnrollmentRepository.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-043.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
