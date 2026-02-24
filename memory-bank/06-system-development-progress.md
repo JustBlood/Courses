@@ -801,3 +801,20 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-044 (FR-014/AC-014: review workflow + history FK cascade)
+- Что сделано (кратко):
+  - Доведён интеграционный сценарий review open-ended ответа до целевого workflow `PENDING_REVIEW -> REWORK -> ACCEPTED`.
+  - В `CourseLessonCrudIntegrationTest` исправлен шаг review: первый переход выполняется через `toNextReview=true` и `passed=false`.
+  - Добавлена Flyway-миграция `V7__lesson_submission_status_history_on_delete_cascade.sql` для перевода FK истории статусов на `ON DELETE CASCADE`.
+  - Устранена регрессия `500 DataIntegrityViolationException` при удалении урока/сабмишенов с историей статусов.
+  - Подтверждён прогон: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 10, Failures: 0, Errors: 0`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/resources/db/migration/V7__lesson_submission_status_history_on_delete_cascade.sql`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-044.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.

@@ -13,6 +13,7 @@ import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.model.SubmissionStatus;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
+import ru.just.monolithmvp.repository.LessonSubmissionStatusHistoryRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
 import java.util.UUID;
@@ -45,6 +46,9 @@ class CourseLessonCrudIntegrationTest {
 
     @Autowired
     private LessonSubmissionRepository lessonSubmissionRepository;
+
+    @Autowired
+    private LessonSubmissionStatusHistoryRepository lessonSubmissionStatusHistoryRepository;
 
     @Test
     void theory_lesson_completion_should_update_progress_and_stats() throws Exception {
@@ -1217,7 +1221,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "passed": true,
+                                  "passed": false,
                                   "partialPoints": true,
                                   "toNextReview": true,
                                   "comment": "Need second pass"
@@ -1680,7 +1684,36 @@ class CourseLessonCrudIntegrationTest {
                                   "comment": "Approved"
                                 }
                                 """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
+                        .header("Authorization", "Bearer " + otherAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": false,
+                                  "partialPoints": false,
+                                  "toNextReview": true,
+                                  "comment": "Need student rework"
+                                }
+                                """))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
+                        .header("Authorization", "Bearer " + otherAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": false,
+                                  "toNextReview": false,
+                                  "comment": "Approved after rework"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        assertThat(lessonSubmissionStatusHistoryRepository.findAllBySubmissionIdOrderByIdAsc(openSubmissionId))
+                .hasSize(3);
 
         mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
                         .header("Authorization", "Bearer " + otherAdminToken)

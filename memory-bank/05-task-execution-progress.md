@@ -106,6 +106,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-042.md`
 - `TASK-043` — FR-010/AC-010: API-модель двух списков enrolled/not-enrolled для курса
   - Артефакт: `memory-bank/task-artifacts/TASK-043.md`
+- `TASK-044` — FR-014/AC-014: workflow open-ended review `PENDING_REVIEW -> REWORK -> ACCEPTED` + FK cascade для history
+  - Артефакт: `memory-bank/task-artifacts/TASK-044.md`
+
 
 
 

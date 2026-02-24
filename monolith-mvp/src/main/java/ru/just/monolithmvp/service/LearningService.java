@@ -17,6 +17,7 @@ import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
+import ru.just.monolithmvp.repository.LessonSubmissionStatusHistoryRepository;
 import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class LearningService {
     private final LessonSubmissionRepository submissionRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AppUserRepository userRepository;
+    private final LessonSubmissionStatusHistoryRepository submissionStatusHistoryRepository;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
 
@@ -119,6 +121,7 @@ public class LearningService {
             submission.setPassed(false);
             submission.setPointsAwarded(0);
             submission = submissionRepository.save(submission);
+            saveSubmissionStatusHistory(submission, null, SubmissionStatus.PENDING_REVIEW, null, null);
             return new SubmissionResultDto(
                     submission.getId(),
                     submission.getStatus(),
@@ -208,6 +211,13 @@ public class LearningService {
             throw new AccessDeniedException("Admin is not assigned as reviewer for this course");
         }
 
+        if (request.toNextReview() && submission.getStatus() != SubmissionStatus.PENDING_REVIEW) {
+            throw new BadRequestException("Only pending submission can be sent to rework");
+        }
+        if (request.passed() && submission.getStatus() != SubmissionStatus.REWORK) {
+            throw new BadRequestException("Submission can be accepted only after rework");
+        }
+
         boolean finalPassed = request.passed();
         SubmissionStatus finalStatus = request.passed() ? SubmissionStatus.ACCEPTED : SubmissionStatus.INCOMPLETE;
         if (request.toNextReview()) {
@@ -228,6 +238,7 @@ public class LearningService {
         submission.setReviewedAt(LocalDateTime.now());
 
         submission = submissionRepository.save(submission);
+        saveSubmissionStatusHistory(submission, previousStatus, finalStatus, reviewerId, request.comment());
         if (finalPassed) {
             markEnrollmentCompletedIfDone(submission.getStudent().getId(), submission.getLesson().getCourse().getId());
         }
@@ -357,5 +368,20 @@ public class LearningService {
         if (attempts >= attemptLimit) {
             throw new BadRequestException("Attempt limit exceeded for this lesson");
         }
+    }
+
+    private void saveSubmissionStatusHistory(LessonSubmission submission,
+                                             SubmissionStatus fromStatus,
+                                             SubmissionStatus toStatus,
+                                             Long changedByAdminId,
+                                             String comment) {
+        LessonSubmissionStatusHistory history = new LessonSubmissionStatusHistory();
+        history.setSubmission(submission);
+        history.setFromStatus(fromStatus);
+        history.setToStatus(toStatus);
+        history.setChangedByAdminId(changedByAdminId);
+        history.setChangedAt(LocalDateTime.now());
+        history.setComment(comment);
+        submissionStatusHistoryRepository.save(history);
     }
 }
