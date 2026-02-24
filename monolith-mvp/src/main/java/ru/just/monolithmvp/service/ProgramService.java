@@ -200,18 +200,13 @@ public class ProgramService {
 
             boolean available = true;
             if (userId != null) {
-                available = switch (program.getAccessCondition()) {
+                boolean availableByAccessCondition = switch (program.getAccessCondition()) {
                     case ALL_OPEN -> true;
                     case PREVIOUS_COURSES_COMPLETED -> allPreviousCompleted;
                     case PREVIOUS_COURSES_VIEWED_OR_PENDING -> allPreviousViewed;
                 };
-
-//                if (Boolean.TRUE.equals(program.getBlockAfterDeadline())
-//                        && program.getDeadlineAt() != null
-//                        && LocalDateTime.now().plus(program.getDeadlineAt()).isAfter()
-//                        && !completed) {
-//                    available = false;
-//                }
+                boolean availableByDeadline = isAvailableByDeadline(program, completed);
+                available = availableByAccessCondition && availableByDeadline;
 
                 allPreviousCompleted = allPreviousCompleted && completed;
                 allPreviousViewed = allPreviousViewed && viewed;
@@ -237,6 +232,19 @@ public class ProgramService {
                 program.getAccessCondition(),
                 courseDtos
         );
+    }
+
+    private boolean isAvailableByDeadline(LearningProgram program, boolean completed) {
+        if (!Boolean.TRUE.equals(program.getBlockAfterDeadline())) {
+            return true;
+        }
+        if (program.getDeadlineAt() == null) {
+            return true;
+        }
+        if (completed) {
+            return true;
+        }
+        return !LocalDateTime.now().isAfter(program.getDeadlineAt());
     }
 
     private boolean isCourseCompleted(Long userId, Long courseId) {

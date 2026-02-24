@@ -90,6 +90,12 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-030.md`
 - `TASK-028` — FR-108 массовые назначения курсов/программ через группы
   - Артефакт: `memory-bank/task-artifacts/TASK-028.md`
+- `TASK-031` — FR-104 правила прохождения программы (deadline + accessCondition)
+  - Артефакт: `memory-bank/task-artifacts/TASK-031.md`
+- `TASK-032` — FR-105 назначение программ пользователю и группе
+  - Артефакт: `memory-bank/task-artifacts/TASK-032.md`
+
+
 
 
 

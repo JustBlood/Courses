@@ -656,3 +656,40 @@
   - `memory-bank/06-system-development-progress.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-031 (FR-104: правила прохождения программы)
+- Что сделано (кратко):
+  - В `ProgramService` обновлена логика доступности курсов программы: итоговая формула `available = availableByAccessCondition && availableByDeadline`.
+  - Реализована явная проверка дедлайна через `isAvailableByDeadline(...)` с корректным поведением для завершённых курсов (после дедлайна остаются доступными).
+  - Добавлен интеграционный тест `should_apply_program_access_rules_and_deadline_blocking_for_student` в `ProgramManagementIntegrationTest`.
+  - Подтверждён прогон: `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test -q` (успешно).
+  - Создан артефакт `memory-bank/task-artifacts/TASK-031.md`, обновлён индекс `memory-bank/05-task-execution-progress.md`, задача переведена в `done`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/ProgramService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/ProgramManagementIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-031.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-032 (FR-105: назначение программ пользователю и группе)
+- Что сделано (кратко):
+  - Включён admin endpoint назначения программы пользователям: `POST /api/v1/admin/courses/programs/{programId}/assign`.
+  - Включены student endpoint'ы кабинета программ: `GET /api/v1/student/my/programs` и `GET /api/v1/student/my/programs/{programId}`.
+  - Добавлен e2e-интеграционный тест `should_assign_program_to_user_and_group_and_expose_in_student_cabinet()`.
+  - Подтверждён сквозной сценарий AC-105: назначение программы пользователю и группе отражается в `program_enrollments`, автозачисляет на курсы программы и видимо в student API.
+  - Подтверждён прогон: `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest,GroupManagementIntegrationTest test` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/CoursesController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/StudentController.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/ProgramManagementIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-032.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.

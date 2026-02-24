@@ -12,6 +12,7 @@ import ru.just.monolithmvp.dto.course.CourseLearnerDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
+import ru.just.monolithmvp.dto.program.LearningProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
@@ -60,15 +61,15 @@ public class StudentController {
         return ResponseEntity.ok(userService.updateUserAvatar(securityUtils.currentUserId(), file));
     }
 
-//    @GetMapping("/my/programs")
-//    public ResponseEntity<List<LearningProgramDto>> myPrograms() {
-//        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
-//    }
-//
-//    @GetMapping("/my/programs/{programId}")
-//    public ResponseEntity<LearningProgramDto> myProgram(@PathVariable Long programId) {
-//        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
-//    }
+    @GetMapping("/my/programs")
+    public ResponseEntity<List<LearningProgramDto>> myPrograms() {
+        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
+    }
+
+    @GetMapping("/my/programs/{programId}")
+    public ResponseEntity<LearningProgramDto> myProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
+    }
 
     @GetMapping("/courses/{courseId}")
     public ResponseEntity<CourseLearnerDto> courseForLearner(@PathVariable Long courseId) {

@@ -196,14 +196,14 @@ public class CoursesController {
                                                             @RequestBody @Valid CreateLearningProgramRequest request) {
         return ResponseEntity.ok(programService.updateProgram(programId, request));
     }
-//
-//    @PostMapping("/programs/{programId}/assign")
-//    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
-//                                                            @RequestBody @Valid IdsRequest request) {
-//        programService.assignUsersToProgram(programId, request.ids());
-//        return ResponseEntity.ok(new ApiResponse("Users assigned to program"));
-//    }
-//
+
+    @PostMapping("/programs/{programId}/assign")
+    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
+                                                             @RequestBody @Valid IdsRequest request) {
+        programService.assignUsersToProgram(programId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Users assigned to program"));
+    }
+
     @PostMapping("/programs/{programId}/groups/assign")
     public ResponseEntity<ApiResponse> assignGroupToProgram(@PathVariable Long programId,
                                                              @RequestBody @Valid UuidIdsRequest request) {
