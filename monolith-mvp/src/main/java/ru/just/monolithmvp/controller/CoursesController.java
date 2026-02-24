@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
+import ru.just.monolithmvp.dto.common.UuidIdsRequest;
 import ru.just.monolithmvp.dto.course.CourseAdminDetailsDto;
 import ru.just.monolithmvp.dto.course.CourseDto;
 import ru.just.monolithmvp.dto.course.CourseEnrollmentListsDto;
@@ -16,10 +17,15 @@ import ru.just.monolithmvp.dto.course.CreateCourseRequest;
 import ru.just.monolithmvp.dto.lesson.CreatePracticeLessonRequest;
 import ru.just.monolithmvp.dto.lesson.CreateTheoryLessonRequest;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
+import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
+import ru.just.monolithmvp.dto.program.GroupAssignmentRequest;
+import ru.just.monolithmvp.dto.program.LearningProgramDto;
+import ru.just.monolithmvp.dto.program.ProgramTargetType;
 import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.ProgramService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/courses")
@@ -142,45 +148,54 @@ public class CoursesController {
         return ResponseEntity.ok(new ApiResponse("Reviewer unassigned from course"));
     }
 
-//    @PostMapping("/{courseId}/groups/assign")
-//    public ResponseEntity<ApiResponse> assignGroupToCourse(@PathVariable Long courseId,
-//                                                           @RequestBody @Valid UuidIdsRequest request) {
-//        request.ids().forEach(groupId -> courseService.assignGroupToCourse(courseId, groupId));
-//        return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
-//    }
-//
-//    @DeleteMapping("/{courseId}/groups/assign")
-//    public ResponseEntity<ApiResponse> unassignGroupFromCourse(@PathVariable Long courseId,
-//                                                               @RequestBody @Valid UuidIdsRequest request) {
-//        request.ids().forEach(groupId -> courseService.unassignGroupFromCourse(courseId, groupId));
-//        return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
-//    }
+    @PostMapping("/{courseId}/groups/assign")
+    public ResponseEntity<ApiResponse> assignGroupToCourse(@PathVariable Long courseId,
+                                                            @RequestBody @Valid UuidIdsRequest request) {
+        request.ids().forEach(groupId -> courseService.assignGroupToCourse(courseId, groupId));
+        return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
+    }
 
-//    @PostMapping("/groups/{groupId}/assign")
-//    public ResponseEntity<ApiResponse> assignGroupToTarget(@PathVariable UUID groupId,
-//                                                           @RequestBody @Valid GroupAssignmentRequest request) {
-//        if (request.targetType() == ProgramTargetType.COURSE) {
-//            courseService.assignGroupToCourse(request.targetId(), groupId);
-//            return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
-//        }
-//        programService.assignGroupToProgram(request.targetId(), groupId);
-//        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
-//    }
+    @DeleteMapping("/{courseId}/groups/assign")
+    public ResponseEntity<ApiResponse> unassignGroupFromCourse(@PathVariable Long courseId,
+                                                                @RequestBody @Valid UuidIdsRequest request) {
+        request.ids().forEach(groupId -> courseService.unassignGroupFromCourse(courseId, groupId));
+        return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
+    }
+
+    @PostMapping("/groups/{groupId}/assign")
+    public ResponseEntity<ApiResponse> assignGroupToTarget(@PathVariable UUID groupId,
+                                                            @RequestBody @Valid GroupAssignmentRequest request) {
+        if (request.targetType() == ProgramTargetType.COURSE) {
+            courseService.assignGroupToCourse(request.targetId(), groupId);
+            return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
+        }
+        programService.assignGroupToProgram(request.targetId(), groupId);
+        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
+    }
 //
 //    @PostMapping("/programs")
-//    public ResponseEntity<LearningProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
-//        return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
-//    }
+    @PostMapping("/programs")
+    public ResponseEntity<LearningProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
+        return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
+    }
 //
 //    @GetMapping("/programs")
-//    public ResponseEntity<List<LearningProgramDto>> getPrograms() {
-//        return ResponseEntity.ok(programService.getPrograms());
-//    }
+    @GetMapping("/programs")
+    public ResponseEntity<List<LearningProgramDto>> getPrograms() {
+        return ResponseEntity.ok(programService.getPrograms());
+    }
 //
 //    @GetMapping("/programs/{programId}")
-//    public ResponseEntity<LearningProgramDto> getProgram(@PathVariable Long programId) {
-//        return ResponseEntity.ok(programService.getProgram(programId));
-//    }
+    @GetMapping("/programs/{programId}")
+    public ResponseEntity<LearningProgramDto> getProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(programService.getProgram(programId));
+    }
+//
+    @PutMapping("/programs/{programId}")
+    public ResponseEntity<LearningProgramDto> updateProgram(@PathVariable Long programId,
+                                                            @RequestBody @Valid CreateLearningProgramRequest request) {
+        return ResponseEntity.ok(programService.updateProgram(programId, request));
+    }
 //
 //    @PostMapping("/programs/{programId}/assign")
 //    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
@@ -189,10 +204,10 @@ public class CoursesController {
 //        return ResponseEntity.ok(new ApiResponse("Users assigned to program"));
 //    }
 //
-//    @PostMapping("/programs/{programId}/groups/assign")
-//    public ResponseEntity<ApiResponse> assignGroupToProgram(@PathVariable Long programId,
-//                                                            @RequestBody @Valid UuidIdsRequest request) {
-//        request.ids().forEach(groupId -> programService.assignGroupToProgram(programId, groupId));
-//        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
-//    }
+    @PostMapping("/programs/{programId}/groups/assign")
+    public ResponseEntity<ApiResponse> assignGroupToProgram(@PathVariable Long programId,
+                                                             @RequestBody @Valid UuidIdsRequest request) {
+        request.ids().forEach(groupId -> programService.assignGroupToProgram(programId, groupId));
+        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
+    }
 }

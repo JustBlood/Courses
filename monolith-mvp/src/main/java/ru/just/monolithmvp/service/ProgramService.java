@@ -20,12 +20,15 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ProgramService {
     private final LearningProgramRepository learningProgramRepository;
+    private final ProgramCourseRepository programCourseRepository;
     private final ProgramEnrollmentRepository programEnrollmentRepository;
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonSubmissionRepository lessonSubmissionRepository;
     private final AppUserRepository userRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final GroupProgramAssignmentRepository groupProgramAssignmentRepository;
+    private final LearningGroupRepository learningGroupRepository;
     private final CourseService courseService;
 
     @Transactional
@@ -34,21 +37,40 @@ public class ProgramService {
         program.setTitle(request.title());
         program.setDescription(request.description());
         program.setCoverFilePath(request.coverFilePath());
-        program.setBlockAfterDeadline(request.blockAfterDeadline());
+        program.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
         program.setDeadlineAt(request.deadlineAt());
         program.setAccessCondition(request.accessCondition());
 
-        List<Long> courseIds = request.courses().stream().map(ProgramCourseSettingsRequest::courseId).toList();
-        if (new HashSet<>(courseIds).size() != courseIds.size()) {
-            throw new BadRequestException("Program contains duplicate course ids");
+        Map<Long, Course> courseById = validateAndLoadCourses(request.courses());
+
+        int order = 1;
+        for (ProgramCourseSettingsRequest item : request.courses()) {
+            ProgramCourse programCourse = new ProgramCourse();
+            programCourse.setProgram(program);
+            programCourse.setCourse(courseById.get(item.courseId()));
+            programCourse.setOrderIndex(order++);
+            program.getCourses().add(programCourse);
         }
 
-        Map<Long, Course> courseById = new HashMap<>();
-        courseRepository.findAllById(courseIds).forEach(course -> courseById.put(course.getId(), course));
-        List<Long> missingIds = courseIds.stream().filter(id -> !courseById.containsKey(id)).toList();
-        if (!missingIds.isEmpty()) {
-            throw new NotFoundException("Courses not found: " + missingIds);
-        }
+        program = learningProgramRepository.save(program);
+        return toProgramDto(program, null);
+    }
+
+    @Transactional
+    public LearningProgramDto updateProgram(Long programId, CreateLearningProgramRequest request) {
+        LearningProgram program = getProgramEntity(programId);
+        Map<Long, Course> courseById = validateAndLoadCourses(request.courses());
+
+        program.setTitle(request.title());
+        program.setDescription(request.description());
+        program.setCoverFilePath(request.coverFilePath());
+        program.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
+        program.setDeadlineAt(request.deadlineAt());
+        program.setAccessCondition(request.accessCondition());
+
+        programCourseRepository.deleteByProgramId(programId);
+        learningProgramRepository.flush();
+        program.getCourses().clear();
 
         int order = 1;
         for (ProgramCourseSettingsRequest item : request.courses()) {
@@ -87,6 +109,17 @@ public class ProgramService {
     @Transactional
     public void assignGroupToProgram(Long programId, UUID groupId) {
         LearningProgram program = getProgramEntity(programId);
+        LearningGroup group = learningGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
+
+        if (!groupProgramAssignmentRepository.existsByGroupIdAndProgramId(groupId, programId)) {
+            GroupProgramAssignment assignment = new GroupProgramAssignment();
+            assignment.setGroup(group);
+            assignment.setProgram(program);
+            assignment.setCreatedAt(LocalDateTime.now());
+            groupProgramAssignmentRepository.save(assignment);
+        }
+
         groupMembershipRepository.findByGroupId(groupId).forEach(membership -> {
             if (membership.getUser().getRole() == Role.STUDENT) {
                 assignUserToProgram(program, membership.getUser().getId());
@@ -115,6 +148,21 @@ public class ProgramService {
     private LearningProgram getProgramEntity(Long programId) {
         return learningProgramRepository.findById(programId)
                 .orElseThrow(() -> new NotFoundException("Program not found: " + programId));
+    }
+
+    private Map<Long, Course> validateAndLoadCourses(List<ProgramCourseSettingsRequest> courses) {
+        List<Long> courseIds = courses.stream().map(ProgramCourseSettingsRequest::courseId).toList();
+        if (new HashSet<>(courseIds).size() != courseIds.size()) {
+            throw new BadRequestException("Program contains duplicate course ids");
+        }
+
+        Map<Long, Course> courseById = new HashMap<>();
+        courseRepository.findAllById(courseIds).forEach(course -> courseById.put(course.getId(), course));
+        List<Long> missingIds = courseIds.stream().filter(id -> !courseById.containsKey(id)).toList();
+        if (!missingIds.isEmpty()) {
+            throw new NotFoundException("Courses not found: " + missingIds);
+        }
+        return courseById;
     }
 
     private void assignUserToProgram(LearningProgram program, Long userId) {

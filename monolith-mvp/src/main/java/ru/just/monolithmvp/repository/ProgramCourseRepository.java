@@ -8,4 +8,5 @@ import java.util.List;
 public interface ProgramCourseRepository extends JpaRepository<ProgramCourse, Long> {
     List<ProgramCourse> findByProgramIdOrderByOrderIndexAsc(Long programId);
     List<ProgramCourse> findByCourseId(Long courseId);
+    void deleteByProgramId(Long programId);
 }

@@ -16,8 +16,11 @@ import ru.just.monolithmvp.model.AppUser;
 import ru.just.monolithmvp.model.GroupMembership;
 import ru.just.monolithmvp.model.GroupType;
 import ru.just.monolithmvp.model.LearningGroup;
+import ru.just.monolithmvp.model.Role;
 import ru.just.monolithmvp.repository.AppUserRepository;
+import ru.just.monolithmvp.repository.GroupCourseAssignmentRepository;
 import ru.just.monolithmvp.repository.GroupMembershipRepository;
+import ru.just.monolithmvp.repository.GroupProgramAssignmentRepository;
 import ru.just.monolithmvp.repository.LearningGroupRepository;
 
 import java.util.*;
@@ -27,8 +30,12 @@ import java.util.*;
 public class GroupService {
     private final LearningGroupRepository groupRepository;
     private final GroupMembershipRepository membershipRepository;
+    private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
+    private final GroupProgramAssignmentRepository groupProgramAssignmentRepository;
     private final AppUserRepository userRepository;
     private final UserMapper userMapper;
+    private final CourseService courseService;
+    private final ProgramService programService;
 
     @Transactional
     public GroupDto createGroup(CreateGroupRequest request) {
@@ -193,6 +200,7 @@ public class GroupService {
 
             if (!membershipsToCreate.isEmpty()) {
                 membershipRepository.saveAll(membershipsToCreate);
+                applyAssignmentsToNewMembers(groupId, membershipsToCreate);
             }
             return;
         }
@@ -226,6 +234,7 @@ public class GroupService {
 
         if (!membershipsToCreate.isEmpty()) {
             membershipRepository.saveAll(membershipsToCreate);
+            applyAssignmentsToNewMembers(groupId, membershipsToCreate);
         }
     }
 
@@ -260,5 +269,40 @@ public class GroupService {
                 .toList();
 
         return new GroupUsersDto(group.getId(), group.getTitle(), group.getType(), users);
+    }
+
+    private void applyAssignmentsToNewMembers(UUID groupId, List<GroupMembership> newMemberships) {
+        List<Long> studentIds = newMemberships.stream()
+                .map(GroupMembership::getUser)
+                .filter(user -> user.getRole() == Role.STUDENT)
+                .map(AppUser::getId)
+                .distinct()
+                .toList();
+
+        if (studentIds.isEmpty()) {
+            return;
+        }
+
+        List<Long> courseIds = groupCourseAssignmentRepository.findByGroupId(groupId).stream()
+                .map(assignment -> assignment.getCourse().getId())
+                .distinct()
+                .toList();
+
+        for (Long courseId : courseIds) {
+            for (Long studentId : studentIds) {
+                courseService.assignStudentToCourse(courseId, studentId);
+            }
+        }
+
+        List<Long> programIds = groupProgramAssignmentRepository.findByGroupId(groupId).stream()
+                .map(assignment -> assignment.getProgram().getId())
+                .distinct()
+                .toList();
+
+        for (Long programId : programIds) {
+            for (Long studentId : studentIds) {
+                programService.assignUsersToProgram(programId, List.of(studentId));
+            }
+        }
     }
 }

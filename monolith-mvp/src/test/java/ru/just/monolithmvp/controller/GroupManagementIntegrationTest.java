@@ -10,6 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.just.monolithmvp.repository.EnrollmentRepository;
+import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
 
 import java.util.UUID;
 
@@ -36,6 +38,12 @@ class GroupManagementIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private ProgramEnrollmentRepository programEnrollmentRepository;
 
     @Test
     void should_create_groups_and_enforce_single_typed_membership_per_user() throws Exception {
@@ -141,6 +149,67 @@ class GroupManagementIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void should_assign_course_and_program_to_group_and_auto_apply_for_new_member() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long studentAId = createUser(adminToken, "group.mass.studentA@example.com", "STUDENT");
+        Long studentBId = createUser(adminToken, "group.mass.studentB@example.com", "STUDENT");
+        Long studentCId = createUser(adminToken, "group.mass.studentC@example.com", "STUDENT");
+
+        UUID groupId = createGroup(adminToken, "Mass Assign Group", "GENERAL");
+        Long courseId = createCourse(adminToken, "Mass Assignment Course");
+        Long programId = createProgram(adminToken, courseId);
+
+        mockMvc.perform(post("/api/v1/admin/groups/{groupId}/members", groupId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userIds": [%d, %d]
+                                }
+                                """.formatted(studentAId, studentBId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/groups/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": ["%s"]
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": ["%s"]
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentAId, courseId)).isTrue();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentBId, courseId)).isTrue();
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentAId, programId)).isTrue();
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentBId, programId)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/groups/{groupId}/members", groupId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userIds": [%d]
+                                }
+                                """.formatted(studentCId)))
+                .andExpect(status().isOk());
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentCId, courseId)).isTrue();
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentCId, programId)).isTrue();
+    }
+
     private Long createUser(String adminToken, String email, String role) throws Exception {
         String createUserResponse = mockMvc.perform(post("/api/v1/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
@@ -177,6 +246,48 @@ class GroupManagementIntegrationTest {
                 .getContentAsString();
 
         return UUID.fromString(objectMapper.readTree(createGroupResponse).get("id").asText());
+    }
+
+    private Long createCourse(String adminToken, String title) throws Exception {
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "%s",
+                                  "description": "Course for group assignment",
+                                  "authorFullName": "Admin"
+                                }
+                                """.formatted(title)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(createCourseResponse).get("id").asLong();
+    }
+
+    private Long createProgram(String adminToken, Long courseId) throws Exception {
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Group Program",
+                                  "description": "Program for group assignment",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    {"courseId": %d}
+                                  ]
+                                }
+                                """.formatted(courseId)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(createProgramResponse).get("id").asLong();
     }
 
     private String login(String email, String password) throws Exception {

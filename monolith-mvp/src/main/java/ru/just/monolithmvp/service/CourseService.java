@@ -33,6 +33,8 @@ public class CourseService {
     private final EnrollmentRepository enrollmentRepository;
     private final CourseReviewerRepository courseReviewerRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
+    private final LearningGroupRepository learningGroupRepository;
     private final AppUserRepository userRepository;
     private final CourseMapper courseMapper;
     private final LessonMapper lessonMapper;
@@ -386,6 +388,18 @@ public class CourseService {
 
     @Transactional
     public void assignGroupToCourse(Long courseId, UUID groupId) {
+        Course course = getCourseEntity(courseId);
+        LearningGroup group = learningGroupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
+
+        if (!groupCourseAssignmentRepository.existsByGroupIdAndCourseId(groupId, courseId)) {
+            GroupCourseAssignment assignment = new GroupCourseAssignment();
+            assignment.setGroup(group);
+            assignment.setCourse(course);
+            assignment.setCreatedAt(LocalDateTime.now());
+            groupCourseAssignmentRepository.save(assignment);
+        }
+
         groupMembershipRepository.findByGroupId(groupId)
                 .forEach(m -> {
                     if ((m.getUser().getRole() == Role.STUDENT || m.getUser().getRole() == Role.ADMIN)
@@ -397,6 +411,7 @@ public class CourseService {
 
     @Transactional
     public void unassignGroupFromCourse(Long courseId, UUID groupId) {
+        groupCourseAssignmentRepository.deleteByGroupIdAndCourseId(groupId, courseId);
         groupMembershipRepository.findByGroupId(groupId)
                 .forEach(m -> enrollmentRepository.deleteByUserIdAndCourseId(m.getUser().getId(), courseId));
     }

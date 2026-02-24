@@ -613,3 +613,46 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI задача по backlog и зависимостям: `TASK-028` или `TASK-030` (в зависимости от выбранного порядка приоритезации).
+
+### 2026-02-24 — Завершена TASK-030 (FR-103: создание/редактирование программ обучения)
+- Что сделано (кратко):
+  - Включены admin API программ (`create/list/get/update`) в `CoursesController`.
+  - В `ProgramService` реализован `updateProgram(...)` с валидацией входного списка курсов и безопасной пересборкой ordered-связей `program_courses`.
+  - Добавлены Flyway-миграции для выравнивания схемы `learning_programs` и default для `program_courses.block_after_deadline`.
+  - Добавлен интеграционный `ProgramManagementIntegrationTest` на сценарий `create -> reorder update -> get/list` с проверкой порядка курсов.
+  - Подтверждён прогон: `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test -q` (`BUILD SUCCESS`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/CoursesController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/ProgramService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/ProgramCourseRepository.java`
+  - `monolith-mvp/src/main/resources/db/migration/V2__align_learning_program_columns.sql`
+  - `monolith-mvp/src/main/resources/db/migration/V3__program_courses_default_block_after_deadline.sql`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/ProgramManagementIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-030.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по приоритету и зависимостям из `memory-bank/tasks.json`.
+
+### 2026-02-24 — Завершена TASK-028 (FR-108 массовые назначения через группы)
+- Что сделано (кратко):
+  - Доведена до конца backend-реализация массовых назначений курсов и программ через группы с постоянными связями `group -> target`.
+  - В `ProgramService.assignGroupToProgram(...)` добавлена фиксация persistent assignment `group_program_assignments` и backfill текущих участников группы.
+  - В `GroupService.addUsersToGroup(...)` реализовано автоприменение активных group-assignment к новым участникам (course/program), только для роли `STUDENT`.
+  - В `CoursesController` включены admin endpoint-ы назначения групп на курс/программу.
+  - Добавлен интеграционный сценарий `should_assign_course_and_program_to_group_and_auto_apply_for_new_member`.
+  - Подтверждён прогон: `mvn -f monolith-mvp/pom.xml -Dtest=GroupManagementIntegrationTest test` (`BUILD SUCCESS`, `Tests run: 3`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/ProgramService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/GroupService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/CoursesController.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/GroupManagementIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-028.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету из `memory-bank/tasks.json`.

@@ -86,6 +86,12 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-026.md`
 - `TASK-027` — FR-106/FR-107 группы пользователей и правила typed-membership
   - Артефакт: `memory-bank/task-artifacts/TASK-027.md`
+- `TASK-030` — FR-103 создание/редактирование программ с упорядоченным списком курсов
+  - Артефакт: `memory-bank/task-artifacts/TASK-030.md`
+- `TASK-028` — FR-108 массовые назначения курсов/программ через группы
+  - Артефакт: `memory-bank/task-artifacts/TASK-028.md`
+
+
 
 
 
