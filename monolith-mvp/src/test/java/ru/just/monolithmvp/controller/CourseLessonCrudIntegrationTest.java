@@ -308,6 +308,129 @@ class CourseLessonCrudIntegrationTest {
     }
 
     @Test
+    void course_summary_report_csv_should_match_required_columns_and_stats() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Course Report FR-017",
+                                  "description": "AC-017 checks",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String theoryLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Report Theory",
+                                  "description": "One lesson",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Theory",
+                                  "fullPoints": 10
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long theoryLessonId = objectMapper.readTree(theoryLessonResponse).get("id").asLong();
+
+        String studentDoneEmail = uniqueEmail("report-done");
+        Long studentDoneId = createUser(adminToken, "Report Done", studentDoneEmail, "STUDENT");
+        String studentDoneToken = setPasswordAndLogin(studentDoneId, studentDoneEmail, "Stud123!");
+
+        String studentNewEmail = uniqueEmail("report-new");
+        Long studentNewId = createUser(adminToken, "Report New", studentNewEmail, "STUDENT");
+        setPasswordAndLogin(studentNewId, studentNewEmail, "Stud123!");
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d, %d]
+                                }
+                                """.formatted(studentDoneId, studentNewId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        String courseStatsResponse = mockMvc.perform(get("/api/v1/admin/progress/courses/{courseId}/stats", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode courseStats = objectMapper.readTree(courseStatsResponse);
+
+        String summaryCsv = mockMvc.perform(get("/api/v1/admin/progress/courses/{courseId}/summary-report.csv", courseId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String[] lines = summaryCsv.strip().split("\\R");
+        assertThat(lines.length).isEqualTo(3);
+
+        String expectedHeader =
+                "\"Статус\";\"Программа\";\"ФИО\";\"Email\";\"Логин\";\"cid\";\"Деактивирован\";\"Компания\";\"Подразделение\";\"Должность\";\"Группы\";\"Баллов\";\"Эффективность\";\"Медалей\";\"Пересдач\";\"Назначено\";\"Начало\";\"Завершение\";\"Дедлайн\";\"Затрачено времени\";\"Прогресс\";\"Уроков\";\"Продолжительность\";\"Номер сертификата\";\"Ссылка\"";
+        assertThat(lines[0]).isEqualTo(expectedHeader);
+
+        JsonNode doneCourseStat = null;
+        JsonNode newCourseStat = null;
+        for (JsonNode stat : courseStats) {
+            if (stat.get("studentId").asLong() == studentDoneId) {
+                doneCourseStat = stat;
+            }
+            if (stat.get("studentId").asLong() == studentNewId) {
+                newCourseStat = stat;
+            }
+        }
+
+        assertThat(doneCourseStat).isNotNull();
+        assertThat(newCourseStat).isNotNull();
+
+        String[] row1 = parseCsvSemicolonLine(lines[1]);
+        String[] row2 = parseCsvSemicolonLine(lines[2]);
+        assertThat(row1.length).isEqualTo(25);
+        assertThat(row2.length).isEqualTo(25);
+
+        String[] doneRow = row1[2].equals("Report Done") ? row1 : row2;
+        String[] newRow = row1[2].equals("Report New") ? row1 : row2;
+
+        assertThat(doneRow[11]).isEqualTo(String.valueOf(doneCourseStat.get("earnedPoints").asInt()));
+        assertThat(doneRow[12]).isEqualTo(String.format(java.util.Locale.US, "%.2f", doneCourseStat.get("efficiencyPercent").asDouble()));
+        assertThat(doneRow[20]).isEqualTo(String.format(java.util.Locale.US, "%.2f%%", doneCourseStat.get("progressPercent").asDouble()));
+        assertThat(doneRow[21]).isEqualTo(doneCourseStat.get("completedLessons").asText() + "/" + doneCourseStat.get("totalLessons").asText());
+
+        assertThat(newRow[11]).isEqualTo(String.valueOf(newCourseStat.get("earnedPoints").asInt()));
+        assertThat(newRow[12]).isEqualTo(String.format(java.util.Locale.US, "%.2f", newCourseStat.get("efficiencyPercent").asDouble()));
+        assertThat(newRow[20]).isEqualTo(String.format(java.util.Locale.US, "%.2f%%", newCourseStat.get("progressPercent").asDouble()));
+        assertThat(newRow[21]).isEqualTo(newCourseStat.get("completedLessons").asText() + "/" + newCourseStat.get("totalLessons").asText());
+
+        assertThat(doneRow[4]).isEmpty();
+        assertThat(doneRow[5]).isEmpty();
+        assertThat(doneRow[13]).isEmpty();
+        assertThat(doneRow[23]).isEmpty();
+        assertThat(doneRow[24]).isEmpty();
+    }
+
+    @Test
     void enrollment_two_lists_flow_should_work() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
@@ -1373,5 +1496,13 @@ class CourseLessonCrudIntegrationTest {
 
     private String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+    }
+
+    private String[] parseCsvSemicolonLine(String line) {
+        String content = line;
+        if (content.startsWith("\"") && content.endsWith("\"")) {
+            content = content.substring(1, content.length() - 1);
+        }
+        return content.split("\";\"", -1);
     }
 }

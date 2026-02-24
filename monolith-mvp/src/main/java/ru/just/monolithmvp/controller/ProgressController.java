@@ -50,4 +50,9 @@ public class ProgressController {
     public ResponseEntity<String> summaryCsv() {
         return ResponseEntity.ok(statisticsService.summaryReportCsv());
     }
+
+    @GetMapping(value = "/courses/{courseId}/summary-report.csv", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> courseSummaryCsv(@PathVariable Long courseId) {
+        return ResponseEntity.ok(statisticsService.summaryReportCsv(courseId));
+    }
 }

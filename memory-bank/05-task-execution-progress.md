@@ -76,5 +76,8 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-017.md`
 - `TASK-018` — FR-016 статистика по конкретному курсу для администратора
   - Артефакт: `memory-bank/task-artifacts/TASK-018.md`
+- `TASK-019A` — FR-017 (MVP) сводный отчёт по конкретному курсу
+  - Артефакт: `memory-bank/task-artifacts/TASK-019A.md`
+
 
 

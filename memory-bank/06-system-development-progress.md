@@ -498,3 +498,28 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI задача по зависимостям: `TASK-019A` (FR-017: сводный отчёт по конкретному курсу).
+
+### 2026-02-24 — Завершена TASK-019A (FR-017 MVP: course-specific summary report)
+- Что сделано (кратко):
+  - Добавлен отдельный endpoint выгрузки CSV-отчёта по конкретному курсу: `GET /api/v1/admin/progress/courses/{courseId}/summary-report.csv`.
+  - В `StatisticsService` реализована генерация course-specific отчёта с колонками и порядком строго по `FR-017/AC-017`.
+  - Реализовано заполнение обязательных пустых полей по ТЗ (`Логин`, `cid`, `Медалей`, `Номер сертификата`, `Ссылка`, `Продолжительность`).
+  - Для эффективного построения отчёта добавлены batch repository-методы по пользователям (`GroupMembershipRepository`, `ProgramEnrollmentRepository`).
+  - Добавлен интеграционный тест `course_summary_report_csv_should_match_required_columns_and_stats`, проверяющий:
+    - точную структуру заголовка CSV,
+    - соответствие ключевых метрик (`Баллов`, `Эффективность`, `Прогресс`, `Уроков`) данным course stats,
+    - корректность обязательных пустых колонок.
+  - Подтверждён прогон: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS` (`Tests run: 8, Failures: 0, Errors: 0`).
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/ProgressController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/StatisticsService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/GroupMembershipRepository.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/ProgramEnrollmentRepository.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-019A.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI задача по зависимостям: `TASK-020A` (FR-017 MVP: общий сводный отчёт по всем курсам).

@@ -16,6 +16,7 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     void deleteByGroupIdAndUserId(UUID groupId, Long userId);
     void deleteByGroupId(UUID groupId);
     List<GroupMembership> findByUserId(Long userId);
+    List<GroupMembership> findByUserIdIn(List<Long> userIds);
     List<GroupMembership> findByUserIdInAndGroup_Type(List<Long> userIds, GroupType type);
     Optional<GroupMembership> findByUserIdAndGroup_Type(Long userId, GroupType type);
     long countByUserIdAndGroup_Type(Long userId, GroupType type);
