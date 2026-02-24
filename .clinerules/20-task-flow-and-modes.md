@@ -17,6 +17,7 @@
 7. Выполнить реализацию/изменения после утверждения плана пользователем.
 8. Если срабатывает правило Token Budget Gate - следовать инструкциям для этого случая в `.clinerules/02-active-context.md`
 9. По ПОЛНОМУ завершению задачи ты должен весь активный контекст из файла `memory-bank/02-active-context.md` копировать в файл-артефакт по выполнненной задаче в директорию `memory-bank/task-artifacts` и обязательно добавить ссылку на артефакт в файл `memory-bank/05-task-execution-progress.md`. Если задача содержала архитектурно важные изменения - обновлять `memory-bank/06-system-development-progress.md`.
+10. Чтобы посмотреть полную информацию по задаче, ты можешь использовать подготовленные python-скрипты: `memory-bank/find_task.py` (пример вызова: `python find_task.py TASK-001`) и `memory-bank/change_task_status.py` (пример вызова: `python change_task_status.py TASK-001 done`, варианты статусов = pending, done, obsolete). Используй эти скрипты приоритетно, вместо полного чтения файла `memory-bank/tasks.json`
 
 ## Анализ задачи
 1. Прочитать обязательный контекст memory-bank.
