@@ -593,3 +593,23 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче из `memory-bank/tasks.json` по приоритету и зависимостям.
+
+### 2026-02-24 — Завершена TASK-027 (FR-106/FR-107: groups typed-membership)
+- Что сделано (кратко):
+  - Реализовано редактирование групп через новый контракт `UpdateGroupRequest` и endpoint `PUT /api/v1/admin/groups/{groupId}`.
+  - В `GroupService` добавлен `updateGroup(...)` с валидацией конфликтов при смене типа группы.
+  - Ужесточено правило typed-membership: для `COMPANY/DEPARTMENT/POSITION` запрещены конфликтующие назначения (reject), вместо прежнего неявного replace-поведения.
+  - Добавлен интеграционный `GroupManagementIntegrationTest` на single typed membership и конфликтную смену типа группы.
+  - Подтверждён регрессионный прогон `UserAuthStudentFlowIntegrationTest`.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/dto/group/UpdateGroupRequest.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/GroupService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/UsersController.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/GroupManagementIntegrationTest.java`
+  - `memory-bank/tasks.json`
+  - `memory-bank/task-artifacts/TASK-027.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI задача по backlog и зависимостям: `TASK-028` или `TASK-030` (в зависимости от выбранного порядка приоритезации).

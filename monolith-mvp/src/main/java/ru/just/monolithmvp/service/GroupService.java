@@ -8,6 +8,7 @@ import org.springframework.util.CollectionUtils;
 import ru.just.monolithmvp.dto.group.CreateGroupRequest;
 import ru.just.monolithmvp.dto.group.GroupDto;
 import ru.just.monolithmvp.dto.group.GroupUsersDto;
+import ru.just.monolithmvp.dto.group.UpdateGroupRequest;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
@@ -38,6 +39,48 @@ public class GroupService {
         group.setTitle(request.title());
         group.setType(request.type());
         group = groupRepository.save(group);
+        return new GroupDto(group.getId(), group.getTitle(), group.getType());
+    }
+
+    @Transactional
+    public GroupDto updateGroup(UUID groupId, UpdateGroupRequest request) {
+        LearningGroup group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
+
+        groupRepository.findByTitleAndType(request.title(), request.type())
+                .filter(found -> !found.getId().equals(groupId))
+                .ifPresent(found -> {
+                    throw new BadRequestException("Group already exists for this title and type");
+                });
+
+        GroupType oldType = group.getType();
+        GroupType newType = request.type();
+
+        if (oldType != newType && newType != GroupType.GENERAL) {
+            List<Long> memberUserIds = membershipRepository.findByGroupId(groupId).stream()
+                    .map(membership -> membership.getUser().getId())
+                    .distinct()
+                    .toList();
+
+            if (!memberUserIds.isEmpty()) {
+                List<Long> conflictingUserIds = membershipRepository
+                        .findByUserIdInAndGroup_Type(memberUserIds, newType)
+                        .stream()
+                        .filter(membership -> !membership.getGroup().getId().equals(groupId))
+                        .map(membership -> membership.getUser().getId())
+                        .distinct()
+                        .toList();
+
+                if (!conflictingUserIds.isEmpty()) {
+                    throw new BadRequestException("Users already belong to another " + newType + " group: " + conflictingUserIds);
+                }
+            }
+        }
+
+        group.setTitle(request.title());
+        group.setType(newType);
+        group = groupRepository.save(group);
+
         return new GroupDto(group.getId(), group.getTitle(), group.getType());
     }
 
@@ -157,27 +200,23 @@ public class GroupService {
         List<GroupMembership> typedMemberships = membershipRepository
                 .findByUserIdInAndGroup_Type(uniqueUserIds, targetType);
 
-        List<GroupMembership> membershipsToDelete = new ArrayList<>();
-        Map<Long, Boolean> hasTargetGroupMembership = new HashMap<>();
-        for (Long userId : uniqueUserIds) {
-            hasTargetGroupMembership.put(userId, false);
+        List<Long> conflictingUserIds = typedMemberships.stream()
+                .filter(membership -> !membership.getGroup().getId().equals(groupId))
+                .map(membership -> membership.getUser().getId())
+                .distinct()
+                .toList();
+
+        if (!conflictingUserIds.isEmpty()) {
+            throw new BadRequestException("Users already belong to another " + targetType + " group: " + conflictingUserIds);
         }
 
-        for (GroupMembership membership : typedMemberships) {
-            Long userId = membership.getUser().getId();
-            if (membership.getGroup().getId().equals(groupId)) {
-                hasTargetGroupMembership.put(userId, true);
-                continue;
-            }
-            membershipsToDelete.add(membership);
-        }
-
-        if (!membershipsToDelete.isEmpty()) {
-            membershipRepository.deleteAll(membershipsToDelete);
-        }
+        Set<Long> alreadyInTargetUserIds = typedMemberships.stream()
+                .filter(membership -> membership.getGroup().getId().equals(groupId))
+                .map(membership -> membership.getUser().getId())
+                .collect(java.util.stream.Collectors.toSet());
 
         membershipsToCreate = users.stream()
-                .filter(user -> !Boolean.TRUE.equals(hasTargetGroupMembership.get(user.getId())))
+                .filter(user -> !alreadyInTargetUserIds.contains(user.getId()))
                 .map(user -> {
                     GroupMembership membership = new GroupMembership();
                     membership.setGroup(group);

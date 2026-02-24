@@ -84,6 +84,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-022A.md`
 - `TASK-026` — FR-101/FR-102 CRUD разделов каталога и создание курса в контексте раздела
   - Артефакт: `memory-bank/task-artifacts/TASK-026.md`
+- `TASK-027` — FR-106/FR-107 группы пользователей и правила typed-membership
+  - Артефакт: `memory-bank/task-artifacts/TASK-027.md`
+
 
 
 
