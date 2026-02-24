@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
-import ru.just.monolithmvp.dto.stat.ReportRowDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.AppUser;
@@ -88,44 +87,74 @@ public class StatisticsService {
 
     @Transactional(readOnly = true)
     public String summaryReportCsv() {
-        List<ReportRowDto> rows = new ArrayList<>();
-        for (Enrollment e : enrollmentRepository.findAll()) {
-            Long courseId = e.getCourse().getId();
+        List<Enrollment> enrollments = enrollmentRepository.findAll();
+        List<Long> userIds = enrollments.stream()
+                .map(e -> e.getUser().getId())
+                .distinct()
+                .toList();
+
+        Map<Long, List<GroupMembership>> membershipsByUser = groupMembershipRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.groupingBy(m -> m.getUser().getId()));
+
+        StringBuilder csv = new StringBuilder();
+        appendCsvRow(csv, List.of(
+                "Группы",
+                "ФИО студента",
+                "Email",
+                "Логин",
+                "CID",
+                "Название курса",
+                "CID",
+                "Дата назначения",
+                "Время",
+                "Дата начала",
+                "Время",
+                "Дата завершения",
+                "Время",
+                "Баллов",
+                "Эффективность",
+                "Продолжительность",
+                "Затрачено",
+                "Номер сертификата",
+                "Ссылка"
+        ));
+
+        for (Enrollment enrollment : enrollments) {
+            Long userId = enrollment.getUser().getId();
+            Long courseId = enrollment.getCourse().getId();
+
             int maxPoints = maxPoints(courseId);
-            int earned = earnedPoints(e.getUser().getId(), courseId);
+            int earned = earnedPoints(userId, courseId);
             double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
 
-            rows.add(new ReportRowDto(
-                    e.getUser().getFullName(),
-                    e.getUser().getEmail(),
-                    extractLogin(e.getUser().getEmail()),
+            String groups = membershipsByUser.getOrDefault(userId, List.of()).stream()
+                    .map(m -> m.getGroup().getTitle())
+                    .distinct()
+                    .collect(Collectors.joining(" | "));
+
+            appendCsvRow(csv, List.of(
+                    groups,
+                    safe(enrollment.getUser().getFullName()),
+                    safe(enrollment.getUser().getEmail()),
                     "",
-                    e.getCourse().getTitle(),
-                    earned,
-                    maxPoints,
-                    efficiency,
-                    fmt(e.getEnrolledAt()),
-                    fmt(e.getStartedAt()),
-                    fmt(e.getCompletedAt())
+                    "",
+                    safe(enrollment.getCourse().getTitle()),
+                    "",
+                    datePart(enrollment.getEnrolledAt()),
+                    timePart(enrollment.getEnrolledAt()),
+                    datePart(enrollment.getStartedAt()),
+                    timePart(enrollment.getStartedAt()),
+                    datePart(enrollment.getCompletedAt()),
+                    timePart(enrollment.getCompletedAt()),
+                    String.valueOf(earned),
+                    String.format(Locale.US, "%.2f", efficiency),
+                    "",
+                    formatSpentTime(enrollment.getStartedAt(), enrollment.getCompletedAt()),
+                    "",
+                    ""
             ));
         }
 
-        StringBuilder csv = new StringBuilder();
-        csv.append("fullName,email,login,lang,course,earnedPoints,maxPoints,efficiency,enrolledAt,startedAt,completedAt\n");
-        for (ReportRowDto row : rows) {
-            csv.append(escape(row.fullName())).append(',')
-                    .append(escape(row.email())).append(',')
-                    .append(escape(row.login())).append(',')
-                    .append(escape(row.lang())).append(',')
-                    .append(escape(row.courseTitle())).append(',')
-                    .append(row.earnedPoints()).append(',')
-                    .append(row.maxPoints()).append(',')
-                    .append(String.format(Locale.US, "%.2f", row.efficiencyPercent())).append(',')
-                    .append(escape(row.enrolledAt())).append(',')
-                    .append(escape(row.startedAt())).append(',')
-                    .append(escape(row.completedAt()))
-                    .append('\n');
-        }
         return csv.toString();
     }
 
@@ -346,6 +375,20 @@ public class StatisticsService {
             return String.format("%dд %02d:%02d", days, hours, minutes);
         }
         return String.format("%02d:%02d", hours, minutes);
+    }
+
+    private String datePart(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "";
+        }
+        return dateTime.toLocalDate().toString();
+    }
+
+    private String timePart(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "";
+        }
+        return dateTime.toLocalTime().withNano(0).toString();
     }
 
     private void appendCsvRow(StringBuilder csv, List<String> values) {

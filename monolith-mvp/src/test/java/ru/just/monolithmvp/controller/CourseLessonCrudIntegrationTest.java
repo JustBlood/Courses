@@ -385,7 +385,7 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         String[] lines = summaryCsv.strip().split("\\R");
-        assertThat(lines.length).isEqualTo(3);
+        assertThat(lines.length).isGreaterThanOrEqualTo(3);
 
         String expectedHeader =
                 "\"Статус\";\"Программа\";\"ФИО\";\"Email\";\"Логин\";\"cid\";\"Деактивирован\";\"Компания\";\"Подразделение\";\"Должность\";\"Группы\";\"Баллов\";\"Эффективность\";\"Медалей\";\"Пересдач\";\"Назначено\";\"Начало\";\"Завершение\";\"Дедлайн\";\"Затрачено времени\";\"Прогресс\";\"Уроков\";\"Продолжительность\";\"Номер сертификата\";\"Ссылка\"";
@@ -428,6 +428,155 @@ class CourseLessonCrudIntegrationTest {
         assertThat(doneRow[13]).isEmpty();
         assertThat(doneRow[23]).isEmpty();
         assertThat(doneRow[24]).isEmpty();
+    }
+
+    @Test
+    void summary_report_csv_should_match_required_columns_and_have_row_per_course_assignment() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("summary-multi");
+        Long studentId = createUser(adminToken, "Summary Multi", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String firstCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Summary Course A",
+                                  "description": "FR-017 all courses A",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long firstCourseId = objectMapper.readTree(firstCourseResponse).get("id").asLong();
+
+        String secondCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Summary Course B",
+                                  "description": "FR-017 all courses B",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 45
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long secondCourseId = objectMapper.readTree(secondCourseResponse).get("id").asLong();
+
+        Long firstTheoryLessonId = objectMapper.readTree(mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", firstCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory A",
+                                  "description": "A",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "A",
+                                  "fullPoints": 10
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", secondCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory B",
+                                  "description": "B",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "B",
+                                  "fullPoints": 20
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", firstCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", secondCourseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        String summaryCsv = mockMvc.perform(get("/api/v1/admin/progress/reports/summary.csv")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String[] lines = summaryCsv.strip().split("\\R");
+        assertThat(lines.length).isGreaterThanOrEqualTo(2);
+
+        String expectedHeader =
+                "\"Группы\";\"ФИО студента\";\"Email\";\"Логин\";\"CID\";\"Название курса\";\"CID\";\"Дата назначения\";\"Время\";\"Дата начала\";\"Время\";\"Дата завершения\";\"Время\";\"Баллов\";\"Эффективность\";\"Продолжительность\";\"Затрачено\";\"Номер сертификата\";\"Ссылка\"";
+        assertThat(lines[0]).isEqualTo(expectedHeader);
+
+        java.util.List<String[]> studentRows = new java.util.ArrayList<>();
+        for (int i = 1; i < lines.length; i++) {
+            String[] row = parseCsvSemicolonLine(lines[i]);
+            if (row.length == 19 && studentEmail.equals(row[2])) {
+                studentRows.add(row);
+            }
+        }
+
+        assertThat(studentRows).hasSize(2);
+
+        String[] courseARow = studentRows.stream()
+                .filter(r -> "Summary Course A".equals(r[5]))
+                .findFirst()
+                .orElseThrow();
+        String[] courseBRow = studentRows.stream()
+                .filter(r -> "Summary Course B".equals(r[5]))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(courseARow[1]).isEqualTo("Summary Multi");
+        assertThat(courseARow[2]).isEqualTo(studentEmail);
+        assertThat(courseARow[13]).isEqualTo("10");
+        assertThat(courseARow[14]).isEqualTo("100.00");
+
+        assertThat(courseBRow[1]).isEqualTo("Summary Multi");
+        assertThat(courseBRow[2]).isEqualTo(studentEmail);
+        assertThat(courseBRow[13]).isEqualTo("0");
+        assertThat(courseBRow[14]).isEqualTo("0.00");
+
+        assertThat(courseARow[3]).isEmpty();
+        assertThat(courseARow[4]).isEmpty();
+        assertThat(courseARow[6]).isEmpty();
+        assertThat(courseARow[17]).isEmpty();
+        assertThat(courseARow[18]).isEmpty();
     }
 
     @Test

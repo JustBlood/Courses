@@ -523,3 +523,21 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Следующая ready-to-start non-UI задача по зависимостям: `TASK-020A` (FR-017 MVP: общий сводный отчёт по всем курсам).
+
+### 2026-02-24 — Завершена TASK-020A (FR-017 MVP: общий сводный отчёт по всем курсам)
+- Что сделано (кратко):
+  - Подтверждён и зафиксирован общий CSV-отчёт по всем курсам в контракте `FR-017/AC-017` с корректным набором и порядком колонок.
+  - Закреплена корректная обработка студентов, назначенных на несколько курсов: отдельная строка на каждое назначение (`Enrollment`).
+  - В интеграционном тесте `summary_report_csv_should_match_required_columns_and_have_row_per_course_assignment` убрана хрупкая проверка общего количества строк и зафиксирована валидация по целевому студенту (2 строки на 2 курса).
+  - Подтверждён прогон тестов: `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Задача переведена в `done`, создан артефакт `memory-bank/task-artifacts/TASK-020A.md`, индекс `memory-bank/05-task-execution-progress.md` обновлён.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/StatisticsService.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/CourseLessonCrudIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-020A.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/06-system-development-progress.md`
+  - `memory-bank/02-active-context.md`
+- Что отложено / следующий крупный этап:
+  - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету: `TASK-022A` (FR-019 base flow: восстановление пароля по email-токену).

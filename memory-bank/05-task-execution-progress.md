@@ -78,6 +78,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-018.md`
 - `TASK-019A` — FR-017 (MVP) сводный отчёт по конкретному курсу
   - Артефакт: `memory-bank/task-artifacts/TASK-019A.md`
+- `TASK-020A` — FR-017 (MVP) общий сводный отчёт по всем курсам
+  - Артефакт: `memory-bank/task-artifacts/TASK-020A.md`
+
 
 
 
