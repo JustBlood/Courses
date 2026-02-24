@@ -541,3 +541,23 @@
   - `memory-bank/02-active-context.md`
 - Что отложено / следующий крупный этап:
   - Перейти к следующей ready-to-start non-UI задаче по зависимостям и приоритету: `TASK-022A` (FR-019 base flow: восстановление пароля по email-токену).
+
+### 2026-02-24 — Завершена TASK-022A (FR-019 base flow: восстановление пароля)
+- Что сделано (кратко):
+  - Подтверждён рабочий base flow восстановления пароля `initiate + confirm` в auth-контуре без расширения scope.
+  - Верифицировано, что `recover-password` создаёт одноразовый `PasswordSetupToken`, а `set-password` обновляет хеш пароля и помечает токен использованным.
+  - Изменения в бизнес-код не вносились: текущая реализация полностью покрывает критерии `TASK-022A`.
+  - Создан артефакт выполнения `memory-bank/task-artifacts/TASK-022A.md`, обновлён индекс выполненных задач.
+- Какие модули затронуты:
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/controller/AuthController.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/AuthService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/service/UserService.java`
+  - `monolith-mvp/src/main/java/ru/just/monolithmvp/repository/PasswordSetupTokenRepository.java`
+  - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
+  - `memory-bank/task-artifacts/TASK-022A.md`
+  - `memory-bank/05-task-execution-progress.md`
+  - `memory-bank/tasks.json`
+  - `memory-bank/02-active-context.md`
+  - `memory-bank/06-system-development-progress.md`
+- Что отложено / следующий крупный этап:
+  - Следующая ready-to-start non-UI high-priority задача: `TASK-026` (FR-101/FR-102: CRUD разделов каталога и создание курса в контексте раздела).

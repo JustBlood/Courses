@@ -80,6 +80,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-019A.md`
 - `TASK-020A` — FR-017 (MVP) общий сводный отчёт по всем курсам
   - Артефакт: `memory-bank/task-artifacts/TASK-020A.md`
+- `TASK-022A` — FR-019 (base flow) восстановление пароля по email-токену
+  - Артефакт: `memory-bank/task-artifacts/TASK-022A.md`
+
 
 
 
