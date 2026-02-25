@@ -185,7 +185,7 @@ class UserAuthStudentFlowIntegrationTest {
 
         JsonNode createdStudent = objectMapper.readTree(createStudentResponse);
         Long studentId = createdStudent.get("id").asLong();
-        assertThat(createdStudent.get("activated").asBoolean()).isFalse();
+        assertThat(createdStudent.get("enabled").asBoolean()).isFalse();
 
         assertThat(groupMembershipRepository.existsByGroupIdAndUserId(onboardingGroup.getId(), studentId)).isTrue();
         assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, onboardingCourseId)).isTrue();
@@ -222,7 +222,7 @@ class UserAuthStudentFlowIntegrationTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        assertThat(objectMapper.readTree(studentAfterActivation).get("activated").asBoolean()).isTrue();
+        assertThat(objectMapper.readTree(studentAfterActivation).get("enabled").asBoolean()).isTrue();
 
         // Негативный кейс: повторное использование того же токена
         mockMvc.perform(post("/api/v1/auth/set-password?token=" + inviteToken.getToken())
@@ -353,6 +353,47 @@ class UserAuthStudentFlowIntegrationTest {
         assertThat(objectMapper.readTree(avatarUploadResponse).get("avatarFilePath").asText())
                 .isNotBlank();
 
+        MockMultipartFile commonUploadFile = new MockMultipartFile(
+                "file",
+                "evidence.txt",
+                "text/plain",
+                "hello".getBytes()
+        );
+
+        String commonUploadResponse = mockMvc.perform(multipart("/api/v1/files/upload")
+                        .file(commonUploadFile)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(commonUploadResponse).get("path").asText())
+                .isNotBlank();
+
+        String beforeLastVisitResponse = mockMvc.perform(get("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode beforeLastVisit = objectMapper.readTree(beforeLastVisitResponse).get("user").get("lastVisit");
+
+        String afterLastVisitResponse = mockMvc.perform(post("/api/v1/student/my/last-visit")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode updatedLastVisit = objectMapper.readTree(afterLastVisitResponse).get("lastVisit");
+        assertThat(updatedLastVisit).isNotNull();
+        assertThat(updatedLastVisit.isNull()).isFalse();
+        if (beforeLastVisit != null && !beforeLastVisit.isNull()) {
+            assertThat(updatedLastVisit.asText()).isNotBlank();
+        }
+
         // Student controller
         mockMvc.perform(get("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + studentToken))
@@ -424,17 +465,22 @@ class UserAuthStudentFlowIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/admin/users/{userId}/password", studentId)
+        mockMvc.perform(put("/api/v1/admin/users/{userId}", studentId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "password": "StudPass3!"
+                                  "fullName": "Student One Updated",
+                                  "email": "student1@example.com",
+                                  "role": "ADMIN",
+                                  "phone": "+79991112233",
+                                  "comment": "updated",
+                                  "password": "StudPass4!"
                                 }
                                 """))
                 .andExpect(status().isOk());
 
-        String studentAsAdminToken = login("student1@example.com", "StudPass3!");
+        String studentAsAdminToken = login("student1@example.com", "StudPass4!");
         JsonNode studentAsAdminLogin = parseLogin(studentAsAdminToken);
         assertThat(studentAsAdminLogin.get("role").asText()).isEqualTo("ADMIN");
 
@@ -460,7 +506,7 @@ class UserAuthStudentFlowIntegrationTest {
                         .content("""
                                 {
                                   "email": "student1@example.com",
-                                  "password": "StudPass3!"
+                                  "password": "StudPass4!"
                                 }
                                 """))
                 .andExpect(status().isUnauthorized());

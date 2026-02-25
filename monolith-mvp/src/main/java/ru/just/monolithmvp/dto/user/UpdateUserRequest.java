@@ -10,6 +10,7 @@ public record UpdateUserRequest(
         @NotBlank @Email String email,
         @NotNull Role role,
         String phone,
-        String comment
+        String comment,
+        String password
 ) {
 }

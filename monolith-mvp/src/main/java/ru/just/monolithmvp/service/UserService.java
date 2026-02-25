@@ -27,9 +27,6 @@ import ru.just.monolithmvp.security.SecurityUtils;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -53,6 +50,7 @@ public class UserService {
     private final ProgramEnrollmentRepository programEnrollmentRepository;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.storage.user-avatar-dir:data/users/avatars}")
     private String userAvatarDir;
@@ -74,8 +72,8 @@ public class UserService {
             user.setEmail(request.email());
             user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
             user.setRole(request.role());
-            user.setEnabled(true);
-            user.setActivated(!sendInvite);
+            user.setActivation(true);
+            user.setEnabled(!sendInvite);
             user.setPhone(request.phone());
             user.setComment(request.comment());
             user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
@@ -128,6 +126,11 @@ public class UserService {
             user.setRole(request.role());
             user.setPhone(request.phone());
             user.setComment(request.comment());
+            if (request.password() != null && !request.password().isBlank()) {
+                user.setPasswordHash(passwordEncoder.encode(request.password()));
+                user.setActivation(true);
+                user.setEnabled(true);
+            }
 
             AppUser savedUser = userRepository.save(user);
             businessEventLogger.log("user.update", "success",
@@ -143,15 +146,6 @@ public class UserService {
                     "reason", ex.getClass().getSimpleName());
             throw ex;
         }
-    }
-
-    @Transactional
-    public void setUserPassword(Long userId, SetUserPasswordRequest request) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setActivated(true);
-        userRepository.save(user);
     }
 
     @Transactional
@@ -191,11 +185,20 @@ public class UserService {
 
     @Transactional
     public void setUsersActivation(List<Long> userIds, Boolean activation) {
-        final List<AppUser> usersWithAnotherActivation = userRepository.findAllByIdInAndEnabled(userIds, !activation);
+        final List<AppUser> usersWithAnotherActivation = userRepository.findAllByIdInAndActivation(userIds, !activation);
+        Long currentUserId = tryResolveCurrentUserId();
         for (AppUser user : usersWithAnotherActivation) {
-            user.setEnabled(activation);
-            user.setDeactivatedAt(LocalDateTime.now());
-            user.setDeactivatedBy(resolveCurrentActor());
+            if (currentUserId != null && Objects.equals(user.getId(), currentUserId) && !activation) {
+                throw new BadRequestException("Admin cannot deactivate self");
+            }
+            user.setActivation(activation);
+            if (activation) {
+                user.setDeactivatedAt(null);
+                user.setDeactivatedBy(null);
+            } else {
+                user.setDeactivatedAt(LocalDateTime.now());
+                user.setDeactivatedBy(resolveCurrentActor());
+            }
         }
         userRepository.saveAll(usersWithAnotherActivation);
     }
@@ -214,10 +217,15 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long userId) {
+        Long currentUserId = tryResolveCurrentUserId();
+        if (currentUserId != null && Objects.equals(currentUserId, userId)) {
+            throw new BadRequestException("Admin cannot delete self");
+        }
+
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        deleteAvatarIfExists(user.getAvatarFilePath());
+        fileStorageService.deleteIfExists(user.getAvatarFilePath());
 
         submissionRepository.deleteByStudentId(userId);
         enrollmentRepository.deleteByUserId(userId);
@@ -240,28 +248,34 @@ public class UserService {
             throw new BadRequestException("Avatar must be an image");
         }
 
-        try {
-            Path userDir = Path.of(userAvatarDir, String.valueOf(userId));
-            Files.createDirectories(userDir);
+        String path = fileStorageService.store(file, userAvatarDir + "/" + userId);
+        fileStorageService.deleteIfExists(user.getAvatarFilePath());
 
-            String extension = extractExtension(file.getOriginalFilename());
-            String fileName = UUID.randomUUID() + extension;
-            Path target = userDir.resolve(fileName);
-
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-
-            deleteAvatarIfExists(user.getAvatarFilePath());
-
-            user.setAvatarFilePath(target.toString().replace('\\', '/'));
-            return userMapper.toDto(userRepository.save(user));
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save avatar", e);
-        }
+        user.setAvatarFilePath(path);
+        return userMapper.toDto(userRepository.save(user));
     }
 
     @Transactional
     public void deleteUsers(List<Long> userIds) {
+        Long currentUserId = tryResolveCurrentUserId();
+        if (currentUserId != null && userIds.contains(currentUserId)) {
+            throw new BadRequestException("Admin cannot delete self");
+        }
         userIds.forEach(this::deleteUser);
+    }
+
+    @Transactional
+    public UserDto updateLastVisit(Long userId) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        user.setLastVisit(LocalDateTime.now());
+        return userMapper.toDto(userRepository.save(user));
+    }
+
+    @Transactional
+    public UserDto updateCurrentUserLastVisit() {
+        Long userId = securityUtils.currentUserId();
+        return updateLastVisit(userId);
     }
 
     @Transactional
@@ -383,6 +397,14 @@ public class UserService {
             return securityUtils.currentUser().getUsername();
         } catch (Exception ex) {
             return "system";
+        }
+    }
+
+    private Long tryResolveCurrentUserId() {
+        try {
+            return securityUtils.currentUserId();
+        } catch (Exception ex) {
+            return null;
         }
     }
 
@@ -537,25 +559,4 @@ public class UserService {
         return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
     }
 
-    private void deleteAvatarIfExists(String avatarPath) {
-        if (avatarPath == null || avatarPath.isBlank()) {
-            return;
-        }
-        try {
-            Files.deleteIfExists(Path.of(avatarPath));
-        } catch (IOException ignored) {
-            // no-op for MVP
-        }
-    }
-
-    private String extractExtension(String originalFilename) {
-        if (originalFilename == null) {
-            return ".bin";
-        }
-        int dot = originalFilename.lastIndexOf('.');
-        if (dot == -1 || dot == originalFilename.length() - 1) {
-            return ".bin";
-        }
-        return originalFilename.substring(dot).toLowerCase(Locale.ROOT);
-    }
 }

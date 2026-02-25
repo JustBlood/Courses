@@ -32,11 +32,11 @@ public class AppUser {
     @Column(nullable = false)
     private Role role;
 
-    @Column(nullable = false)
-    private boolean enabled = true;
+    @Column(name = "enabled", nullable = false)
+    private boolean activation = true;
 
-    @Column(nullable = false)
-    private boolean activated = true;
+    @Column(name = "activated", nullable = false)
+    private boolean enabled = true;
 
     private String phone;
 

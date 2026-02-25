@@ -19,7 +19,9 @@ import ru.just.monolithmvp.dto.common.IdsRequest;
 import ru.just.monolithmvp.dto.group.*;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.user.*;
-import ru.just.monolithmvp.service.*;
+import ru.just.monolithmvp.service.GroupService;
+import ru.just.monolithmvp.service.StatisticsService;
+import ru.just.monolithmvp.service.UserService;
 
 import java.util.List;
 import java.util.UUID;
@@ -37,11 +39,8 @@ import java.util.UUID;
 })
 public class UsersController {
     private final UserService userService;
-    private final CourseService courseService;
-    private final LearningService learningService;
     private final GroupService groupService;
     private final StatisticsService statisticsService;
-    private final ProgramService programService;
 
     @PostMapping("/users")
     @Operation(summary = "Создать пользователя")
@@ -95,19 +94,6 @@ public class UsersController {
     public ResponseEntity<UserDto> updateUser(@PathVariable Long userId,
                                               @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateUser(userId, request));
-    }
-
-    @PostMapping("/users/{userId}/password")
-    @Operation(summary = "Установить пароль пользователю")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пароль обновлен", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> setUserPassword(@PathVariable Long userId,
-                                                       @Valid @RequestBody SetUserPasswordRequest request) {
-        userService.setUserPassword(userId, request);
-        return ResponseEntity.ok(new ApiResponse("Password updated"));
     }
 
     @PostMapping("/users/activation")

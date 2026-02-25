@@ -47,6 +47,7 @@ public class AuthService {
             );
             AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
             final String token = jwtService.generateToken(user.getId(), user.getUsername(), user.getRole());
+            userService.updateLastVisit(user.getId());
 
             metricsService.incrementAuth("login", "success");
             businessEventLogger.log("auth.login", "success", "userId", user.getId(), "email", request.email());
@@ -74,7 +75,8 @@ public class AuthService {
             }
 
             setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
-            setupToken.getUser().setActivated(true);
+            setupToken.getUser().setActivation(true);
+            setupToken.getUser().setEnabled(true);
             setupToken.setUsedAt(java.time.LocalDateTime.now());
             passwordSetupTokenRepository.save(setupToken);
 

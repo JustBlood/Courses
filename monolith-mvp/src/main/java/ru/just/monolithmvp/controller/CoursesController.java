@@ -295,8 +295,7 @@ public class CoursesController {
         programService.assignGroupToProgram(request.targetId(), groupId);
         return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
     }
-//
-//    @PostMapping("/programs")
+
     @PostMapping("/programs")
     @Operation(summary = "Создать программу обучения")
     @ApiResponses(value = {
@@ -306,8 +305,7 @@ public class CoursesController {
     public ResponseEntity<LearningProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
         return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
     }
-//
-//    @GetMapping("/programs")
+
     @GetMapping("/programs")
     @Operation(summary = "Получить список программ")
     @ApiResponses(value = {
@@ -327,7 +325,7 @@ public class CoursesController {
     public ResponseEntity<LearningProgramDto> getProgram(@PathVariable Long programId) {
         return ResponseEntity.ok(programService.getProgram(programId));
     }
-//
+
     @PutMapping("/programs/{programId}")
     @Operation(summary = "Обновить программу")
     @ApiResponses(value = {

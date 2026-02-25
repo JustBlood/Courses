@@ -92,6 +92,15 @@ public class StudentController {
         return ResponseEntity.ok(userService.updateUserAvatar(securityUtils.currentUserId(), file));
     }
 
+    @PostMapping("/my/last-visit")
+    @Operation(summary = "Обновить lastVisit для текущего пользователя")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Дата последнего визита обновлена", content = @Content(schema = @Schema(implementation = UserDto.class)))
+    })
+    public ResponseEntity<UserDto> updateMyLastVisit() {
+        return ResponseEntity.ok(userService.updateCurrentUserLastVisit());
+    }
+
     @GetMapping("/my/programs")
     @Operation(summary = "Получить назначенные программы обучения")
     @ApiResponses(value = {

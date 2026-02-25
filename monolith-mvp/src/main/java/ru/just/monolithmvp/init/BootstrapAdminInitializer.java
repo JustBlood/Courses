@@ -25,11 +25,11 @@ public class BootstrapAdminInitializer implements CommandLineRunner {
         userRepository.findByEmail(properties.email()).orElseGet(() -> {
             AppUser admin = new AppUser();
             admin.setFullName(properties.fullName() == null || properties.fullName().isBlank() ? "System Admin" : properties.fullName());
-            admin.setEmail(properties.email() == null || properties.email().isBlank() ? "admin@local" : properties.email());
+            admin.setEmail(properties.email().isBlank() ? "admin@local" : properties.email());
             admin.setPasswordHash(passwordEncoder.encode(properties.password()));
             admin.setRole(Role.ADMIN);
+            admin.setActivation(true);
             admin.setEnabled(true);
-            admin.setActivated(true);
             return userRepository.save(admin);
         });
     }

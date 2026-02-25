@@ -243,7 +243,7 @@ public class StatisticsService {
             String deadline = calcDeadline(enrollment.getEnrolledAt(), course.getDeadlineDays());
 
             AppUser user = enrollment.getUser();
-            String deactivated = (!user.isEnabled() || user.getDeactivatedAt() != null) ? "Да" : "Нет";
+            String deactivated = (!user.isActivation() || user.getDeactivatedAt() != null) ? "Да" : "Нет";
 
             appendCsvRow(csv, List.of(
                     enrollmentStatus(enrollment),
