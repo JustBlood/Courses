@@ -11,10 +11,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LessonSubmissionRepository extends JpaRepository<LessonSubmission, Long> {
-    List<LessonSubmission> findByStatus(SubmissionStatus status);
     List<LessonSubmission> findAllByStatusAndLessonCourseIdIn(SubmissionStatus status, List<Long> courseId);
     List<LessonSubmission> findByStudentIdAndLessonCourseId(Long studentId, Long courseId);
-    boolean existsByStudentIdAndLessonIdAndPassedTrue(Long studentId, Long lessonId);
+
+    Optional<LessonSubmission> findFirstByStudentIdAndLessonIdAndPassedTrueOrderBySubmittedAtDesc(Long studentId,
+                                                                                                    Long lessonId);
+    Optional<LessonSubmission> findFirstByStudentIdAndLessonIdAndStatusOrderBySubmittedAtDesc(Long studentId,
+                                                                                                Long lessonId,
+                                                                                                SubmissionStatus status);
     long countByStudentIdAndLessonId(Long studentId, Long lessonId);
     Optional<LessonSubmission> findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(Long studentId, Long lessonId);
 

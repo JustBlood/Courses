@@ -19,6 +19,8 @@ import ru.just.monolithmvp.dto.course.*;
 import ru.just.monolithmvp.dto.lesson.CreatePracticeLessonRequest;
 import ru.just.monolithmvp.dto.lesson.CreateTheoryLessonRequest;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
+import ru.just.monolithmvp.dto.lesson.UpdatePracticeLessonRequest;
+import ru.just.monolithmvp.dto.lesson.UpdateTheoryLessonRequest;
 import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
 import ru.just.monolithmvp.dto.program.GroupAssignmentRequest;
 import ru.just.monolithmvp.dto.program.LearningProgramDto;
@@ -138,7 +140,7 @@ public class CoursesController {
     })
     public ResponseEntity<LessonDto> updateTheoryLesson(@PathVariable Long courseId,
                                                         @PathVariable Long lessonId,
-                                                        @Valid @RequestBody CreateTheoryLessonRequest request) {
+                                                        @Valid @RequestBody UpdateTheoryLessonRequest request) {
         return ResponseEntity.ok(courseService.updateTheoryLesson(courseId, lessonId, request));
     }
 
@@ -151,7 +153,7 @@ public class CoursesController {
     })
     public ResponseEntity<LessonDto> updatePracticeLesson(@PathVariable Long courseId,
                                                           @PathVariable Long lessonId,
-                                                          @Valid @RequestBody CreatePracticeLessonRequest request) {
+                                                          @Valid @RequestBody UpdatePracticeLessonRequest request) {
         return ResponseEntity.ok(courseService.updatePracticeLesson(courseId, lessonId, request));
     }
 

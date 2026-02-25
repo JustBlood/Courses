@@ -76,7 +76,7 @@ public class CourseService {
     public List<CourseSummaryDto> getCourseSummaries() {
         return courseRepository.findAll().stream()
                 .sorted(Comparator
-                        .comparing((Course c) -> c.getSection(), Comparator.nullsLast(
+                        .comparing(Course::getSection, Comparator.nullsLast(
                                 Comparator.comparing(Section::getPriority)
                                         .thenComparing(Section::getId)
                         ))
@@ -134,9 +134,7 @@ public class CourseService {
         int offset = lessons.size();
         lessons.forEach(lesson -> lesson.setPosition(lesson.getPosition() + offset)); // todo: refactor. Очень непроизводительно.
         lessonRepository.saveAllAndFlush(lessons);
-        lessons.forEach(lesson -> {
-            lesson.setPosition(request.lessonIdToPosition().get(lesson.getId()));
-        });
+        lessons.forEach(lesson -> lesson.setPosition(request.lessonIdToPosition().get(lesson.getId())));
         lessonRepository.saveAll(lessons);
     }
 
@@ -153,17 +151,12 @@ public class CourseService {
     public LessonDto createTheoryLesson(Long courseId, CreateTheoryLessonRequest request) {
         Course course = getCourseEntity(courseId);
         final int position = nextLessonPosition(courseId);
+        validateCreateTheoryRequest(request);
 
         TheoryLesson lesson = new TheoryLesson();
         lesson.setCourse(course);
         lesson.setPosition(position);
-        applyCommonLessonFields(lesson, request.title(), request.description(), request.coverFilePath(),
-                request.requiresPreviousCompleted(), request.openForAccess(), request.stopLesson(),
-                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
-        lesson.setContentType(request.contentType());
-        lesson.setContent(request.content());
-        lesson.setFullPoints(request.fullPoints() == null ? 1 : request.fullPoints());
-        lesson.setPartialPoints(0);
+        applyTheoryLessonFields(lesson, request);
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
     }
@@ -171,30 +164,15 @@ public class CourseService {
     @Transactional
     public LessonDto createPracticeLesson(Long courseId, CreatePracticeLessonRequest request) {
         Course course = getCourseEntity(courseId);
-        validatePracticeRequest(request);
+        validateCreatePracticeRequest(request);
         final Integer lessonPosition = nextLessonPosition(courseId);
 
         PracticeLesson lesson = new PracticeLesson();
         lesson.setCourse(course);
         lesson.setPosition(lessonPosition);
-        applyCommonLessonFields(lesson, request.title(), request.description(), request.coverFilePath(),
-                request.requiresPreviousCompleted(), request.openForAccess(), request.stopLesson(),
-                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
+        applyPracticeLessonFields(lesson, request);
 
-        lesson.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
-        lesson.setEvaluateByCorrectCount(Boolean.TRUE.equals(request.evaluateByCorrectCount()));
-        lesson.setRandomQuestionCount(request.randomQuestionCount());
-        lesson.setShuffleOnEveryAttempt(Boolean.TRUE.equals(request.shuffleOptions()));
-        lesson.setShowQuestionStatus(request.showQuestionStatus() == null || request.showQuestionStatus());
-        lesson.setShowCorrectAnswersAfterCompletion(Boolean.TRUE.equals(request.showCorrectAnswers()));
-        lesson.setLessonType(request.lessonType());
-
-        lesson.setFullPoints(request.fullPoints() == null ? 1 : request.fullPoints());
-        lesson.setPartialPoints(request.partialPoints() == null ? 0 : request.partialPoints());
-
-        if (request.questions() != null && !request.questions().isEmpty()) {
-            applyQuestionPool(lesson, request.questions());
-        }
+        applyQuestionPool(lesson, request.questions(), Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount()));
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
     }
@@ -209,7 +187,7 @@ public class CourseService {
     }
 
     @Transactional
-    public LessonDto updateTheoryLesson(Long courseId, Long lessonId, CreateTheoryLessonRequest request) {
+    public LessonDto updateTheoryLesson(Long courseId, Long lessonId, UpdateTheoryLessonRequest request) {
         Lesson lessonEntity = getLessonEntity(lessonId);
         if (!(lessonEntity instanceof TheoryLesson lesson)) {
             throw new BadRequestException("Lesson is not theory");
@@ -218,19 +196,13 @@ public class CourseService {
             throw new BadRequestException("Lesson does not belong to course");
         }
 
-        applyCommonLessonFields(lesson, request.title(), request.description(), request.coverFilePath(),
-                request.requiresPreviousCompleted(), request.openForAccess(), request.stopLesson(),
-                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
-        lesson.setContentType(request.contentType());
-        lesson.setContent(request.content());
-        lesson.setFullPoints(request.fullPoints() == null ? 1 : request.fullPoints());
-        lesson.setPartialPoints(0);
+        applyTheoryLessonFields(lesson, toCreateTheoryLessonRequest(request));
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
     }
 
     @Transactional
-    public LessonDto updatePracticeLesson(Long courseId, Long lessonId, CreatePracticeLessonRequest request) {
+    public LessonDto updatePracticeLesson(Long courseId, Long lessonId, UpdatePracticeLessonRequest request) {
         Lesson lessonEntity = getLessonEntity(lessonId);
         if (!(lessonEntity instanceof PracticeLesson lesson)) {
             throw new BadRequestException("Lesson is not practice");
@@ -239,23 +211,12 @@ public class CourseService {
             throw new BadRequestException("Lesson does not belong to course");
         }
 
-        validatePracticeRequest(request);
-        applyCommonLessonFields(lesson, request.title(), request.description(), request.coverFilePath(),
-                request.requiresPreviousCompleted(), request.openForAccess(), request.stopLesson(),
-                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
-        lesson.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
-        lesson.setEvaluateByCorrectCount(Boolean.TRUE.equals(request.evaluateByCorrectCount()));
-        lesson.setRandomQuestionCount(request.randomQuestionCount());
-        lesson.setShuffleOnEveryAttempt(Boolean.TRUE.equals(request.shuffleOptions()));
-        lesson.setShowQuestionStatus(request.showQuestionStatus() == null || request.showQuestionStatus());
-        lesson.setShowCorrectAnswersAfterCompletion(Boolean.TRUE.equals(request.showCorrectAnswers()));
-        lesson.setLessonType(request.lessonType());
+        CreatePracticeLessonRequest patchRequest = toCreatePracticeLessonRequest(request);
+        validateUpdatePracticeRequest(patchRequest);
+        applyPracticeLessonFields(lesson, patchRequest);
 
-        lesson.setFullPoints(request.fullPoints() == null ? lesson.getFullPoints() : request.fullPoints());
-        lesson.setPartialPoints(request.partialPoints() == null ? lesson.getPartialPoints() : request.partialPoints());
-
-        if (request.questions() != null && !request.questions().isEmpty()) {
-            applyQuestionPool(lesson, request.questions());
+        if (!CollectionUtils.isEmpty(patchRequest.questions())) {
+            applyQuestionPool(lesson, patchRequest.questions(), Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount()));
         }
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
@@ -514,7 +475,7 @@ public class CourseService {
     }
 
     private void validateStudentEnrolled(Long userId, Long courseId) {
-        if (!isUserEnrolled(userId, courseId)) {
+        if (!isUserEnrolled(userId, courseId)) { // FIXME: транзакция
             throw new BadRequestException("Student is not enrolled in this course");
         }
     }
@@ -537,19 +498,54 @@ public class CourseService {
     private void applyCommonLessonFields(Lesson lesson,
                                          String title,
                                          String description,
-                                         String coverFilePath,
-                                         Boolean requiresPreviousCompleted,
-                                         Boolean openForAccess,
                                          Boolean stopLesson,
                                          Boolean blockedDuringAttempt,
                                          Integer attemptLimit,
                                          Integer timeLimitMinutes) {
-        lesson.setTitle(title);
-        lesson.setDescription(description);
-        lesson.setStopLesson(Boolean.TRUE.equals(stopLesson));
-        lesson.setBlockedDuringAttempt(blockedDuringAttempt == null || blockedDuringAttempt);
-        lesson.setAttemptLimit(attemptLimit);
-        lesson.setTimeLimitMinutes(timeLimitMinutes);
+        lesson.setTitle(Optional.ofNullable(title).orElse(lesson.getTitle()));
+        lesson.setDescription(Optional.ofNullable(description).orElse(lesson.getDescription()));
+        lesson.setStopLesson(Optional.ofNullable(stopLesson).orElse(lesson.getStopLesson()));
+        lesson.setBlockedDuringAttempt(Optional.ofNullable(blockedDuringAttempt).orElse(lesson.getBlockedDuringAttempt()));
+        lesson.setAttemptLimit(Optional.ofNullable(attemptLimit).orElse(lesson.getAttemptLimit()));
+        lesson.setTimeLimitMinutes(Optional.ofNullable(timeLimitMinutes).orElse(lesson.getTimeLimitMinutes()));
+    }
+
+    private void applyTheoryLessonFields(TheoryLesson lesson, CreateTheoryLessonRequest request) {
+        applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
+                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
+        lesson.setContentType(patchValue(request.contentType(), lesson.getContentType()));
+        lesson.setContent(patchValue(request.content(), lesson.getContent()));
+        lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
+        lesson.setPartialPoints(0);
+    }
+
+    private void applyPracticeLessonFields(PracticeLesson lesson, CreatePracticeLessonRequest request) {
+        applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
+                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
+        lesson.setPassingThresholdPercent(patchValue(request.passingThresholdPercent(), lesson.getPassingThresholdPercent()));
+        lesson.setEvaluateByCorrectCount(patchValue(request.evaluateByCorrectCount(), lesson.getEvaluateByCorrectCount()));
+        lesson.setRandomQuestionCount(patchValue(request.randomQuestionCount(), lesson.getRandomQuestionCount()));
+        lesson.setShuffleOnEveryAttempt(patchValue(request.shuffleOptions(), lesson.getShuffleOnEveryAttempt()));
+        lesson.setShowQuestionStatus(patchValue(request.showQuestionStatus(), lesson.getShowQuestionStatus()));
+        lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswers(), lesson.getShowCorrectAnswersAfterCompletion()));
+        lesson.setLessonType(patchValue(request.lessonType(), lesson.getLessonType()));
+
+        if (!CollectionUtils.isEmpty(request.questions())) {
+            lesson.setFullPoints(request.questions().stream()
+                    .mapToInt(q -> resolveQuestionFullPoints(q, Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount())))
+                    .sum());
+        }
+        if (request.partialPoints() != null) {
+            lesson.setPartialPoints(request.partialPoints());
+        }
+
+        if (lesson.getPartialPoints() > lesson.getFullPoints()) {
+            throw new BadRequestException("partialPoints > fullPoints");
+        }
+    }
+
+    private <T> T patchValue(T requestedValue, T currentValue) {
+        return requestedValue != null ? requestedValue : currentValue;
     }
 
     private String joinValues(List<String> values) {
@@ -564,21 +560,9 @@ public class CourseService {
         return last == null ? 1 : last.getPosition() + 1;
     }
 
-    private void validatePositionAvailability(Long courseId, Integer position) {
-        if (lessonRepository.existsByCourseIdAndPosition(courseId, position)) {
-            throw new BadRequestException("Lesson with position %s already exists in course %s"
-                    .formatted(position, courseId));
-        }
-    }
-
-    private void validatePositionAvailabilityForUpdate(Long courseId, Long lessonId, Integer position) {
-        if (lessonRepository.existsByCourseIdAndPositionAndIdNot(courseId, position, lessonId)) {
-            throw new BadRequestException("Lesson with position %s already exists in course %s"
-                    .formatted(position, courseId));
-        }
-    }
-
-    private void applyQuestionPool(PracticeLesson lesson, List<PracticeQuestionRequest> questions) {
+    private void applyQuestionPool(PracticeLesson lesson,
+                                   List<PracticeQuestionRequest> questions,
+                                   boolean evaluateByCorrectCount) {
         List<PracticeQuestion> mapped = new ArrayList<>();
         for (PracticeQuestionRequest q : questions) {
             PracticeQuestion entity = new PracticeQuestion();
@@ -589,12 +573,62 @@ public class CourseService {
             entity.setTrainerHint(q.trainerHint());
             entity.setOptionsRaw(joinValues(q.options()));
             entity.setCorrectAnswersRaw(joinValues(q.correctAnswers()));
-            entity.setFullPoints(q.fullPoints() == null ? lesson.getFullPoints() : q.fullPoints());
-            entity.setPartialPoints(q.partialPoints() == null ? lesson.getPartialPoints() : q.partialPoints());
+            int resolvedQuestionFullPoints = resolveQuestionFullPoints(q, evaluateByCorrectCount);
+            entity.setFullPoints(resolvedQuestionFullPoints);
+            int resolvedQuestionPartialPoints = q.partialPoints() == null ? lesson.getPartialPoints() : q.partialPoints();
+            entity.setPartialPoints(Math.min(resolvedQuestionPartialPoints, resolvedQuestionFullPoints));
             mapped.add(entity);
         }
         lesson.getQuestions().clear();
         lesson.getQuestions().addAll(mapped);
+    }
+
+    private int resolveQuestionFullPoints(PracticeQuestionRequest question, boolean evaluateByCorrectCount) {
+        if (evaluateByCorrectCount) {
+            return 1;
+        }
+        return Optional.ofNullable(question.fullPoints()).orElse(1);
+    }
+
+    private CreateTheoryLessonRequest toCreateTheoryLessonRequest(UpdateTheoryLessonRequest request) {
+        return new CreateTheoryLessonRequest(
+                request.title(),
+                request.description(),
+                null,
+                null,
+                null,
+                request.stopLesson(),
+                request.blockedDuringAttempt(),
+                request.attemptLimit(),
+                request.timeLimitMinutes(),
+                request.contentType(),
+                request.content(),
+                request.fullPoints(),
+                null
+        );
+    }
+
+    private CreatePracticeLessonRequest toCreatePracticeLessonRequest(UpdatePracticeLessonRequest request) {
+        return new CreatePracticeLessonRequest(
+                request.title(),
+                request.description(),
+                null,
+                null,
+                null,
+                request.stopLesson(),
+                request.blockedDuringAttempt(),
+                request.attemptLimit(),
+                request.timeLimitMinutes(),
+                request.lessonType(),
+                request.partialPoints(),
+                request.passingThresholdPercent(),
+                request.evaluateByCorrectCount(),
+                request.randomQuestionCount(),
+                request.shuffleOptions(),
+                request.showQuestionStatus(),
+                request.showCorrectAnswers(),
+                request.questions()
+        );
     }
 
     private boolean isTheoryLesson(Lesson lesson) {
@@ -618,12 +652,44 @@ public class CourseService {
                 practiceCount
         );
     }
-
-    private void validatePracticeRequest(CreatePracticeLessonRequest request) {
-        if (request.lessonType().getSubType() != LessonType.LessonSubType.PRACTICE) {
+    private void validateUpdatePracticeRequest(CreatePracticeLessonRequest request) {
+        if (request.lessonType() != null && request.lessonType().getSubType() != LessonType.LessonSubType.PRACTICE) {
             throw new BadRequestException("lessonType must be one of practice types");
         }
 
+        if (request.questions() == null) {
+            return;
+        }
+
+        checkPracticeLessonQuestions(request);
+
+    }
+
+    private void validateCreateTheoryRequest(CreateTheoryLessonRequest request) {
+        if (StringUtils.isBlank(request.title())) {
+            throw new BadRequestException("title is required");
+        }
+        if (request.contentType() == null) {
+            throw new BadRequestException("contentType is required");
+        }
+        if (StringUtils.isBlank(request.content())) {
+            throw new BadRequestException("content is required");
+        }
+    }
+
+    private void validateCreatePracticeRequest(CreatePracticeLessonRequest request) {
+        if (StringUtils.isBlank(request.title())) {
+            throw new BadRequestException("title is required");
+        }
+        if (request.lessonType() == null || request.lessonType().getSubType() != LessonType.LessonSubType.PRACTICE) {
+            throw new BadRequestException("lessonType must be one of practice types");
+        }
+
+        checkPracticeLessonQuestions(request);
+
+    }
+
+    private void checkPracticeLessonQuestions(CreatePracticeLessonRequest request) {
         if (CollectionUtils.isEmpty(request.questions())) {
             throw new BadRequestException("lesson should have 1 question");
         }
@@ -671,7 +737,6 @@ public class CourseService {
                 throw new BadRequestException("question position must be >= 1");
             }
         }
-
     }
 
     public List<String> splitRaw(String raw) {

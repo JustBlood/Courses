@@ -443,19 +443,9 @@ class UserAuthStudentFlowIntegrationTest {
                                 {
                                   "fullName": "Student One Updated",
                                   "email": "student1@example.com",
-                                  "role": "STUDENT",
+                                  "role": "ADMIN",
                                   "phone": "+79991112233",
                                   "comment": "updated"
-                                }
-                                """))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(patch("/api/v1/admin/users/{userId}/role", studentId)
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "role": "ADMIN"
                                 }
                                 """))
                 .andExpect(status().isOk());

@@ -5,13 +5,14 @@ import org.springframework.data.jpa.repository.Query;
 import ru.just.monolithmvp.model.Lesson;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByCourse_IdAndPositionGreaterThan(Long courseId, Integer deletingLessonPosition);
     List<Lesson> findByCourseIdOrderByPositionAsc(Long courseId);
     Lesson findFirstByCourse_IdOrderByPositionDesc(Long courseId);
-    boolean existsByCourseIdAndPosition(Long courseId, Integer position);
-    boolean existsByCourseIdAndPositionAndIdNot(Long courseId, Integer position, Long lessonId);
+    Optional<Lesson> findFirstByCourse_IdAndPositionLessThanOrderByPositionDesc(Long courseId, Integer position);
+
     long countByCourseId(Long courseId);
 
     @Query("""

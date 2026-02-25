@@ -15,7 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
 import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
-import ru.just.monolithmvp.dto.user.*;
+import ru.just.monolithmvp.dto.user.CreateUserRequest;
+import ru.just.monolithmvp.dto.user.UpdateUserRequest;
+import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
@@ -121,11 +123,11 @@ public class UserService {
                 throw new BadRequestException("Email already exists");
             }
 
-            user.setFullName(request.fullName());
-            user.setEmail(request.email());
-            user.setRole(request.role());
-            user.setPhone(request.phone());
-            user.setComment(request.comment());
+            user.setFullName(request.fullName() != null ? request.fullName() : user.getFullName());
+            user.setEmail(request.email() != null ? request.email() : user.getEmail());
+            user.setRole(request.role() != null ? request.role() : user.getRole());
+            user.setPhone(request.phone() != null ? request.phone() : user.getPhone());
+            user.setComment(request.comment() != null ? request.comment() : user.getComment());
             if (request.password() != null && !request.password().isBlank()) {
                 user.setPasswordHash(passwordEncoder.encode(request.password()));
                 user.setActivation(true);
@@ -146,14 +148,6 @@ public class UserService {
                     "reason", ex.getClass().getSimpleName());
             throw ex;
         }
-    }
-
-    @Transactional
-    public UserDto updateUserRole(Long userId, UpdateUserRoleRequest request) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        user.setRole(request.role());
-        return userMapper.toDto(userRepository.save(user));
     }
 
     @Transactional

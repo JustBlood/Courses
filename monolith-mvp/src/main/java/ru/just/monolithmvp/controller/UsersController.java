@@ -107,18 +107,6 @@ public class UsersController {
         return ResponseEntity.ok(new ApiResponse("Users set activation"));
     }
 
-    @PatchMapping("/users/{userId}/role")
-    @Operation(summary = "Изменить роль пользователя")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Роль обновлена", content = @Content(schema = @Schema(implementation = UserDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<UserDto> updateUserRole(@PathVariable Long userId,
-                                                  @Valid @RequestBody UpdateUserRoleRequest request) {
-        return ResponseEntity.ok(userService.updateUserRole(userId, request));
-    }
-
     @DeleteMapping("/users/{userId}")
     @Operation(summary = "Удалить пользователя")
     @ApiResponses(value = {

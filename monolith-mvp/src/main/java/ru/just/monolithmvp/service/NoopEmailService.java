@@ -2,14 +2,13 @@ package ru.just.monolithmvp.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.observability.ObservabilityMetricsService;
 
 @Service
-@ConditionalOnMissingBean(JavaMailSender.class)
+@Profile({"!stage && !mail-smtp && !prod"})
 public class NoopEmailService implements EmailService {
     private static final Logger log = LoggerFactory.getLogger(NoopEmailService.class);
 

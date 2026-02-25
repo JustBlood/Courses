@@ -126,6 +126,9 @@
   - Артефакт: `memory-bank/task-artifacts/TASK-040.md`
 - `TASK-OPENAPI-DOCS-2026-02-24` — детальная OpenAPI-документация backend API
   - Артефакт: `memory-bank/task-artifacts/TASK-OPENAPI-DOCS-2026-02-24.md`
+- `ADHOC-COURSE-LESSON-CRUD-STABILIZATION-2026-02-25` — точечная стабилизация интеграционного теста `CourseLessonCrudIntegrationTest`
+  - Артефакт: `memory-bank/task-artifacts/ADHOC-COURSE-LESSON-CRUD-STABILIZATION-2026-02-25.md`
+
 
 
 

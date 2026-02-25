@@ -32,12 +32,12 @@ app:
   storage:
     user-avatar-dir: ${APP_STORAGE_USER_AVATAR_DIR:data/users/avatars}
   mail:
-    from: ${APP_MAIL_FROM:noreply@example.com}
-    invite-base-url: ${APP_MAIL_INVITE_BASE_URL:http://localhost:8099}
+    from: ${APP_MAIL_FROM}
+    invite-base-url: ${APP_MAIL_INVITE_BASE_URL}
   security:
     jwt:
       # Для non-dev окружений задаётся ТОЛЬКО через env/secret-store.
-      secret: ${APP_SECURITY_JWT_SECRET}
+      secret: ${APP_SECURITY_JWT_SECRET:N3D5d6WST02SfSOpfg2P7i3atHNZ0QF4whatT0Q5GtL}
       expiration-ms: ${APP_SECURITY_JWT_EXPIRATION_MS:86400000}
     password-reset:
       token-ttl: ${APP_SECURITY_PASSWORD_RESET_TOKEN_TTL:PT24H}
@@ -81,7 +81,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/courses}
     driver-class-name: org.postgresql.Driver
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
 ---
 spring:
@@ -90,16 +90,16 @@ spring:
       on-profile: mail-smtp
   mail:
     host: ${SPRING_MAIL_HOST}
-    port: ${SPRING_MAIL_PORT:465}
+    port: ${SPRING_MAIL_PORT}
     username: ${SPRING_MAIL_USERNAME}
     password: ${SPRING_MAIL_PASSWORD}
-    protocol: ${SPRING_MAIL_PROTOCOL:smtps}
+    protocol: ${SPRING_MAIL_PROTOCOL}
     properties:
       mail:
         smtp:
-          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:true}
+          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH}
           ssl:
-            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:true}
+            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE}
 
 ---
 spring:

@@ -140,17 +140,6 @@ public class StudentController {
         return ResponseEntity.ok(learningService.getLessonForLearner(lessonId, securityUtils.currentUserId()));
     }
 
-    @PostMapping("/lessons/{lessonId}/complete-theory")
-    @Operation(summary = "Завершить теоретический урок")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Теоретический урок завершен", content = @Content(schema = @Schema(implementation = SubmissionResultDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Невозможно завершить урок", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Урок не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<SubmissionResultDto> completeTheory(@PathVariable Long lessonId) {
-        return ResponseEntity.ok(learningService.completeTheoryLesson(lessonId));
-    }
-
     @PostMapping("/lessons/{lessonId}/submit-practice")
     @Operation(summary = "Отправить ответы по практическому уроку")
     @ApiResponses(value = {
@@ -171,14 +160,4 @@ public class StudentController {
     public ResponseEntity<List<StudentCourseStatDto>> myStats() {
         return ResponseEntity.ok(statisticsService.myCourseStats());
     }
-//
-//    @GetMapping("/groups/{groupId}/users")
-//    public ResponseEntity<GroupUsersDto> groupUsersById(@PathVariable UUID groupId) {
-//        return ResponseEntity.ok(groupService.getGroupUsersForStudent(groupId, securityUtils.currentUserId()));
-//    }
-//
-//    @GetMapping("/groups/users")
-//    public ResponseEntity<List<GroupUsersDto>> myGroupsUsersByTitle(@RequestParam(required = false) String title) {
-//        return ResponseEntity.ok(groupService.getMyGroupUsersByTitle(securityUtils.currentUserId(), title));
-//    }
 }

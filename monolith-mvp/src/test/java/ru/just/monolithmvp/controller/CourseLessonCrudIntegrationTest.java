@@ -37,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.password=",
         "spring.flyway.enabled=true",
         "spring.jpa.hibernate.ddl-auto=none",
-        "spring.profiles.active=h2"
+        "spring.profiles.active=h2,mail-noop"
 })
 class CourseLessonCrudIntegrationTest {
 
@@ -166,10 +166,6 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", nextTheoryId)
-                        .header("Authorization", "Bearer " + studentToken))
-                .andExpect(status().isBadRequest());
-
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", nextPracticeId)
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -182,7 +178,7 @@ class CourseLessonCrudIntegrationTest {
                                 """))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", blockingTheoryId)
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", blockingTheoryId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
@@ -265,16 +261,17 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
-        String completeTheoryResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
-                        .header("Authorization", "Bearer " + studentToken))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        List<LessonSubmission> autoTheorySubmissions = lessonSubmissionRepository.findAll().stream()
+                .filter(s -> s.getLesson().getId().equals(theoryLessonId) && s.getStudent().getId().equals(studentId))
+                .toList();
+        assertThat(autoTheorySubmissions).hasSize(1);
+        assertThat(autoTheorySubmissions.get(0).getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
+        assertThat(autoTheorySubmissions.get(0).getPassed()).isTrue();
 
-        JsonNode completeTheoryResult = objectMapper.readTree(completeTheoryResponse);
-        assertThat(completeTheoryResult.get("status").asText()).isEqualTo("COMPLETE");
-        assertThat(completeTheoryResult.get("passed").asBoolean()).isTrue();
+        List<LessonSubmission> afterManualComplete = lessonSubmissionRepository.findAll().stream()
+                .filter(s -> s.getLesson().getId().equals(theoryLessonId) && s.getStudent().getId().equals(studentId))
+                .toList();
+        assertThat(afterManualComplete).hasSize(1);
 
         String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")
                         .header("Authorization", "Bearer " + studentToken))
@@ -390,7 +387,7 @@ class CourseLessonCrudIntegrationTest {
                                 """.formatted(studentDoneId, studentNewId)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", theoryLessonId)
                         .header("Authorization", "Bearer " + studentDoneToken))
                 .andExpect(status().isOk());
 
@@ -520,10 +517,6 @@ class CourseLessonCrudIntegrationTest {
                                   "ids": [%d, %d]
                                 }
                                 """.formatted(studentDoneId, studentNewId)))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
-                        .header("Authorization", "Bearer " + studentDoneToken))
                 .andExpect(status().isOk());
 
         String courseStatsResponse = mockMvc.perform(get("/api/v1/admin/progress/courses/{courseId}/stats", courseId)
@@ -682,7 +675,7 @@ class CourseLessonCrudIntegrationTest {
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryLessonId)
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", firstTheoryLessonId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
@@ -961,8 +954,8 @@ class CourseLessonCrudIntegrationTest {
         JsonNode courseStat = myStats.get(0);
         assertThat(courseStat.get("courseId").asLong()).isEqualTo(courseId);
         assertThat(courseStat.get("earnedPoints").asInt()).isEqualTo(3);
-        assertThat(courseStat.get("maxPoints").asInt()).isEqualTo(1);
-        assertThat(courseStat.get("efficiencyPercent").asDouble()).isEqualTo(300.0);
+        assertThat(courseStat.get("maxPoints").asInt()).isEqualTo(5);
+        assertThat(courseStat.get("efficiencyPercent").asDouble()).isEqualTo(60.0);
         assertThat(courseStat.get("progressPercent").asDouble()).isEqualTo(100.0);
         assertThat(courseStat.get("completedLessons").asInt()).isEqualTo(1);
         assertThat(courseStat.get("totalLessons").asInt()).isEqualTo(1);
@@ -1302,10 +1295,6 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
-                        .header("Authorization", "Bearer " + studentToken))
-                .andExpect(status().isBadRequest());
-
         String createPracticeCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -1629,8 +1618,17 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
-                        .header("Authorization", "Bearer " + adminLearnerToken))
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["4"],
+                                    "2": ["2", "5"]
+                                  }
+                                }
+                                """))
                 .andExpect(status().isOk());
 
         String openPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
@@ -1760,7 +1758,7 @@ class CourseLessonCrudIntegrationTest {
                                   "description": "Practice description updated",
                                   "lessonType": "PRACTICE_TEST",
                                   "fullPoints": 12,
-                                  "partialPoints": 4,
+                                  "partialPoints": 1,
                                   "questions": [
                                     {
                                       "position": 2,
@@ -2051,6 +2049,18 @@ class CourseLessonCrudIntegrationTest {
                                 """))
                 .andExpect(status().isBadRequest());
 
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", testPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["4"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk());
+
         String openPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -2149,19 +2159,6 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "passed": true,
-                                  "partialPoints": false,
-                                  "toNextReview": false,
-                                  "comment": "Approved"
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-
-        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
-                        .header("Authorization", "Bearer " + otherAdminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
                                   "passed": false,
                                   "partialPoints": false,
                                   "toNextReview": true,
@@ -2170,6 +2167,40 @@ class CourseLessonCrudIntegrationTest {
                                 """))
                 .andExpect(status().isOk());
 
+        String pendingAfterReworkResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/pending")
+                        .header("Authorization", "Bearer " + otherAdminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode pendingAfterRework = objectMapper.readTree(pendingAfterReworkResponse);
+        assertThat(pendingAfterRework).isEmpty();
+
+        String resubmissionResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "openAnswer": "My detailed answer v2"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long resubmissionId = objectMapper.readTree(resubmissionResponse).get("submissionId").asLong();
+        assertThat(resubmissionId).isEqualTo(openSubmissionId);
+
+        String pendingAfterResubmitResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/pending")
+                        .header("Authorization", "Bearer " + otherAdminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode pendingAfterResubmit = objectMapper.readTree(pendingAfterResubmitResponse);
+        assertThat(pendingAfterResubmit.size()).isEqualTo(1);
+        assertThat(pendingAfterResubmit.get(0).get("submissionId").asLong()).isEqualTo(openSubmissionId);
+
         mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
                         .header("Authorization", "Bearer " + otherAdminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -2178,13 +2209,44 @@ class CourseLessonCrudIntegrationTest {
                                   "passed": true,
                                   "partialPoints": false,
                                   "toNextReview": false,
-                                  "comment": "Approved after rework"
+                                  "comment": "Approved after resubmit"
                                 }
                                 """))
                 .andExpect(status().isOk());
 
         assertThat(lessonSubmissionStatusHistoryRepository.findAllBySubmissionIdOrderByIdAsc(openSubmissionId))
-                .hasSize(3);
+                .hasSize(4);
+
+        String secondOpenSubmissionResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "openAnswer": "Brand new answer"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long secondOpenSubmissionId = objectMapper.readTree(secondOpenSubmissionResponse).get("submissionId").asLong();
+        assertThat(secondOpenSubmissionId).isNotEqualTo(openSubmissionId);
+
+        mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", secondOpenSubmissionId)
+                        .header("Authorization", "Bearer " + otherAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": false,
+                                  "toNextReview": false,
+                                  "comment": "Approved directly"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        assertThat(lessonSubmissionStatusHistoryRepository.findAllBySubmissionIdOrderByIdAsc(secondOpenSubmissionId))
+                .hasSize(2);
 
         mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
                         .header("Authorization", "Bearer " + otherAdminToken)
@@ -2198,6 +2260,161 @@ class CourseLessonCrudIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void lesson_updates_should_preserve_unspecified_fields_for_theory_and_practice() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Patch Semantics Course",
+                                  "description": "lesson patch checks",
+                                  "authorFullName": "Admin"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String theoryCreateResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory Initial",
+                                  "description": "Theory Description",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Theory Content",
+                                  "fullPoints": 7,
+                                  "stopLesson": true,
+                                  "blockedDuringAttempt": false,
+                                  "attemptLimit": 2,
+                                  "timeLimitMinutes": 15
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode createdTheory = objectMapper.readTree(theoryCreateResponse);
+        Long theoryLessonId = createdTheory.get("id").asLong();
+
+        mockMvc.perform(put("/api/v1/admin/courses/{courseId}/lessons/{lessonId}/theory", courseId, theoryLessonId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory Updated"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        String theoryAfterUpdateResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/lessons/{lessonId}", courseId, theoryLessonId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode theoryAfterUpdate = objectMapper.readTree(theoryAfterUpdateResponse);
+        assertThat(theoryAfterUpdate.get("title").asText()).isEqualTo("Theory Updated");
+        assertThat(theoryAfterUpdate.get("description").asText()).isEqualTo(createdTheory.get("description").asText());
+        assertThat(theoryAfterUpdate.get("theoryContentType").asText()).isEqualTo(createdTheory.get("theoryContentType").asText());
+        assertThat(theoryAfterUpdate.get("theoryContent").asText()).isEqualTo(createdTheory.get("theoryContent").asText());
+        assertThat(theoryAfterUpdate.get("fullPoints").asInt()).isEqualTo(createdTheory.get("fullPoints").asInt());
+        assertThat(theoryAfterUpdate.get("stopLesson").asBoolean()).isEqualTo(createdTheory.get("stopLesson").asBoolean());
+        assertThat(theoryAfterUpdate.get("blockedDuringAttempt").asBoolean()).isEqualTo(createdTheory.get("blockedDuringAttempt").asBoolean());
+        assertThat(theoryAfterUpdate.get("attemptLimit").asInt()).isEqualTo(createdTheory.get("attemptLimit").asInt());
+        assertThat(theoryAfterUpdate.get("timeLimitMinutes").asInt()).isEqualTo(createdTheory.get("timeLimitMinutes").asInt());
+
+        String practiceCreateResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice Initial",
+                                  "description": "Practice Description",
+                                  "lessonType": "PRACTICE_TEST",
+                                  "passingThresholdPercent": 80,
+                                  "evaluateByCorrectCount": true,
+                                  "randomQuestionCount": 1,
+                                  "shuffleOptions": true,
+                                  "showQuestionStatus": false,
+                                  "showCorrectAnswers": true,
+                                  "partialPoints": 1,
+                                  "stopLesson": true,
+                                  "blockedDuringAttempt": false,
+                                  "attemptLimit": 3,
+                                  "timeLimitMinutes": 10,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "SINGLE_CHOICE",
+                                      "questionText": "Q1",
+                                      "options": ["A", "B"],
+                                      "correctAnswers": ["A"],
+                                      "fullPoints": 2
+                                    },
+                                    {
+                                      "position": 2,
+                                      "questionType": "MULTIPLE_CHOICE",
+                                      "questionText": "Q2",
+                                      "options": ["A", "B", "C"],
+                                      "correctAnswers": ["A", "C"],
+                                      "fullPoints": 3,
+                                      "partialPoints": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode createdPractice = objectMapper.readTree(practiceCreateResponse);
+        Long practiceLessonId = createdPractice.get("id").asLong();
+
+        mockMvc.perform(put("/api/v1/admin/courses/{courseId}/lessons/{lessonId}/practice", courseId, practiceLessonId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Practice Updated"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        String practiceAfterUpdateResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/lessons/{lessonId}", courseId, practiceLessonId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode practiceAfterUpdate = objectMapper.readTree(practiceAfterUpdateResponse);
+        assertThat(practiceAfterUpdate.get("title").asText()).isEqualTo("Practice Updated");
+        assertThat(practiceAfterUpdate.get("description").asText()).isEqualTo(createdPractice.get("description").asText());
+        assertThat(practiceAfterUpdate.get("passingThresholdPercent").asInt()).isEqualTo(createdPractice.get("passingThresholdPercent").asInt());
+        assertThat(practiceAfterUpdate.get("evaluateByCorrectCount").asBoolean()).isEqualTo(createdPractice.get("evaluateByCorrectCount").asBoolean());
+        assertThat(practiceAfterUpdate.get("randomQuestionCount").asInt()).isEqualTo(createdPractice.get("randomQuestionCount").asInt());
+        assertThat(practiceAfterUpdate.get("shuffleOnEveryAttempt").asBoolean()).isEqualTo(createdPractice.get("shuffleOnEveryAttempt").asBoolean());
+        assertThat(practiceAfterUpdate.get("showCorrectAnswersAfterCompletion").asBoolean())
+                .isEqualTo(createdPractice.get("showCorrectAnswersAfterCompletion").asBoolean());
+        assertThat(practiceAfterUpdate.get("partialPoints").asInt()).isEqualTo(createdPractice.get("partialPoints").asInt());
+        assertThat(practiceAfterUpdate.get("fullPoints").asInt()).isEqualTo(createdPractice.get("fullPoints").asInt());
+        assertThat(practiceAfterUpdate.get("stopLesson").asBoolean()).isEqualTo(createdPractice.get("stopLesson").asBoolean());
+        assertThat(practiceAfterUpdate.get("blockedDuringAttempt").asBoolean()).isEqualTo(createdPractice.get("blockedDuringAttempt").asBoolean());
+        assertThat(practiceAfterUpdate.get("attemptLimit").asInt()).isEqualTo(createdPractice.get("attemptLimit").asInt());
+        assertThat(practiceAfterUpdate.get("timeLimitMinutes").asInt()).isEqualTo(createdPractice.get("timeLimitMinutes").asInt());
+        assertThat(practiceAfterUpdate.get("questions").size()).isEqualTo(createdPractice.get("questions").size());
+        assertThat(practiceAfterUpdate.get("questions").get(0).get("questionText").asText())
+                .isEqualTo(createdPractice.get("questions").get(0).get("questionText").asText());
+        assertThat(practiceAfterUpdate.get("questions").get(1).get("questionText").asText())
+                .isEqualTo(createdPractice.get("questions").get(1).get("questionText").asText());
     }
 
     private String login(String email, String password) throws Exception {
