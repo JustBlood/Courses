@@ -16,11 +16,7 @@ import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
 import ru.just.monolithmvp.dto.common.UuidIdsRequest;
 import ru.just.monolithmvp.dto.course.*;
-import ru.just.monolithmvp.dto.lesson.CreatePracticeLessonRequest;
-import ru.just.monolithmvp.dto.lesson.CreateTheoryLessonRequest;
-import ru.just.monolithmvp.dto.lesson.LessonDto;
-import ru.just.monolithmvp.dto.lesson.UpdatePracticeLessonRequest;
-import ru.just.monolithmvp.dto.lesson.UpdateTheoryLessonRequest;
+import ru.just.monolithmvp.dto.lesson.*;
 import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
 import ru.just.monolithmvp.dto.program.GroupAssignmentRequest;
 import ru.just.monolithmvp.dto.program.LearningProgramDto;
@@ -169,64 +165,27 @@ public class CoursesController {
     }
 
 
-    @PostMapping("/{courseId}/assign")
-    @Operation(summary = "Назначить пользователей на курс")
+    @PostMapping("/{courseId}/enrollments")
+    @Operation(summary = "Обновить зачисления на курс")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи назначены на курс", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Зачисления обновлены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс/пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> assignStudent(@PathVariable Long courseId,
-                                                     @RequestBody @Valid IdsRequest request) {
-        request.ids().forEach(userId -> courseService.assignStudentToCourse(courseId, userId));
-        return ResponseEntity.ok(new ApiResponse("Student assigned to course"));
+                                                     @RequestBody @Valid EnrollmentRequest request) {
+        courseService.enrollUnenrollStudents(courseId, request.idsToEnroll(), request.idsToUnenroll());
+        return ResponseEntity.ok(new ApiResponse("Course enrollments updated"));
     }
 
-    @DeleteMapping("/{courseId}/assign")
-    @Operation(summary = "Снять назначение пользователей с курса")
+    @GetMapping("/{courseId}/enrollments")
+    @Operation(summary = "Получить списки записанных/не записанных на курс пользователей")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Назначение пользователей снято", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс/пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> unassignStudent(@PathVariable Long courseId,
-                                                       @RequestBody @Valid IdsRequest request) {
-        request.ids().forEach(userId -> courseService.unassignStudentFromCourse(courseId, userId));
-        return ResponseEntity.ok(new ApiResponse("Student unassigned from course"));
-    }
-
-    @GetMapping("/{courseId}/enrollments/lists")
-    @Operation(summary = "Получить списки enrolled/not-enrolled")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Списки зачисленных и доступных пользователей", content = @Content(schema = @Schema(implementation = CourseEnrollmentListsDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Списки зачисленных и доступных пользователей", content = @Content(schema = @Schema(implementation = UserInNotInListsDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
-    public ResponseEntity<CourseEnrollmentListsDto> getEnrollmentLists(@PathVariable Long courseId) {
+    public ResponseEntity<UserInNotInListsDto> getEnrollmentLists(@PathVariable Long courseId) {
         return ResponseEntity.ok(courseService.getEnrollmentLists(courseId));
-    }
-
-    @PostMapping("/{courseId}/enrollments")
-    @Operation(summary = "Зачислить пользователей на курс")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи зачислены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> enrollStudents(@PathVariable Long courseId,
-                                                      @RequestBody @Valid IdsRequest request) {
-        courseService.enrollStudentsToCourse(courseId, request.ids());
-        return ResponseEntity.ok(new ApiResponse("Students enrolled to course"));
-    }
-
-    @DeleteMapping("/{courseId}/enrollments")
-    @Operation(summary = "Отчислить пользователей с курса")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи отчислены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> unenrollStudents(@PathVariable Long courseId,
-                                                        @RequestBody @Valid IdsRequest request) {
-        courseService.unenrollStudentsFromCourse(courseId, request.ids());
-        return ResponseEntity.ok(new ApiResponse("Students unenrolled from course"));
     }
 
     @PostMapping("/{courseId}/reviewers")
@@ -253,6 +212,15 @@ public class CoursesController {
                                                         @RequestBody @Valid IdsRequest request) {
         request.ids().forEach(reviewerId -> courseService.unassignReviewerFromCourse(courseId, reviewerId));
         return ResponseEntity.ok(new ApiResponse("Reviewer unassigned from course"));
+    }
+
+    @GetMapping("/{courseId}/reviewers")
+    @Operation(summary = "Получить список назначенных и не назначенных проверяющих (reviewers) курса")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "ОК", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<UserInNotInListsDto> getCourseReviewers(@PathVariable Long courseId) {
+        return ResponseEntity.ok(courseService.getReviewersToCourseLists(courseId));
     }
 
     @PostMapping("/{courseId}/groups/assign")

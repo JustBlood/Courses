@@ -4,8 +4,8 @@ import ru.just.monolithmvp.dto.user.UserDto;
 
 import java.util.List;
 
-public record CourseEnrollmentListsDto(
-        List<UserDto> enrolled,
-        List<UserDto> notEnrolled
+public record UserInNotInListsDto(
+        List<UserDto> in,
+        List<UserDto> notIn
 ) {
 }

@@ -3,11 +3,13 @@ package ru.just.monolithmvp.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import ru.just.monolithmvp.dto.course.*;
 import ru.just.monolithmvp.dto.lesson.*;
+import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.CourseMapper;
@@ -263,24 +265,40 @@ public class CourseService {
     }
 
     @Transactional
-    public void assignStudentToCourse(Long courseId, Long userId) {
+    public void enrollUnenrollStudents(Long courseId, List<Long> idsToEnroll, List<Long> idsToUnEnroll) {
+        String actor = resolveCurrentActor();
+
+        idsToEnroll.forEach(id -> enrollStudentToCourse(courseId, id, actor));
+        idsToUnEnroll.forEach(id -> unenrollStudentFromCourse(courseId, id, actor));
+    }
+
+    @Transactional
+    public void enrollStudentToCourse(Long courseId, Long userId) {
         String actor = resolveCurrentActor();
         Course course = getCourseEntity(courseId);
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
+        enrollStudentToCourse(course.getId(), user.getId(), actor);
+    }
+
+    private void enrollStudentToCourse(Long courseId, Long userId, String actor) {
         if (enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            log.warn("Student already assigned to this course");
+            log.warn("Student is already enrolled in this course");
             businessEventLogger.log("course.enrollment.assign", "noop",
                     "actor", actor,
                     "courseId", courseId,
                     "userId", userId,
-                    "reason", "already_assigned");
+                    "reason", "already_enrolled");
             return;
         }
 
         Enrollment enrollment = new Enrollment();
+        final Course course = new Course();
+        course.setId(courseId);
         enrollment.setCourse(course);
+        final AppUser user = new AppUser();
+        user.setId(userId);
         enrollment.setUser(user);
         enrollment.setEnrolledAt(LocalDateTime.now());
         enrollmentRepository.save(enrollment);
@@ -290,12 +308,7 @@ public class CourseService {
                 "userId", userId);
     }
 
-    @Transactional
-    public void unassignStudentFromCourse(Long courseId, Long userId) {
-        String actor = resolveCurrentActor();
-        if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            throw new NotFoundException("User not assigned to course");
-        }
+    private void unenrollStudentFromCourse(Long courseId, Long userId, String actor) {
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
         businessEventLogger.log("course.enrollment.unassign", "success",
                 "actor", actor,
@@ -304,42 +317,25 @@ public class CourseService {
     }
 
     @Transactional(readOnly = true)
-    public CourseEnrollmentListsDto getEnrollmentLists(Long courseId) {
+    public UserInNotInListsDto getEnrollmentLists(Long courseId) {
         getCourseEntity(courseId);
 
-        List<AppUser> allStudents = userRepository.findAllByRole(Role.STUDENT);
-        Set<Long> enrolledUserIds = enrollmentRepository.findByCourseId(courseId).stream()
-                .map(enrollment -> enrollment.getUser().getId())
-                .collect(Collectors.toSet());
-
-        List<AppUser> enrolledStudents = allStudents.stream()
-                .filter(user -> enrolledUserIds.contains(user.getId()))
-                .sorted(Comparator.comparing(AppUser::getId))
+        List<AppUser> enrolledStudents = enrollmentRepository.findByCourseId(courseId).stream()
+                .map(Enrollment::getUser)
                 .toList();
+        List<Long> enrolledUserIds = enrolledStudents.stream().map(AppUser::getId).toList();
 
-        List<AppUser> notEnrolledStudents = allStudents.stream()
-                .filter(user -> !enrolledUserIds.contains(user.getId()))
-                .sorted(Comparator.comparing(AppUser::getId))
-                .toList();
+        List<AppUser> notEnrolledStudents;
+        if (enrolledStudents.isEmpty()) {
+            notEnrolledStudents = userRepository.findAll();
+        } else {
+            notEnrolledStudents = userRepository.findAllByIdNotInAndActivation(enrolledUserIds, true);
+        }
 
-        return new CourseEnrollmentListsDto(
+        return new UserInNotInListsDto(
                 enrolledStudents.stream().map(userMapper::toDto).toList(),
                 notEnrolledStudents.stream().map(userMapper::toDto).toList()
         );
-    }
-
-    @Transactional
-    public void enrollStudentsToCourse(Long courseId, List<Long> userIds) {
-        getCourseEntity(courseId);
-        validateStudentsExist(userIds);
-        userIds.forEach(userId -> assignStudentToCourse(courseId, userId));
-    }
-
-    @Transactional
-    public void unenrollStudentsFromCourse(Long courseId, List<Long> userIds) {
-        getCourseEntity(courseId);
-        validateStudentsExist(userIds);
-        userIds.forEach(userId -> unassignStudentFromCourse(courseId, userId));
     }
 
     @Transactional
@@ -351,23 +347,23 @@ public class CourseService {
         if (reviewer.getRole() != Role.ADMIN) {
             throw new BadRequestException("Reviewer must be ADMIN");
         }
-        if (courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, reviewerId)) {
+        CourseReviewer cr = new CourseReviewer();
+        cr.setCourse(course);
+        cr.setReviewer(reviewer);
+        try {
+            courseReviewerRepository.save(cr);
+            businessEventLogger.log("course.reviewer.assign", "success",
+                    "actor", actor,
+                    "courseId", courseId,
+                    "reviewerId", reviewerId);
+        } catch (DataIntegrityViolationException e) {
             log.warn("User already reviewer on course");
             businessEventLogger.log("course.reviewer.assign", "noop",
                     "actor", actor,
                     "courseId", courseId,
                     "reviewerId", reviewerId,
                     "reason", "already_assigned");
-            return;
         }
-        CourseReviewer cr = new CourseReviewer();
-        cr.setCourse(course);
-        cr.setReviewer(reviewer);
-        courseReviewerRepository.save(cr);
-        businessEventLogger.log("course.reviewer.assign", "success",
-                "actor", actor,
-                "courseId", courseId,
-                "reviewerId", reviewerId);
     }
 
     @Transactional
@@ -383,6 +379,7 @@ public class CourseService {
     @Transactional
     public void assignGroupToCourse(Long courseId, UUID groupId) {
         Course course = getCourseEntity(courseId);
+        String actor = resolveCurrentActor();
         LearningGroup group = learningGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
 
@@ -398,9 +395,24 @@ public class CourseService {
                 .forEach(m -> {
                     if ((m.getUser().getRole() == Role.STUDENT || m.getUser().getRole() == Role.ADMIN)
                             && !enrollmentRepository.existsByUserIdAndCourseId(m.getUser().getId(), courseId)) {
-                        assignStudentToCourse(courseId, m.getUser().getId());
+                        enrollStudentToCourse(course.getId(), m.getUser().getId(), actor);
                     }
                 });
+    }
+
+    public UserInNotInListsDto getReviewersToCourseLists(Long courseId) {
+        final Set<Long> reviewersIds = courseReviewerRepository.findAllByCourseId(courseId).stream()
+                .map(cr -> cr.getReviewer().getId()).collect(Collectors.toSet());
+
+        final List<AppUser> admins = userRepository.findAllByRole(Role.ADMIN);
+
+        List<UserDto> reviewers = admins.stream()
+                .filter(admin -> reviewersIds.contains(admin.getId()))
+                .map(userMapper::toDto).toList();
+        List<UserDto> notReviewers = admins.stream()
+                .filter(admin -> !reviewersIds.contains(admin.getId()))
+                .map(userMapper::toDto).toList();
+        return new UserInNotInListsDto(reviewers, notReviewers);
     }
 
     @Transactional
@@ -754,10 +766,6 @@ public class CourseService {
         List<AppUser> users = userRepository.findAllById(distinctIds);
         if (users.size() != distinctIds.size()) {
             throw new NotFoundException("Some users were not found");
-        }
-        boolean hasNonStudent = users.stream().anyMatch(user -> user.getRole() != Role.STUDENT);
-        if (hasNonStudent) {
-            throw new BadRequestException("Only STUDENT users are allowed for enrollment lists operations");
         }
     }
 

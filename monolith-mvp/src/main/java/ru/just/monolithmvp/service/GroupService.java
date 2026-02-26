@@ -12,16 +12,8 @@ import ru.just.monolithmvp.dto.group.UpdateGroupRequest;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
-import ru.just.monolithmvp.model.AppUser;
-import ru.just.monolithmvp.model.GroupMembership;
-import ru.just.monolithmvp.model.GroupType;
-import ru.just.monolithmvp.model.LearningGroup;
-import ru.just.monolithmvp.model.Role;
-import ru.just.monolithmvp.repository.AppUserRepository;
-import ru.just.monolithmvp.repository.GroupCourseAssignmentRepository;
-import ru.just.monolithmvp.repository.GroupMembershipRepository;
-import ru.just.monolithmvp.repository.GroupProgramAssignmentRepository;
-import ru.just.monolithmvp.repository.LearningGroupRepository;
+import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.repository.*;
 
 import java.util.*;
 
@@ -290,7 +282,7 @@ public class GroupService {
 
         for (Long courseId : courseIds) {
             for (Long studentId : studentIds) {
-                courseService.assignStudentToCourse(courseId, studentId);
+                courseService.enrollStudentToCourse(courseId, studentId);
             }
         }
 

@@ -11,6 +11,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, Long id);
     Optional<AppUser> findByEmail(String email);
-    List<AppUser> findAllByRole(Role role);
+    List<AppUser> findAllByIdNotInAndActivation(List<Long> ids, Boolean activation);
     List<AppUser> findAllByIdInAndActivation(List<Long> ids, Boolean activation);
+    List<AppUser> findAllByRole(Role role);
 }

@@ -10,4 +10,5 @@ public interface CourseReviewerRepository extends JpaRepository<CourseReviewer, 
     boolean existsByCourseIdAndReviewerId(Long courseId, Long reviewerId);
     void deleteByCourseIdAndReviewerId(Long courseId, Long reviewerId);
     void deleteByCourseId(Long courseId);
+    List<CourseReviewer> findAllByCourseId(Long courseId);
 }

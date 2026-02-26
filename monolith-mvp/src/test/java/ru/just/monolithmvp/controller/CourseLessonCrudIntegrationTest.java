@@ -18,11 +18,7 @@ import ru.just.monolithmvp.repository.LessonSubmissionStatusHistoryRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -152,12 +148,12 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long nextPracticeId = objectMapper.readTree(nextPracticeResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -247,12 +243,12 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -377,12 +373,12 @@ class CourseLessonCrudIntegrationTest {
         Long studentNewId = createUser(adminToken, "Stats New", studentNewEmail, "STUDENT");
         setPasswordAndLogin(studentNewId, studentNewEmail, "Stud123!");
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d, %d]
+                                  "idsToEnroll": [%d, %d]
                                 }
                                 """.formatted(studentDoneId, studentNewId)))
                 .andExpect(status().isOk());
@@ -509,12 +505,12 @@ class CourseLessonCrudIntegrationTest {
         Long studentNewId = createUser(adminToken, "Report New", studentNewEmail, "STUDENT");
         setPasswordAndLogin(studentNewId, studentNewEmail, "Stud123!");
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d, %d]
+                                  "idsToEnroll": [%d, %d]
                                 }
                                 """.formatted(studentDoneId, studentNewId)))
                 .andExpect(status().isOk());
@@ -655,22 +651,22 @@ class CourseLessonCrudIntegrationTest {
                                 """))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", firstCourseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", firstCourseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", secondCourseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", secondCourseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -733,11 +729,11 @@ class CourseLessonCrudIntegrationTest {
     void enrollment_two_lists_flow_should_work() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
-        String enrolledCandidateEmail = uniqueEmail("enrolled-candidate");
+        String enrolledCandidateEmail = uniqueEmail("in-candidate");
         Long enrolledCandidateId = createUser(adminToken, "Enrolled Candidate", enrolledCandidateEmail, "STUDENT");
         String enrolledCandidateToken = setPasswordAndLogin(enrolledCandidateId, enrolledCandidateEmail, "Stud123!");
 
-        String notEnrolledCandidateEmail = uniqueEmail("not-enrolled-candidate");
+        String notEnrolledCandidateEmail = uniqueEmail("not-in-candidate");
         Long notEnrolledCandidateId = createUser(adminToken, "Not Enrolled Candidate", notEnrolledCandidateEmail, "STUDENT");
 
         String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
@@ -758,7 +754,7 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
 
-        String initialListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments/lists", courseId)
+        String initialListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -766,16 +762,16 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         JsonNode initialLists = objectMapper.readTree(initialListsResponse);
-        assertThat(initialLists.get("enrolled").isEmpty()).isTrue();
-        assertThat(initialLists.get("notEnrolled").toString()).contains("\"id\":" + enrolledCandidateId);
-        assertThat(initialLists.get("notEnrolled").toString()).contains("\"id\":" + notEnrolledCandidateId);
+        assertThat(initialLists.get("in").isEmpty()).isTrue();
+        assertThat(initialLists.get("notIn").toString()).contains("\"id\":" + enrolledCandidateId);
+        assertThat(initialLists.get("notIn").toString()).contains("\"id\":" + notEnrolledCandidateId);
 
         mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(enrolledCandidateId)))
                 .andExpect(status().isOk());
@@ -784,7 +780,7 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + enrolledCandidateToken))
                 .andExpect(status().isOk());
 
-        String afterEnrollListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments/lists", courseId)
+        String afterEnrollListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -792,15 +788,15 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         JsonNode afterEnrollLists = objectMapper.readTree(afterEnrollListsResponse);
-        assertThat(afterEnrollLists.get("enrolled").toString()).contains("\"id\":" + enrolledCandidateId);
-        assertThat(afterEnrollLists.get("notEnrolled").toString()).doesNotContain("\"id\":" + enrolledCandidateId);
+        assertThat(afterEnrollLists.get("in").toString()).contains("\"id\":" + enrolledCandidateId);
+        assertThat(afterEnrollLists.get("notIn").toString()).doesNotContain("\"id\":" + enrolledCandidateId);
 
-        mockMvc.perform(delete("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToUnenroll": [%d]
                                 }
                                 """.formatted(enrolledCandidateId)))
                 .andExpect(status().isOk());
@@ -809,7 +805,7 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + enrolledCandidateToken))
                 .andExpect(status().isBadRequest());
 
-        String afterUnenrollListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments/lists", courseId)
+        String afterUnenrollListsResponse = mockMvc.perform(get("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -817,8 +813,8 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
 
         JsonNode afterUnenrollLists = objectMapper.readTree(afterUnenrollListsResponse);
-        assertThat(afterUnenrollLists.get("enrolled").toString()).doesNotContain("\"id\":" + enrolledCandidateId);
-        assertThat(afterUnenrollLists.get("notEnrolled").toString()).contains("\"id\":" + enrolledCandidateId);
+        assertThat(afterUnenrollLists.get("in").toString()).doesNotContain("\"id\":" + enrolledCandidateId);
+        assertThat(afterUnenrollLists.get("notIn").toString()).contains("\"id\":" + enrolledCandidateId);
     }
 
     @Test
@@ -847,12 +843,12 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -987,12 +983,12 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1153,12 +1149,12 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1277,12 +1273,12 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long theoryLessonId = objectMapper.readTree(theoryLessonResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", deadlineCourseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", deadlineCourseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1313,12 +1309,12 @@ class CourseLessonCrudIntegrationTest {
                 .getContentAsString();
         Long practiceCourseId = objectMapper.readTree(createPracticeCourseResponse).get("id").asLong();
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", practiceCourseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", practiceCourseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1600,12 +1596,12 @@ class CourseLessonCrudIntegrationTest {
 
         String adminLearnerToken = login("admin-learner@example.com", "Admin123!");
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d, %d]
+                                  "idsToEnroll": [%d, %d]
                                 }
                                 """.formatted(studentId, adminLearnerId)))
                 .andExpect(status().isOk());
@@ -1983,22 +1979,22 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/assign", courseId)
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsToEnroll": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());

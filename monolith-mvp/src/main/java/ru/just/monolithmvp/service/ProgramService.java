@@ -184,7 +184,7 @@ public class ProgramService {
         for (ProgramCourse programCourse : program.getCourses()) {
             Long courseId = programCourse.getCourse().getId();
             if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-                courseService.assignStudentToCourse(courseId, userId);
+                courseService.enrollStudentToCourse(courseId, userId);
             }
         }
     }
