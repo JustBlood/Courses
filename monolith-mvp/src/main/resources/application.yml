@@ -30,6 +30,8 @@ spring:
 
 app:
   storage:
+    root-dir: ${APP_STORAGE_ROOT_DIR:data}
+    public-base-url: ${APP_STORAGE_PUBLIC_BASE_URL:http://localhost:8099/files}
     user-avatar-dir: ${APP_STORAGE_USER_AVATAR_DIR:data/users/avatars}
   mail:
     from: ${APP_MAIL_FROM}

@@ -9,6 +9,7 @@ import ru.just.monolithmvp.exception.BadRequestException;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
@@ -20,6 +21,9 @@ public class FileStorageService {
     @Value("${app.storage.root-dir:data}")
     private String rootDir;
 
+    @Value("${app.storage.public-base-url:http://localhost:8099/files}")
+    private String publicBaseUrl;
+
     public String store(MultipartFile file, String directory) {
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("File is empty");
@@ -30,7 +34,9 @@ public class FileStorageService {
         String fileName = UUID.randomUUID() + extension;
 
         try {
-            Path dirPath = Path.of(rootDir).resolve(safeDirectory).normalize();
+            Path rootPath = resolveRootPath();
+            Path dirPath = rootPath.resolve(safeDirectory).normalize();
+
             Files.createDirectories(dirPath);
 
             Path target = dirPath.resolve(fileName).normalize();
@@ -42,16 +48,50 @@ public class FileStorageService {
         }
     }
 
+    public String toPublicUrl(String storedPath) {
+        if (storedPath == null || storedPath.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Stored link is empty");
+        }
+
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Storage public base URL is not configured");
+        }
+
+        try {
+            Path rootPath = resolveRootPath();
+            Path filePath = Path.of(storedPath).toAbsolutePath().normalize();
+            if (!filePath.startsWith(rootPath)) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Stored file is outside storage root");
+            }
+
+            String relativePath = rootPath.relativize(filePath).toString().replace('\\', '/');
+            String normalizedBaseUrl = publicBaseUrl.endsWith("/")
+                    ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1)
+                    : publicBaseUrl;
+            return normalizedBaseUrl + "/" + relativePath;
+        } catch (InvalidPathException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Invalid stored file link", ex);
+        }
+    }
+
     public void deleteIfExists(String path) {
         if (path == null || path.isBlank()) {
             return;
         }
 
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            return;
+        }
+
         try {
             Files.deleteIfExists(Path.of(path));
-        } catch (IOException ignored) {
+        } catch (IOException | InvalidPathException ignored) {
             // no-op for MVP
         }
+    }
+
+    private Path resolveRootPath() {
+        return Path.of(rootDir).toAbsolutePath().normalize();
     }
 
     private String sanitizeDirectory(String directory) {

@@ -153,7 +153,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -248,7 +248,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -378,7 +378,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d, %d]
+                                  "idsIn": [%d, %d]
                                 }
                                 """.formatted(studentDoneId, studentNewId)))
                 .andExpect(status().isOk());
@@ -510,7 +510,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d, %d]
+                                  "idsIn": [%d, %d]
                                 }
                                 """.formatted(studentDoneId, studentNewId)))
                 .andExpect(status().isOk());
@@ -656,7 +656,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -666,7 +666,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -771,7 +771,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(enrolledCandidateId)))
                 .andExpect(status().isOk());
@@ -796,7 +796,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToUnenroll": [%d]
+                                  "idsNotIn": [%d]
                                 }
                                 """.formatted(enrolledCandidateId)))
                 .andExpect(status().isOk());
@@ -848,7 +848,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -988,7 +988,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1154,7 +1154,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1278,7 +1278,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1314,7 +1314,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1601,7 +1601,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d, %d]
+                                  "idsIn": [%d, %d]
                                 }
                                 """.formatted(studentId, adminLearnerId)))
                 .andExpect(status().isOk());
@@ -1676,7 +1676,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(adminLearnerId)))
                 .andExpect(status().isOk());
@@ -1939,7 +1939,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isBadRequest());
@@ -1984,7 +1984,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -1994,7 +1994,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "idsToEnroll": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
@@ -2125,7 +2125,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(otherAdminId)))
                 .andExpect(status().isOk());

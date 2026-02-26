@@ -114,3 +114,46 @@ sh scripts/backup/check-backup-retention.sh
 ```bash
 0 2 * * * cd /opt/courses && /bin/sh scripts/backup/backup-monolith.sh >> /var/log/courses-backup.log 2>&1
 ```
+
+## 5) Раздача загруженных файлов через Nginx (без отдачи из приложения)
+
+`POST /api/v1/files/upload` сохраняет файл в файловую систему и возвращает **публичный URL**.
+
+Обязательные env-параметры:
+- `APP_STORAGE_ROOT_DIR` — корень файлового хранилища приложения (в контейнере обычно `/opt/app/data`)
+- `APP_STORAGE_PUBLIC_BASE_URL` — публичная базовая ссылка, которая будет возвращаться в API (например, `https://courses.example.com/files`)
+
+Пример Nginx-конфигурации (балансировщик + статика из ФС):
+
+```nginx
+upstream monolith_backend {
+    server 127.0.0.1:8099;
+}
+
+server {
+    listen 80;
+    server_name courses.example.com;
+
+    # API -> Java backend
+    location /api/ {
+        proxy_pass http://monolith_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Статические файлы -> файловая система
+    location /files/ {
+        alias /opt/courses/data/monolith-mvp/files/;
+        autoindex off;
+        add_header Cache-Control "public, max-age=31536000";
+        try_files $uri =404;
+    }
+}
+```
+
+Важно:
+- Каталог в `alias` должен указывать на тот же volume/директорию, куда приложение пишет файлы (`APP_STORAGE_ROOT_DIR`).
+- Для docker-compose из этого репозитория файловый volume: `./data/monolith-mvp/files:/opt/app/data`.
+- В таком варианте приложение хранит и возвращает ссылку, а фактическую отдачу контента делает Nginx с диска.

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
@@ -24,6 +25,7 @@ import ru.just.monolithmvp.dto.program.ProgramTargetType;
 import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.ProgramService;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -173,8 +175,11 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс/пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> assignStudent(@PathVariable Long courseId,
-                                                     @RequestBody @Valid EnrollmentRequest request) {
-        courseService.enrollUnenrollStudents(courseId, request.idsToEnroll(), request.idsToUnenroll());
+                                                     @RequestBody @Valid UserInNotInRequest request) {
+        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
+            return ResponseEntity.badRequest().body(new ApiResponse("Enrollment lists must be unique"));
+        }
+        courseService.enrollUnenrollStudents(courseId, request.idsIn(), request.idsNotIn());
         return ResponseEntity.ok(new ApiResponse("Course enrollments updated"));
     }
 
@@ -196,22 +201,12 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс/пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> assignReviewer(@PathVariable Long courseId,
-                                                      @RequestBody @Valid IdsRequest request) {
-        request.ids().forEach(reviewerId -> courseService.assignReviewerToCourse(courseId, reviewerId));
-        return ResponseEntity.ok(new ApiResponse("Reviewer assigned to course"));
-    }
-
-    @DeleteMapping("/{courseId}/reviewers")
-    @Operation(summary = "Снять проверяющих с курса")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Проверяющие сняты", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс/пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> unassignReviewer(@PathVariable Long courseId,
-                                                        @RequestBody @Valid IdsRequest request) {
-        request.ids().forEach(reviewerId -> courseService.unassignReviewerFromCourse(courseId, reviewerId));
-        return ResponseEntity.ok(new ApiResponse("Reviewer unassigned from course"));
+                                                      @RequestBody @Valid UserInNotInRequest request) {
+        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
+            return ResponseEntity.badRequest().body(new ApiResponse("Reviewers lists must be unique"));
+        }
+        courseService.assignUnassignReviewers(courseId, request.idsIn(), request.idsNotIn());
+        return ResponseEntity.ok(new ApiResponse("Course reviewers updated"));
     }
 
     @GetMapping("/{courseId}/reviewers")

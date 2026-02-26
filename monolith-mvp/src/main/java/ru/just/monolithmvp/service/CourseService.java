@@ -265,7 +265,7 @@ public class CourseService {
     }
 
     @Transactional
-    public void enrollUnenrollStudents(Long courseId, List<Long> idsToEnroll, List<Long> idsToUnEnroll) {
+    public void enrollUnenrollStudents(Long courseId, Set<Long> idsToEnroll, Set<Long> idsToUnEnroll) {
         String actor = resolveCurrentActor();
 
         idsToEnroll.forEach(id -> enrollStudentToCourse(courseId, id, actor));
@@ -775,5 +775,12 @@ public class CourseService {
         } catch (Exception ex) {
             return "system";
         }
+    }
+
+    @Transactional
+    public void assignUnassignReviewers(Long courseId, Set<Long> userIdsToAssign, Set<Long> userIdsToUnassign) {
+        userIdsToAssign.forEach(reviewerId -> assignReviewerToCourse(courseId, reviewerId));
+        userIdsToUnassign.forEach(reviewerId -> unassignReviewerFromCourse(courseId, reviewerId));
+
     }
 }
