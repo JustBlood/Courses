@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -58,7 +59,7 @@ public class CoursesController {
     @GetMapping("")
     @Operation(summary = "Получить каталог курсов")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Каталог курсов", content = @Content(schema = @Schema(implementation = CourseSummaryDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Каталог курсов", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseSummaryDto.class ))))
     })
     public ResponseEntity<List<CourseSummaryDto>> getAllCourses() {
         return ResponseEntity.ok(courseService.getCourseSummaries());
@@ -274,13 +275,12 @@ public class CoursesController {
     @GetMapping("/programs")
     @Operation(summary = "Получить список программ")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список программ", content = @Content(schema = @Schema(implementation = LearningProgramDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список программ", content = @Content(array = @ArraySchema(schema = @Schema(implementation = LearningProgramDto.class))))
     })
     public ResponseEntity<List<LearningProgramDto>> getPrograms() {
         return ResponseEntity.ok(programService.getPrograms());
     }
-//
-//    @GetMapping("/programs/{programId}")
+
     @GetMapping("/programs/{programId}")
     @Operation(summary = "Получить программу по ID")
     @ApiResponses(value = {
