@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
@@ -23,10 +22,10 @@ import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
 import ru.just.monolithmvp.dto.program.GroupAssignmentRequest;
 import ru.just.monolithmvp.dto.program.LearningProgramDto;
 import ru.just.monolithmvp.dto.program.ProgramTargetType;
+import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
 import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.ProgramService;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,12 +56,12 @@ public class CoursesController {
     }
 
     @GetMapping("")
-    @Operation(summary = "Получить каталог курсов")
+    @Operation(summary = "Получить каталог курсов по разделам")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Каталог курсов", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseSummaryDto.class ))))
     })
-    public ResponseEntity<List<CourseSummaryDto>> getAllCourses() {
-        return ResponseEntity.ok(courseService.getCourseSummaries());
+    public ResponseEntity<List<SectionWithCoursesDto>> getAllCourses() {
+        return ResponseEntity.ok(courseService.getCourseSummariesBySection());
     }
 
     @GetMapping("/{courseId}")

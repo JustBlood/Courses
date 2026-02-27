@@ -75,4 +75,9 @@ public class SectionService {
                 section.getPriority()
         );
     }
+
+    // Единственная секция, которая может быть с приоритетом -1 - это стандартная, которая создается в миграциях
+    public Section getDefaultSection() {
+        return sectionRepository.findByPriority(-1);
+    }
 }

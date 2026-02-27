@@ -13,12 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
-import ru.just.monolithmvp.dto.course.CourseDto;
-import ru.just.monolithmvp.dto.course.CreateCourseRequest;
 import ru.just.monolithmvp.dto.section.CreateSectionRequest;
 import ru.just.monolithmvp.dto.section.SectionDto;
 import ru.just.monolithmvp.dto.section.UpdateSectionRequest;
-import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.SectionService;
 
 import java.util.List;
@@ -36,7 +33,6 @@ import java.util.List;
 })
 public class SectionsController {
     private final SectionService sectionService;
-    private final CourseService courseService;
 
     @PostMapping
     @Operation(summary = "Создать раздел")
@@ -88,17 +84,5 @@ public class SectionsController {
     public ResponseEntity<ApiResponse> delete(@PathVariable Long sectionId) {
         sectionService.delete(sectionId);
         return ResponseEntity.ok(new ApiResponse("Section deleted"));
-    }
-
-    @PostMapping("/{sectionId}/courses")
-    @Operation(summary = "Создать курс в контексте раздела")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Курс создан в разделе", content = @Content(schema = @Schema(implementation = CourseDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Раздел не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<CourseDto> createCourseInSection(@PathVariable Long sectionId,
-                                                           @Valid @RequestBody CreateCourseRequest request) {
-        return new ResponseEntity<>(courseService.createCourseInSection(sectionId, request), HttpStatus.CREATED);
     }
 }

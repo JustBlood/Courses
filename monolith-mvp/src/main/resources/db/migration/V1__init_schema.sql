@@ -104,7 +104,7 @@ create table if not exists lessons (
 
     -- Теория
     theory_content_type varchar(50),
-    theory_content varchar(20000),
+    theory_content TEXT,
 
     -- Практика
     passing_threshold_percent integer,
@@ -262,3 +262,7 @@ create table if not exists program_enrollments (
     enrolled_at timestamp not null,
     constraint uk_program_enrollment_user_program unique (user_id, program_id)
 );
+
+-- BOOTSTRAP INSERTIONS
+
+INSERT INTO sections(title, description, priority) VALUES ('Остальные', 'Раздел по умолчанию', -1);

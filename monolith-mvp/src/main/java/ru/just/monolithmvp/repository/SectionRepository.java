@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface SectionRepository extends JpaRepository<Section, Long> {
     List<Section> findAllByOrderByPriorityAscIdAsc();
+
+    Section findByPriority(int priority);
 }

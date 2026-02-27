@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import ru.just.monolithmvp.dto.course.*;
 import ru.just.monolithmvp.dto.lesson.*;
+import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
 import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
@@ -54,38 +55,9 @@ public class CourseService {
         return courseMapper.toDto(courseRepository.save(course));
     }
 
-    @Transactional
-    public CourseDto createCourseInSection(Long sectionId, CreateCourseRequest request) {
-        CreateCourseRequest requestWithSection = new CreateCourseRequest(
-                request.title(),
-                request.description(),
-                request.authorFullName(),
-                request.coverFilePath(),
-                request.passingThresholdPercent(),
-                request.deadlineDays(),
-                request.lessonsFreeOrder(),
-                request.allowContinueAfterFail(),
-                request.blockAfterDeadline(),
-                request.keepAccessAfterDeadline(),
-                request.includeInOverallStats(),
-                sectionId,
-                request.lessonIdToPosition()
-        );
-        return createCourse(requestWithSection);
-    }
-
     @Transactional(readOnly = true)
-    public List<CourseSummaryDto> getCourseSummaries() {
-        return courseRepository.findAll().stream()
-                .sorted(Comparator
-                        .comparing(Course::getSection, Comparator.nullsLast(
-                                Comparator.comparing(Section::getPriority)
-                                        .thenComparing(Section::getId)
-                        ))
-                        .thenComparing(Course::getId)
-                )
-                .map(this::toCourseSummaryDto)
-                .toList();
+    public List<SectionWithCoursesDto> getCourseSummariesBySection() {
+        return toSectionWithCoursesDto(courseRepository.findAll());
     }
 
     @Transactional(readOnly = true)
@@ -504,7 +476,7 @@ public class CourseService {
         course.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
         course.setKeepAccessAfterDeadline(Boolean.TRUE.equals(request.keepAccessAfterDeadline()));
         course.setIncludeInOverallStats(request.includeInOverallStats() == null || request.includeInOverallStats());
-        course.setSection(request.sectionId() == null ? null : sectionService.getSectionEntity(request.sectionId()));
+        course.setSection(request.sectionId() == null ? sectionService.getDefaultSection() : sectionService.getSectionEntity(request.sectionId()));
     }
 
     private void applyCommonLessonFields(Lesson lesson,
@@ -657,13 +629,26 @@ public class CourseService {
                 course.getTitle(),
                 course.getDescription(),
                 course.getCoverFilePath(),
-                course.getSection() == null ? null : course.getSection().getId(),
-                course.getSection() == null ? null : course.getSection().getTitle(),
-                course.getSection() == null ? null : course.getSection().getPriority(),
+                course.getSection().getId(),
+                course.getSection().getTitle(),
+                course.getSection().getPriority(),
                 theoryCount,
                 practiceCount
         );
     }
+
+    private List<SectionWithCoursesDto> toSectionWithCoursesDto(List<Course> courses) {
+        return courses.stream()
+                .collect(Collectors.groupingBy(Course::getSection)).entrySet()
+                .stream()
+                .map(e -> {
+                    final List<CourseSummaryDto> coursesBySection = e.getValue().stream().map(this::toCourseSummaryDto).toList();
+                    return new SectionWithCoursesDto(e.getKey().getId(), e.getKey().getTitle(), e.getKey().getDescription(), e.getKey().getPriority(), coursesBySection);
+                })
+                .sorted(Comparator.comparing(SectionWithCoursesDto::priority))
+                .toList();
+    }
+
     private void validateUpdatePracticeRequest(CreatePracticeLessonRequest request) {
         if (request.lessonType() != null && request.lessonType().getSubType() != LessonType.LessonSubType.PRACTICE) {
             throw new BadRequestException("lessonType must be one of practice types");

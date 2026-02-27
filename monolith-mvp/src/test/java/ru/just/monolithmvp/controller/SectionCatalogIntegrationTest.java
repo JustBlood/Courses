@@ -56,18 +56,19 @@ class SectionCatalogIntegrationTest {
 
         Long sectionId = objectMapper.readTree(createSectionResponse).get("id").asLong();
 
-        String createCourseInSectionResponse = mockMvc.perform(post("/api/v1/admin/sections/{sectionId}/courses", sectionId)
+        String createCourseInSectionResponse = mockMvc.perform(post("/api/v1/admin/courses")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                        .content(String.format("""
                                 {
                                   "title": "Java Basics",
                                   "description": "Java basics course",
                                   "authorFullName": "Admin",
                                   "passingThresholdPercent": 70,
-                                  "deadlineDays": 30
+                                  "deadlineDays": 30,
+                                  "sectionId": %s
                                 }
-                                """))
+                                """, sectionId)))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -160,11 +161,11 @@ class SectionCatalogIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        JsonNode courses = objectMapper.readTree(allCoursesResponse);
+        JsonNode sections = objectMapper.readTree(allCoursesResponse);
 
-        JsonNode lowSectionCourse = findCourseByTitle(courses, "Course in low section");
-        JsonNode highSectionCourse = findCourseByTitle(courses, "Course in high section");
-        JsonNode noSectionCourse = findCourseByTitle(courses, "Course without section");
+        JsonNode lowSectionCourse = findCourseByTitle(sections, "Course in low section");
+        JsonNode highSectionCourse = findCourseByTitle(sections, "Course in high section");
+        JsonNode courseWithDefaultSection = findCourseByTitle(sections, "Course without section");
 
         assertThat(lowSectionCourse.get("sectionId").asLong()).isEqualTo(lowPrioritySectionId);
         assertThat(lowSectionCourse.get("sectionTitle").asText()).isEqualTo("Low");
@@ -174,31 +175,39 @@ class SectionCatalogIntegrationTest {
         assertThat(highSectionCourse.get("sectionTitle").asText()).isEqualTo("High");
         assertThat(highSectionCourse.get("sectionPriority").asInt()).isEqualTo(5);
 
-        assertThat(noSectionCourse.get("sectionId").isNull()).isTrue();
-        assertThat(noSectionCourse.get("sectionTitle").isNull()).isTrue();
-        assertThat(noSectionCourse.get("sectionPriority").isNull()).isTrue();
+        assertThat(courseWithDefaultSection.get("sectionId").asLong()).isEqualTo(1);
+        assertThat(courseWithDefaultSection.get("sectionTitle").asText()).isNotEmpty();
+        assertThat(courseWithDefaultSection.get("sectionPriority").asLong()).isEqualTo(-1);
 
-        int lowIndex = indexOfCourse(courses, "Course in low section");
-        int highIndex = indexOfCourse(courses, "Course in high section");
-        int noSectionIndex = indexOfCourse(courses, "Course without section");
+        int lowIndex = indexOfCourse(sections, "Course in low section");
+        int highIndex = indexOfCourse(sections, "Course in high section");
+        int defaultSectionIndex = indexOfCourse(sections, "Course without section");
 
+        assertThat(defaultSectionIndex).isLessThan(lowIndex);
         assertThat(lowIndex).isLessThan(highIndex);
-        assertThat(highIndex).isLessThan(noSectionIndex);
+        assertThat(defaultSectionIndex).isLessThan(highIndex);
     }
 
-    private JsonNode findCourseByTitle(JsonNode courses, String title) {
-        for (JsonNode course : courses) {
-            if (title.equals(course.path("title").asText())) {
-                return course;
+    private JsonNode findCourseByTitle(JsonNode sections, String title) {
+        for (JsonNode section : sections) {
+            for (JsonNode course : section.path("courses")) {
+                if (title.equals(course.path("title").asText())) {
+                    return course;
+                }
             }
         }
         throw new AssertionError("Course not found in catalog: " + title);
     }
 
-    private int indexOfCourse(JsonNode courses, String title) {
-        for (int i = 0; i < courses.size(); i++) {
-            if (title.equals(courses.get(i).path("title").asText())) {
-                return i;
+    private int indexOfCourse(JsonNode sections, String title) {
+        int index = 0;
+        for (JsonNode section : sections) {
+            index++;
+            JsonNode courses = section.path("courses");
+            for (int i = 0; i < courses.size(); i++, index++) {
+                if (title.equals(courses.get(i).path("title").asText())) {
+                    return index;
+                }
             }
         }
         throw new AssertionError("Course index not found in catalog: " + title);
@@ -223,7 +232,7 @@ class SectionCatalogIntegrationTest {
     }
 
     private void createCourseInSection(String adminToken, Long sectionId, String courseTitle) throws Exception {
-        mockMvc.perform(post("/api/v1/admin/sections/{sectionId}/courses", sectionId)
+        mockMvc.perform(post("/api/v1/admin/courses")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -232,9 +241,10 @@ class SectionCatalogIntegrationTest {
                                   "description": "Course description",
                                   "authorFullName": "Admin",
                                   "passingThresholdPercent": 70,
-                                  "deadlineDays": 30
+                                  "deadlineDays": 30,
+                                  "sectionId": "%s"
                                 }
-                                """.formatted(courseTitle)))
+                                """.formatted(courseTitle, sectionId)))
                 .andExpect(status().isCreated());
     }
 

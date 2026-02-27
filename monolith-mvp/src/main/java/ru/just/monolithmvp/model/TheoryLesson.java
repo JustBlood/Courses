@@ -16,7 +16,7 @@ public class TheoryLesson extends Lesson {
     @Column(name = "theory_content_type", nullable = false)
     private TheoryContentType contentType;
 
-    @Column(name = "theory_content", length = 20000, nullable = false)
+    @Column(name = "theory_content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @PrePersist

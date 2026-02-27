@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.model;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,6 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode(of = {"id"})
 public class Section {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
