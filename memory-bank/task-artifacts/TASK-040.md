@@ -67,7 +67,7 @@
 
 ## Обследованные файлы
 - `memory-bank/tasks.json`
-- `memory-bank/05-task-execution-progress.md`
+- `memory-bank/05-task-execution-progress.en.md`
 - `memory-bank/prd/06-acceptance-criteria.md`
 - `memory-bank/pre-task-artifacts/PRE-008-test-coverage-gap-report.md`
 - `monolith-mvp/src/test/java/ru/just/monolithmvp/controller/UserAuthStudentFlowIntegrationTest.java`
@@ -80,7 +80,7 @@
 1. Сопоставить AC-матрицу с текущими интеграционными тестами и зафиксировать целевой e2e-набор для MVP и post-MVP.
 2. Прогнать релевантные test-сценарии (MVP и post-MVP наборы) и собрать фактический pass/fail результат.
 3. Подготовить артефакт TASK-040 с трассировкой AC -> test method и итогами прогона.
-4. Обновить memory-bank: `05-task-execution-progress.md`, `06-system-development-progress.md`, статус задачи в `tasks.json` через helper-скрипт, очистить `02-active-context.md` после полного завершения.
+4. Обновить memory-bank: `05-task-execution-progress.en.md`, `06-system-development-progress.md`, статус задачи в `tasks.json` через helper-скрипт, очистить `02-active-context.md` после полного завершения.
 
 ## Риски
 - Возможен флейк при длительных интеграционных прогонах H2/Flyway.
@@ -89,11 +89,11 @@
 ## Что уже выполнено
 1. Обязательный контекст прочитан:
    - `.clinerules/*`
-   - `memory-bank/00-project-brief.md`
+   - `memory-bank/00-project-brief.en.md`
    - `memory-bank/02-active-context.md`
    - `memory-bank/tasks.json`
-   - `memory-bank/01-prd-index.md`
-   - `memory-bank/05-task-execution-progress.md`
+   - `memory-bank/01-prd-index.en.md`
+   - `memory-bank/05-task-execution-progress.en.md`
    - релевантная PRD-глава: `memory-bank/prd/06-acceptance-criteria.md`
 2. Выбрана задача `TASK-040` (non-ui, pending, зависимости закрыты).
 3. Зафиксирован план и рамки в текущем файле.

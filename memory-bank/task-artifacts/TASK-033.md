@@ -77,13 +77,13 @@
 ## Что уже выполнено по TASK-033
 1. Выбрана задача `TASK-033` (pending, non-ui, high, зависимости `TASK-011` и `TASK-015` закрыты).
 2. Прочитаны релевантные документы:
-   - `memory-bank/00-project-brief.md`
+   - `memory-bank/00-project-brief.en.md`
    - `memory-bank/02-active-context.md`
    - `memory-bank/tasks.json`
-   - `memory-bank/01-prd-index.md`
+   - `memory-bank/01-prd-index.en.md`
    - `memory-bank/prd/02-functional-requirements.md` (FR-110/FR-111)
    - `memory-bank/prd/06-acceptance-criteria.md` (AC-110/AC-111)
-   - `memory-bank/05-task-execution-progress.md`
+   - `memory-bank/05-task-execution-progress.en.md`
 3. Выполнен анализ кода и затронутых файлов:
    - `LearningService`, `CourseService`, `Lesson`, `PracticeLesson`, `LessonSubmissionRepository`, `CourseLessonCrudIntegrationTest`, `StudentController`, `LessonMapper`, `V1__init_schema.sql`.
 4. Проведён дополнительный ресёрч через субагента (`backend-architect`) с рекомендацией минимального дизайна: считать попытки по `(studentId, lessonId)` и блокировать новые при `attempts >= attemptLimit`.
@@ -106,7 +106,7 @@
 ## Что осталось сделать после /newtask
 1. Финализировать memory-bank артефакты по задаче:
    - создать `memory-bank/task-artifacts/TASK-033.md` (с итогами и копией активного контекста);
-   - добавить запись о `TASK-033` в `memory-bank/05-task-execution-progress.md`.
+   - добавить запись о `TASK-033` в `memory-bank/05-task-execution-progress.en.md`.
 2. Обновить `memory-bank/06-system-development-progress.md` краткой записью по TASK-033.
 3. Перевести задачу в done:
    - `python memory-bank/change_task_status.py TASK-033 done`.

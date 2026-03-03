@@ -64,7 +64,7 @@
 
 1. Обновить memory-bank артефакты по завершению TASK-018:
    - `memory-bank/task-artifacts/TASK-018.md` (создать и зафиксировать выполненные изменения + результаты валидации)
-   - `memory-bank/05-task-execution-progress.md` (добавить ссылку на артефакт TASK-018, не затирая историю)
+   - `memory-bank/05-task-execution-progress.en.md` (добавить ссылку на артефакт TASK-018, не затирая историю)
    - `memory-bank/tasks.json` (обновить статус `TASK-018` на `done`, если ещё не обновлён)
 
 2. Обновить `memory-bank/06-system-development-progress.md`:

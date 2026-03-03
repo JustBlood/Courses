@@ -1,0 +1,134 @@
+# Task Execution Progress
+
+## Purpose
+Operational index of pre-phase execution and links to gap-analysis artifacts.
+
+## Artifact Index (compressed)
+
+### PRE-phase: completed tasks with artifacts
+- `PRE-001` — Baseline analysis
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-001-baseline-report.md`
+- `PRE-002` — API contour inventory
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-002-api-inventory-report.md`
+- `PRE-003` — Domain model inventory
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-003-domain-model-inventory-report.md`
+- `PRE-004` — Flyway/database schema reconciliation
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-004-flyway-schema-gap-report.md`
+- `PRE-005` — Auth/security contour reconciliation
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-005-security-gap-report.md`
+- `PRE-006` — Layering and service-layer verification
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-006-layering-and-architecture-gap-report.md`
+- `PRE-007` — SMTP/YouTube/file-storage integrations and degradation scenarios
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-007-integrations-gap-report.md`
+- `PRE-008` — Integration/end-to-end test coverage against AC
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-008-test-coverage-gap-report.md`
+- `PRE-009` — FR-001..FR-004 (users/profile/roles) reconciliation with AC-001..AC-004
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-009-fr-001-fr-004-gap-report.md`
+- `PRE-010` — FR-005..FR-009 (courses/lessons/questions/scoring) reconciliation with AC-005..AC-009
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-010-fr-005-fr-009-gap-report.md`
+- `PRE-011` — FR-010..FR-014 (enrollment/review/learning flow) reconciliation with AC-010..AC-014
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-011-fr-010-fr-014-gap-report.md`
+- `PRE-012` — FR-015..FR-017 (statistics/reporting) reconciliation with AC-015..AC-017
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-012-fr-015-fr-017-gap-report.md`
+- `PRE-013` — FR-018..FR-019 (change/reset password) and security/NFR reconciliation
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-013-fr-018-fr-019-security-gap-report.md`
+- `PRE-014` — FR-101..FR-105 (sections/programs/program rules/assignments) reconciliation
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-014-fr-101-fr-105-gap-report.md`
+- `PRE-015` — FR-106..FR-109 (groups/bulk assignments/search/filter) reconciliation
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-015-fr-106-fr-109-gap-report.md`
+- `PRE-016` — FR-110..FR-114 (advanced practice: threshold/attempts/time/random/stopLesson) reconciliation
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-016-fr-110-fr-114-gap-report.md`
+- `PRE-017` — NFR contour reconciliation (observability/audit/backup-restore/reliability)
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-017-nfr-gap-report.md`
+- `PRE-018` — Consolidated FR/AC/NFR compliance matrix with risk/effort/phase
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-018-fr-ac-nfr-consolidated-matrix.md`
+- `PRE-019` — Change-set plan for final backlog synchronization (`tasks.json`)
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-019-backlog-change-set-plan.md`
+- `PRE-020` — Final backlog synchronization and fixation of a new `tasks.json` baseline version
+  - Artifact: `memory-bank/pre-task-artifacts/PRE-020-backlog-baseline-update-report.md`
+
+### COMPLETED TASKS INDEX: completed main tasks with artifacts
+- `TASK-001` — MVP runtime configuration
+  - Artifact: `memory-bank/task-artifacts/TASK-001.md`
+- `TASK-002` — Flyway migrations stabilization
+  - Artifact: `memory-bank/task-artifacts/TASK-002.md`
+- `TASK-003` — JWT hardening
+  - Artifact: `memory-bank/task-artifacts/TASK-003.md`
+- `TASK-004` — API RBAC restrictions
+  - Artifact: `memory-bank/task-artifacts/TASK-004.md`
+- `TASK-006` — user creation with initial assignments
+  - Artifact: `memory-bank/task-artifacts/TASK-006.md`
+- `TASK-007` — email onboarding (FR-002)
+  - Artifact: `memory-bank/task-artifacts/TASK-007.md`
+- `TASK-008` — user editing and role change (FR-003/FR-004)
+  - Artifact: `memory-bank/task-artifacts/TASK-008.md`
+- `TASK-011` — FR-008/FR-009 practice model and scoring contract
+  - Artifact: `memory-bank/task-artifacts/TASK-011.md`
+- `TASK-013` — FR-011 reviewer assignment and review workspace
+  - Artifact: `memory-bank/task-artifacts/TASK-013.md`
+- `TASK-014` — FR-012 THEORY lesson completion
+  - Artifact: `memory-bank/task-artifacts/TASK-014.md`
+- `TASK-015` — FR-013 runtime scoring engine
+  - Artifact: `memory-bank/task-artifacts/TASK-015.md`
+- `TASK-016` — FR-014 open-ended answer workflow
+  - Artifact: `memory-bank/task-artifacts/TASK-016.md`
+- `TASK-017` — FR-015 personal student/user statistics
+  - Artifact: `memory-bank/task-artifacts/TASK-017.md`
+- `TASK-018` — FR-016 statistics for a specific course for admin
+  - Artifact: `memory-bank/task-artifacts/TASK-018.md`
+- `TASK-019A` — FR-017 (MVP) summary report for a specific course
+  - Artifact: `memory-bank/task-artifacts/TASK-019A.md`
+- `TASK-020A` — FR-017 (MVP) overall summary report for all courses
+  - Artifact: `memory-bank/task-artifacts/TASK-020A.md`
+- `TASK-022A` — FR-019 (base flow) password recovery via email token
+  - Artifact: `memory-bank/task-artifacts/TASK-022A.md`
+- `TASK-022B` — security hardening of reset flow: reset-token TTL + neutral responses
+  - Artifact: `memory-bank/task-artifacts/TASK-022B.md`
+- `TASK-026` — FR-101/FR-102 section catalog CRUD and course creation in section context
+  - Artifact: `memory-bank/task-artifacts/TASK-026.md`
+- `TASK-027` — FR-106/FR-107 user groups and typed-membership rules
+  - Artifact: `memory-bank/task-artifacts/TASK-027.md`
+- `TASK-030` — FR-103 create/edit programs with an ordered list of courses
+  - Artifact: `memory-bank/task-artifacts/TASK-030.md`
+- `TASK-028` — FR-108 bulk assignment of courses/programs via groups
+  - Artifact: `memory-bank/task-artifacts/TASK-028.md`
+- `TASK-031` — FR-104 program progression rules (deadline + accessCondition)
+  - Artifact: `memory-bank/task-artifacts/TASK-031.md`
+- `TASK-032` — FR-105 program assignment to a user and a group
+  - Artifact: `memory-bank/task-artifacts/TASK-032.md`
+- `TASK-033` — FR-110/FR-111 practice passing threshold and attempt limit
+  - Artifact: `memory-bank/task-artifacts/TASK-033.md`
+- `TASK-034` — FR-112 course/lesson time limits (`deadlineDays`, `timeLimitMinutes`)
+  - Artifact: `memory-bank/task-artifacts/TASK-034.md`
+- `TASK-035` — FR-113 randomQuestionCount + shuffleOnEveryAttempt in runtime issuance of practice questions
+  - Artifact: `memory-bank/task-artifacts/TASK-035.md`
+- `TASK-036` — FR-114 stop-lesson block for transition to the next lesson (including lessonsFreeOrder=true)
+  - Artifact: `memory-bank/task-artifacts/TASK-036.md`
+- `TASK-037` — observability contour (correlation-id, structured events, metrics)
+  - Artifact: `memory-bank/task-artifacts/TASK-037.md`
+- `TASK-037-ANALYSIS` — analytical assessment of observability implementation (standard tracing vs over-engineering)
+  - Artifact: `memory-bank/task-artifacts/TASK-037-ANALYSIS.md`
+- `TASK-041` — FR-002/AC-002: explicit user activation-state before/after set-password
+  - Artifact: `memory-bank/task-artifacts/TASK-041.md`
+- `TASK-042` — FR-003/AC-003: self-profile update endpoint with a whitelist of allowed fields
+  - Artifact: `memory-bank/task-artifacts/TASK-042.md`
+- `TASK-043` — FR-010/AC-010: API model of two lists enrolled/not-enrolled for a course
+  - Artifact: `memory-bank/task-artifacts/TASK-043.md`
+- `TASK-044` — FR-014/AC-014: open-ended review workflow `PENDING_REVIEW -> REWORK -> ACCEPTED` + FK cascade for history
+  - Artifact: `memory-bank/task-artifacts/TASK-044.md`
+- `TASK-039` — backup/restore contour (DB + file materials), verification of actual MVP RPO/RTO
+  - Artifact: `memory-bank/task-artifacts/TASK-039.md`
+- `TASK-046` — backup/restore readiness: measurable RPO/RTO + retention verification
+  - Artifact: `memory-bank/task-artifacts/TASK-046.md`
+- `TASK-038` — security hardening: redaction of sensitive data in logs + env-only secrets
+  - Artifact: `memory-bank/task-artifacts/TASK-038.md`
+- `TASK-040` — end-to-end acceptance suite for AC-001..AC-019 and AC-101..AC-114
+  - Artifact: `memory-bank/task-artifacts/TASK-040.md`
+- `TASK-OPENAPI-DOCS-2026-02-24` — detailed OpenAPI documentation for the backend API
+  - Artifact: `memory-bank/task-artifacts/TASK-OPENAPI-DOCS-2026-02-24.md`
+- `ADHOC-COURSE-LESSON-CRUD-STABILIZATION-2026-02-25` — targeted stabilization of integration test `CourseLessonCrudIntegrationTest`
+  - Artifact: `memory-bank/task-artifacts/ADHOC-COURSE-LESSON-CRUD-STABILIZATION-2026-02-25.md`
+- `ADHOC-CLINERULES-EN-TRANSLATION-2026-03-03` — translation of all `.clinerules/*.md` files into English as new `.en.md` files without replacing originals
+  - Artifact: `memory-bank/task-artifacts/ADHOC-CLINERULES-EN-TRANSLATION-2026-03-03.md`
+- `ADHOC-MEMORY-BANK-EN-TRANSLATION-2026-03-03` — translation of selected `memory-bank` files into English as new `.en.md` files without replacing originals
+  - Artifact: `memory-bank/task-artifacts/ADHOC-MEMORY-BANK-EN-TRANSLATION-2026-03-03.md`

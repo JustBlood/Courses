@@ -94,7 +94,7 @@
 4. После успешного теста завершить обязательные шаги workflow:
    - обновить `memory-bank/tasks.json` (`TASK-020A` -> `done`);
    - записать артефакт `memory-bank/task-artifacts/TASK-020A.md` (копия активного контекста);
-   - добавить ссылку в `memory-bank/05-task-execution-progress.md`;
+   - добавить ссылку в `memory-bank/05-task-execution-progress.en.md`;
    - обновить `memory-bank/06-system-development-progress.md`;
    - очистить `memory-bank/02-active-context.md`.
 

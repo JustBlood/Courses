@@ -156,7 +156,7 @@ Context Window Usage превысил лимит 350000 токенов. Реал
 1. Обновить `memory-bank/tasks.json`: `TASK-041` -> `done`.
 2. Обновить `memory-bank/06-system-development-progress.md` summary.
 3. Создать артефакт `memory-bank/task-artifacts/TASK-041.md` (перенести весь контекст задачи).
-4. Добавить ссылку в `memory-bank/05-task-execution-progress.md`.
+4. Добавить ссылку в `memory-bank/05-task-execution-progress.en.md`.
 5. Очистить `memory-bank/02-active-context.md` (по правилам после полного завершения задачи).
 
 ### Технические заметки для продолжения

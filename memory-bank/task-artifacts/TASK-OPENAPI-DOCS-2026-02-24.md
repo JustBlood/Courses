@@ -43,7 +43,7 @@
 2. Доработать DTO-схемы (только целевые, без over-engineering).
 3. Прогнать финальную валидацию (compile/tests по релевантному набору).
 4. Создать task-artifact по выполненной задаче, обновить:
-   - `memory-bank/05-task-execution-progress.md`,
+   - `memory-bank/05-task-execution-progress.en.md`,
    - `memory-bank/06-system-development-progress.md` (если нужно по архитектурной значимости),
    - очистить `memory-bank/02-active-context.md` после полного завершения по правилам.
 
@@ -77,7 +77,7 @@
 2. При необходимости добавить недостающие `@ApiResponses` в отдельных методах `CoursesController` (там, где ещё только `@Operation`).
 3. Прогнать compile/test для валидации изменений OpenAPI-аннотаций.
 4. Оформить task-artifact и обновить:
-   - `memory-bank/05-task-execution-progress.md`
+   - `memory-bank/05-task-execution-progress.en.md`
    - `memory-bank/06-system-development-progress.md` (если потребуется)
    - очистить `memory-bank/02-active-context.md` после полного завершения.
 
@@ -119,11 +119,11 @@
 ### Что было сделано
 1. Прочитаны обязательные документы:
    - `.clinerules/*`
-   - `memory-bank/00-project-brief.md`
+   - `memory-bank/00-project-brief.en.md`
    - `memory-bank/02-active-context.md`
    - `memory-bank/tasks.json`
-   - `memory-bank/01-prd-index.md`
-   - `memory-bank/05-task-execution-progress.md`
+   - `memory-bank/01-prd-index.en.md`
+   - `memory-bank/05-task-execution-progress.en.md`
 2. Проверен `git log --oneline -20`.
 3. Выявлен блокер backlog: pending non-ui задач нет (`0`).
 4. Получено прямое указание пользователя (вне backlog):
@@ -167,7 +167,7 @@
    - `mvn -f monolith-mvp/pom.xml test` или минимум `mvn -f monolith-mvp/pom.xml -DskipTests compile`.
 5. После завершения:
    - оформить artifact в `memory-bank/task-artifacts/*`,
-   - обновить `memory-bank/05-task-execution-progress.md` и при необходимости `06-system-development-progress.md`.
+   - обновить `memory-bank/05-task-execution-progress.en.md` и при необходимости `06-system-development-progress.md`.
 
 ### Важно
 - Остановка выполнена из-за правила Token Budget Gate: Context Window Usage > 350000.

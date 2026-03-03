@@ -65,7 +65,7 @@
 1. Сделать commit изменений TASK-027 (только целевые файлы задачи).
 2. Обновить статус `TASK-027 -> done` в `memory-bank/tasks.json`.
 3. Создать артефакт `memory-bank/task-artifacts/TASK-027.md` (копия активного контекста + итог).
-4. Добавить ссылку на артефакт в `memory-bank/05-task-execution-progress.md`.
+4. Добавить ссылку на артефакт в `memory-bank/05-task-execution-progress.en.md`.
 5. Добавить запись в `memory-bank/06-system-development-progress.md`.
 6. Очистить `memory-bank/02-active-context.md` после полного завершения задачи.
 ```

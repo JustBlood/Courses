@@ -106,7 +106,7 @@
 
 ## Что осталось для полного закрытия задачи
 1. Сформировать артефакт `memory-bank/task-artifacts/TASK-039.md` с итогами и полной копией этого активного контекста.
-2. Добавить ссылку на артефакт в `memory-bank/05-task-execution-progress.md`.
+2. Добавить ссылку на артефакт в `memory-bank/05-task-execution-progress.en.md`.
 3. Добавить запись в `memory-bank/06-system-development-progress.md`.
 4. Перевести задачу в done: `python memory-bank/change_task_status.py TASK-039 done`.
 5. Очистить `memory-bank/02-active-context.md` после полного завершения.

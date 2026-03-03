@@ -141,7 +141,7 @@
 4. Довести тест до зеленого.
 5. Выполнить пост-задачные шаги memory-bank:
    - создать task artifact `memory-bank/task-artifacts/TASK-030.md`;
-   - добавить запись в `memory-bank/05-task-execution-progress.md`;
+   - добавить запись в `memory-bank/05-task-execution-progress.en.md`;
    - при необходимости обновить `memory-bank/06-system-development-progress.md`;
    - обновить статус TASK-030 в `memory-bank/tasks.json` (через скрипт);
    - очистить `memory-bank/02-active-context.md` после полного завершения.

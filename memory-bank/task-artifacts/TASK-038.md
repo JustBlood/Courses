@@ -74,7 +74,7 @@
 5. После успешных тестов:
    - сменить `TASK-038` в `memory-bank/tasks.json` на `done`;
    - создать артефакт `memory-bank/task-artifacts/TASK-038.md`;
-   - обновить `memory-bank/05-task-execution-progress.md` и `memory-bank/06-system-development-progress.md`;
+   - обновить `memory-bank/05-task-execution-progress.en.md` и `memory-bank/06-system-development-progress.md`;
    - очистить `memory-bank/02-active-context.md` по правилам после полного завершения.
 
 ### Текущее состояние task_progress
@@ -116,7 +116,7 @@
 ### Что осталось сделать для полного закрытия итерации
 1. Оформить финальные memory-bank артефакты по правилам:
    - создать `memory-bank/task-artifacts/TASK-038.md` (перенести финальный active context);
-   - добавить запись/ссылку в `memory-bank/05-task-execution-progress.md`;
+   - добавить запись/ссылку в `memory-bank/05-task-execution-progress.en.md`;
    - обновить `memory-bank/06-system-development-progress.md` (как архитектурно-важное изменение по безопасности/конфигам);
    - очистить `memory-bank/02-active-context.md` после фиксации артефакта.
 2. Отдать пользователю финальный отчёт по задаче.

@@ -95,7 +95,7 @@
 ### Что останется после реализации
 - Обновить memory-bank артефакты по задаче:
   - создать `memory-bank/task-artifacts/TASK-035.md` (с копией активного контекста);
-  - добавить запись в `memory-bank/05-task-execution-progress.md`;
+  - добавить запись в `memory-bank/05-task-execution-progress.en.md`;
   - обновить `memory-bank/06-system-development-progress.md` summary;
   - перевести задачу в done через `memory-bank/change_task_status.py`;
   - очистить `memory-bank/02-active-context.md`.
@@ -124,7 +124,7 @@
 
 ### Что ещё НЕ завершено (по process/memory-bank)
 1. Не создан финальный task-артефакт `memory-bank/task-artifacts/TASK-035.md`.
-2. Не добавлена запись о `TASK-035` в `memory-bank/05-task-execution-progress.md`.
+2. Не добавлена запись о `TASK-035` в `memory-bank/05-task-execution-progress.en.md`.
 3. Не внесена запись о завершении `TASK-035` в `memory-bank/06-system-development-progress.md`.
 4. Статус задачи в `memory-bank/tasks.json` ещё `pending` (нужно перевести в `done`).
 5. Не выполнена очистка `memory-bank/02-active-context.md` после полного завершения задачи (пока нельзя, задача процессно не закрыта).
@@ -136,7 +136,7 @@
 2. Повторно (коротко) прогнать подтверждающий тест:
    - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest test`
 3. Создать артефакт `memory-bank/task-artifacts/TASK-035.md` на основе этого active-context.
-4. Обновить индекс `memory-bank/05-task-execution-progress.md` (добавить `TASK-035`).
+4. Обновить индекс `memory-bank/05-task-execution-progress.en.md` (добавить `TASK-035`).
 5. Обновить `memory-bank/06-system-development-progress.md` записью по завершённой задаче.
 6. Перевести статус задачи:
    - `python memory-bank/change_task_status.py TASK-035 done`

@@ -84,7 +84,7 @@
 1. Завершить memory-bank обновления по правилам:
    - обновить `memory-bank/tasks.json`: перевести `TASK-019A` в `done`;
    - создать артефакт: `memory-bank/task-artifacts/TASK-019A.md` (перенести туда полный активный контекст задачи);
-   - добавить ссылку на артефакт в `memory-bank/05-task-execution-progress.md`;
+   - добавить ссылку на артефакт в `memory-bank/05-task-execution-progress.en.md`;
    - добавить запись в `memory-bank/06-system-development-progress.md` о завершении TASK-019A;
    - очистить `memory-bank/02-active-context.md` после фиксации артефакта и индекса.
 2. После этого переходить к следующей ready-to-start non-ui задаче из `tasks.json` (ожидаемо `TASK-020A`).

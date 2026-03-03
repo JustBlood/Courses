@@ -45,7 +45,7 @@
 - Среди `pending` и `category != ui`, с учётом зависимостей и приоритета/порядка ID, стартуем с **TASK-022B**.
 
 ## Проверенные требования и ограничения
-- Прочитаны обязательные документы: `.clinerules/*`, `memory-bank/00-project-brief.md`, `memory-bank/01-prd-index.md`, `memory-bank/02-active-context.md`, `memory-bank/tasks.json`, `memory-bank/05-task-execution-progress.md`.
+- Прочитаны обязательные документы: `.clinerules/*`, `memory-bank/00-project-brief.en.md`, `memory-bank/01-prd-index.en.md`, `memory-bank/02-active-context.md`, `memory-bank/tasks.json`, `memory-bank/05-task-execution-progress.en.md`.
 - Релевантный PRD: `memory-bank/prd/03-non-functional-requirements.md` (NFR-SEC-03, NFR-SEC-05).
 - По `agent_instructions`: работать только в рамках выбранной задачи, выполнить релевантные test_steps, отметить done только после успешных проверок.
 

@@ -80,7 +80,7 @@
 ## Что сделать первым шагом после /newtask
 1. Закрыть документационную часть задачи:
    - создать/обновить `memory-bank/task-artifacts/TASK-044.md`;
-   - добавить запись в `memory-bank/05-task-execution-progress.md`;
+   - добавить запись в `memory-bank/05-task-execution-progress.en.md`;
    - добавить запись в `memory-bank/06-system-development-progress.md` (архитектурно значимое изменение: audit history + FK cascade).
 2. Обновить статус TASK-044:
    - `python memory-bank/change_task_status.py TASK-044 done`

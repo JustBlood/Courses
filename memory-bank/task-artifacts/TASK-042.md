@@ -33,7 +33,7 @@
 1. Подтвердить прохождение test_steps задачи запуском релевантного интеграционного теста.
 2. Перевести `TASK-042` в статус `done`.
 3. Создать отдельный артефакт `memory-bank/task-artifacts/TASK-042.md` с фиксацией выполненного объёма и валидации.
-4. Обновить индекс `memory-bank/05-task-execution-progress.md`.
+4. Обновить индекс `memory-bank/05-task-execution-progress.en.md`.
 5. Обновить `memory-bank/06-system-development-progress.md` (краткая запись о завершении TASK-042).
 6. Очистить `memory-bank/02-active-context.md` после полного завершения.
 
@@ -56,6 +56,6 @@
 ### Изменённые артефакты memory-bank
 - `memory-bank/tasks.json` (статус `TASK-042: done`)
 - `memory-bank/02-active-context.md`
-- `memory-bank/05-task-execution-progress.md`
+- `memory-bank/05-task-execution-progress.en.md`
 - `memory-bank/06-system-development-progress.md`
 - `memory-bank/task-artifacts/TASK-042.md`

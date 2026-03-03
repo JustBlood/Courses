@@ -79,7 +79,7 @@
 
 ### Осталось закрыть в этой сессии
 1. Создать `memory-bank/task-artifacts/TASK-031.md` с итогом и копией активного контекста.
-2. Обновить индекс `memory-bank/05-task-execution-progress.md`.
+2. Обновить индекс `memory-bank/05-task-execution-progress.en.md`.
 3. Добавить запись в `memory-bank/06-system-development-progress.md`.
 4. Перевести `TASK-031` в `done` через `memory-bank/change_task_status.py`.
 5. Очистить `memory-bank/02-active-context.md` после завершения артефактизации.

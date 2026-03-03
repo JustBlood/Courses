@@ -124,7 +124,7 @@
 ## Что осталось сделать после /newtask
 1. Финализировать memory-bank артефакты по правилам:
    - создать файл артефакта `memory-bank/task-artifacts/TASK-032.md` (скопировать текущий active-context + итоги);
-   - добавить запись в `memory-bank/05-task-execution-progress.md` со ссылкой на артефакт;
+   - добавить запись в `memory-bank/05-task-execution-progress.en.md` со ссылкой на артефакт;
    - при необходимости обновить `memory-bank/06-system-development-progress.md` (если сочтём изменение архитектурно значимым);
    - очистить `memory-bank/02-active-context.md` после полного завершения.
 2. Обновить статус задачи:
