@@ -31,6 +31,7 @@ public class LearningService {
     private final LessonSubmissionStatusHistoryRepository submissionStatusHistoryRepository;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
+    private final ProgramService programService;
 
     @Transactional
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
@@ -400,6 +401,7 @@ public class LearningService {
             if (e.getStartedAt() == null) {
                 e.setStartedAt(LocalDateTime.now());
                 enrollmentRepository.save(e);
+                programService.onCourseProgressChanged(userId, courseId);
             }
         });
     }
@@ -412,6 +414,7 @@ public class LearningService {
                 if (e.getCompletedAt() == null) {
                     e.setCompletedAt(LocalDateTime.now());
                     enrollmentRepository.save(e);
+                    programService.onCourseProgressChanged(userId, courseId);
                 }
             });
         }

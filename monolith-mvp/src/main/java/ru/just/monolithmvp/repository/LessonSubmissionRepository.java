@@ -30,5 +30,6 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
 
     void deleteByStudentId(Long studentId);
     void deleteByLesson_Course_Id(Long courseId);
+    void deleteByStudentIdAndLesson_Course_Id(Long studentId, Long courseId);
     void deleteByLessonId(Long lessonId);
 }

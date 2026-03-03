@@ -18,9 +18,7 @@ import ru.just.monolithmvp.service.ProgramService;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -70,9 +68,9 @@ class ProgramManagementIntegrationTest {
                                   "accessCondition": "ALL_OPEN",
                                   "blockAfterDeadline": false,
                                   "courses": [
-                                    {"courseId": %d},
-                                    {"courseId": %d},
-                                    {"courseId": %d}
+                                    %d,
+                                    %d,
+                                    %d
                                   ]
                                 }
                                 """.formatted(courseA, courseB, courseC)))
@@ -99,9 +97,9 @@ class ProgramManagementIntegrationTest {
                                   "accessCondition": "ALL_OPEN",
                                   "blockAfterDeadline": false,
                                   "courses": [
-                                    {"courseId": %d},
-                                    {"courseId": %d},
-                                    {"courseId": %d}
+                                    %d,
+                                    %d,
+                                    %d
                                   ]
                                 }
                                 """.formatted(courseC, courseA, courseB)))
@@ -129,11 +127,302 @@ class ProgramManagementIntegrationTest {
                 .getContentAsString();
 
         JsonNode list = objectMapper.readTree(listProgramsResponse);
-        JsonNode listedProgram = list.get(0);
+        JsonNode listedProgram = null;
+        for (JsonNode node : list) {
+            if (node.get("id").asLong() == programId) {
+                listedProgram = node;
+                break;
+            }
+        }
+        assertThat(listedProgram).isNotNull();
         assertThat(listedProgram.get("id").asLong()).isEqualTo(programId);
         assertThat(listedProgram.get("courses").get(0).get("courseId").asLong()).isEqualTo(courseC);
         assertThat(listedProgram.get("courses").get(1).get("courseId").asLong()).isEqualTo(courseA);
         assertThat(listedProgram.get("courses").get(2).get("courseId").asLong()).isEqualTo(courseB);
+    }
+
+    @Test
+    void should_reset_program_course_progress_for_not_completed_course() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Reset Progress Course A");
+        Long studentId = createUser(adminToken, "program.reset.ok@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Reset OK",
+                                  "description": "Reset endpoint",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    %d
+                                  ]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
+
+        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
+        enrollment.setStartedAt(LocalDateTime.now());
+        enrollment.setCompletedAt(null);
+        enrollmentRepository.save(enrollment);
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
+                        programId, studentId, courseA)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+
+        Enrollment afterReset = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
+        assertThat(afterReset.getStartedAt()).isNull();
+        assertThat(afterReset.getCompletedAt()).isNull();
+    }
+
+    @Test
+    void should_return_400_when_resetting_completed_course_progress() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Reset Completed Course A");
+        Long studentId = createUser(adminToken, "program.reset.completed@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Reset Completed",
+                                  "description": "Reset endpoint",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    %d
+                                  ]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
+
+        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
+        enrollment.setCompletedAt(LocalDateTime.now());
+        enrollmentRepository.save(enrollment);
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
+                        programId, studentId, courseA)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void should_return_400_when_resetting_course_not_in_program() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Reset Program Course A");
+        Long otherCourse = createCourse(adminToken, "Reset Program Other Course");
+        Long studentId = createUser(adminToken, "program.reset.not-in-program@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Reset Not In Program",
+                                  "description": "Reset endpoint",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    %d
+                                  ]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
+                        programId, studentId, otherCourse)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void should_return_404_when_resetting_without_enrollment() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Reset Missing Enrollment Course A");
+        Long courseB = createCourse(adminToken, "Reset Missing Enrollment Course B");
+        Long studentId = createUser(adminToken, "program.reset.missing-enrollment@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Reset Missing Enrollment",
+                                  "description": "Reset endpoint",
+                                  "accessCondition": "PREVIOUS_COURSES_COMPLETED",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    %d,
+                                    %d
+                                  ]
+                                }
+                                """.formatted(courseA, courseB)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
+                        programId, studentId, courseB)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void should_support_assign_contract_with_idsIn_idsNotIn_and_backward_ids() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Assign Contract Course A");
+        Long studentDirectA = createUser(adminToken, "program.assign.contract.a@example.com", "STUDENT");
+        Long studentDirectB = createUser(adminToken, "program.assign.contract.b@example.com", "STUDENT");
+        Long studentGroupOnly = createUser(adminToken, "program.assign.contract.group@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Assign Contract",
+                                  "description": "idsIn/idsNotIn + ids",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    %d
+                                  ]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d],
+                                  "idsNotIn": []
+                                }
+                                """.formatted(studentDirectA)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(studentDirectB)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [],
+                                  "idsNotIn": [%d]
+                                }
+                                """.formatted(studentDirectA)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentDirectA, programId)).isFalse();
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentDirectB, programId)).isTrue();
+
+        String createGroupResponse = mockMvc.perform(post("/api/v1/admin/groups")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Assign Contract Group",
+                                  "type": "GENERAL"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String groupId = objectMapper.readTree(createGroupResponse).get("id").asText();
+
+        mockMvc.perform(post("/api/v1/admin/groups/{groupId}/members", groupId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userIds": [%d]
+                                }
+                                """.formatted(studentGroupOnly)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": ["%s"],
+                                  "idsNotIn": []
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentGroupOnly, programId)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [],
+                                  "idsNotIn": ["%s"]
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentGroupOnly, programId)).isFalse();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": ["%s"]
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentGroupOnly, programId)).isTrue();
     }
 
     @Test
@@ -155,8 +444,8 @@ class ProgramManagementIntegrationTest {
                                   "deadlineAt": "%s",
                                   "blockAfterDeadline": true,
                                   "courses": [
-                                    {"courseId": %d},
-                                    {"courseId": %d}
+                                    %d,
+                                    %d
                                   ]
                                 }
                                 """.formatted(LocalDateTime.now().plusDays(1), courseA, courseB)))
@@ -190,8 +479,8 @@ class ProgramManagementIntegrationTest {
                                   "deadlineAt": "%s",
                                   "blockAfterDeadline": true,
                                   "courses": [
-                                    {"courseId": %d},
-                                    {"courseId": %d}
+                                    %d,
+                                    %d
                                   ]
                                 }
                                 """.formatted(LocalDateTime.now().minusDays(1), courseA, courseB)))
@@ -223,8 +512,8 @@ class ProgramManagementIntegrationTest {
                                   "accessCondition": "ALL_OPEN",
                                   "blockAfterDeadline": false,
                                   "courses": [
-                                    {"courseId": %d},
-                                    {"courseId": %d}
+                                    %d,
+                                    %d
                                   ]
                                 }
                                 """.formatted(courseA, courseB)))
@@ -265,7 +554,7 @@ class ProgramManagementIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": [%d]
+                                  "idsIn": [%d]
                                 }
                                 """.formatted(studentDirectId)))
                 .andExpect(status().isOk());
@@ -275,7 +564,7 @@ class ProgramManagementIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": ["%s"]
+                                  "idsIn": ["%s"]
                                 }
                                 """.formatted(groupId)))
                 .andExpect(status().isOk());

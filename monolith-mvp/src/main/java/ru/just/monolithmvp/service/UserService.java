@@ -385,11 +385,7 @@ public class UserService {
     }
 
     private String resolveCurrentActor() {
-        try {
-            return securityUtils.currentUser().getUsername();
-        } catch (Exception ex) {
-            return "system";
-        }
+        return securityUtils.resolveCurrentActor();
     }
 
     private Long tryResolveCurrentUserId() {

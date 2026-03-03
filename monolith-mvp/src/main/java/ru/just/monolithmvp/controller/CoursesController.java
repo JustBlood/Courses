@@ -14,15 +14,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
-import ru.just.monolithmvp.dto.common.IdsRequest;
 import ru.just.monolithmvp.dto.common.UuidIdsRequest;
 import ru.just.monolithmvp.dto.course.*;
 import ru.just.monolithmvp.dto.lesson.*;
+import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
+import ru.just.monolithmvp.dto.program.ProgramDto;
+import ru.just.monolithmvp.dto.program.ProgramGroupAssignRequest;
+import ru.just.monolithmvp.dto.program.ProgramUserAssignRequest;
 import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
 import ru.just.monolithmvp.service.CourseService;
+import ru.just.monolithmvp.service.ProgramService;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/courses")
@@ -37,6 +40,7 @@ import java.util.UUID;
 })
 public class CoursesController {
     private final CourseService courseService;
+    private final ProgramService programService;
 
 
     @PostMapping("")
@@ -236,6 +240,62 @@ public class CoursesController {
                                                                 @RequestBody @Valid UuidIdsRequest request) {
         request.ids().forEach(groupId -> courseService.unassignGroupFromCourse(courseId, groupId));
         return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
+    }
+
+    @PostMapping("/programs")
+    @Operation(summary = "Создать learning program")
+    public ResponseEntity<ProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
+        return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/programs")
+    @Operation(summary = "Получить список learning programs")
+    public ResponseEntity<List<ProgramDto>> getPrograms() {
+        return ResponseEntity.ok(programService.getPrograms());
+    }
+
+    @GetMapping("/programs/{programId}")
+    @Operation(summary = "Получить learning program")
+    public ResponseEntity<ProgramDto> getProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(programService.getProgram(programId));
+    }
+
+    @PutMapping("/programs/{programId}")
+    @Operation(summary = "Обновить learning program")
+    public ResponseEntity<ProgramDto> updateProgram(@PathVariable Long programId,
+                                                    @RequestBody @Valid CreateLearningProgramRequest request) {
+        return ResponseEntity.ok(programService.updateProgram(programId, request));
+    }
+
+    @PostMapping("/programs/{programId}/assign")
+    @Operation(summary = "Назначить/снять пользователей для learning program")
+    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
+                                                            @RequestBody @Valid ProgramUserAssignRequest request) {
+        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
+            return ResponseEntity.badRequest().body(new ApiResponse("Program users lists must be unique"));
+        }
+        programService.assignUsers(programId, request.idsIn(), request.idsNotIn());
+        return ResponseEntity.ok(new ApiResponse("Program assignments updated"));
+    }
+
+    @PostMapping("/programs/{programId}/groups/assign")
+    @Operation(summary = "Назначить/снять группы для learning program")
+    public ResponseEntity<ApiResponse> assignGroupsToProgram(@PathVariable Long programId,
+                                                             @RequestBody @Valid ProgramGroupAssignRequest request) {
+        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
+            return ResponseEntity.badRequest().body(new ApiResponse("Program groups lists must be unique"));
+        }
+        programService.assignGroups(programId, request.idsIn(), request.idsNotIn());
+        return ResponseEntity.ok(new ApiResponse("Program group assignments updated"));
+    }
+
+    @PostMapping("/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress")
+    @Operation(summary = "Сбросить прогресс пользователя по курсу внутри learning program")
+    public ResponseEntity<ApiResponse> resetProgramCourseProgress(@PathVariable Long programId,
+                                                                  @PathVariable Long userId,
+                                                                  @PathVariable Long courseId) {
+        programService.resetProgramCourseProgress(programId, userId, courseId);
+        return ResponseEntity.ok(new ApiResponse("Program course progress reset"));
     }
 
 }

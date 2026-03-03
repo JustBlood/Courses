@@ -280,7 +280,7 @@ public class CourseService {
                 "userId", userId);
     }
 
-    private void unenrollStudentFromCourse(Long courseId, Long userId, String actor) {
+    public void unenrollStudentFromCourse(Long courseId, Long userId, String actor) {
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
         businessEventLogger.log("course.enrollment.unassign", "success",
                 "actor", actor,
@@ -755,11 +755,7 @@ public class CourseService {
     }
 
     private String resolveCurrentActor() {
-        try {
-            return securityUtils.currentUser().getUsername();
-        } catch (Exception ex) {
-            return "system";
-        }
+        return securityUtils.resolveCurrentActor();
     }
 
     @Transactional
@@ -767,5 +763,17 @@ public class CourseService {
         userIdsToAssign.forEach(reviewerId -> assignReviewerToCourse(courseId, reviewerId));
         userIdsToUnassign.forEach(reviewerId -> unassignReviewerFromCourse(courseId, reviewerId));
 
+    }
+
+    @Transactional
+    public void resetStudentCourseProgress(Long userId, Long courseId) {
+        getCourseEntity(courseId);
+        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new NotFoundException("Enrollment not found for user/course"));
+
+        submissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
+        enrollment.setStartedAt(null);
+        enrollment.setCompletedAt(null);
+        enrollmentRepository.save(enrollment);
     }
 }

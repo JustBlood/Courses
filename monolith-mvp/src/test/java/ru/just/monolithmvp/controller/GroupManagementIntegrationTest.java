@@ -186,7 +186,7 @@ class GroupManagementIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "ids": ["%s"]
+                                  "idsIn": ["%s"]
                                 }
                                 """.formatted(groupId)))
                 .andExpect(status().isOk());
@@ -278,7 +278,7 @@ class GroupManagementIntegrationTest {
                                   "accessCondition": "ALL_OPEN",
                                   "blockAfterDeadline": false,
                                   "courses": [
-                                    {"courseId": %d}
+                                    %d
                                   ]
                                 }
                                 """.formatted(courseId)))

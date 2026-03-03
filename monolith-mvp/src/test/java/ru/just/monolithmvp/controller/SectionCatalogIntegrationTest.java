@@ -125,9 +125,8 @@ class SectionCatalogIntegrationTest {
                 .getContentAsString();
 
         JsonNode adminCourse = objectMapper.readTree(courseAfterSectionDeleteResponse).get("course");
-        assertThat(adminCourse.get("sectionId").isNull()).isTrue();
-        assertThat(adminCourse.get("sectionTitle").isNull()).isTrue();
-        assertThat(adminCourse.get("sectionPriority").isNull()).isTrue();
+        assertThat(adminCourse.get("sectionId").isNull()).isFalse();
+        assertThat(adminCourse.get("sectionId").asLong()).isNotEqualTo(sectionId);
     }
 
     @Test

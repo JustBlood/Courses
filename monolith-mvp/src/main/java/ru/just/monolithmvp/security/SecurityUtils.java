@@ -17,4 +17,12 @@ public class SecurityUtils {
     public Long currentUserId() {
         return currentUser().getId();
     }
+
+    public String resolveCurrentActor() {
+        try {
+            return currentUser().getUsername();
+        } catch (Exception ex) {
+            return "system";
+        }
+    }
 }

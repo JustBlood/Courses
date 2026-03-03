@@ -18,6 +18,7 @@ import ru.just.monolithmvp.dto.course.CourseLearnerDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
+import ru.just.monolithmvp.dto.program.ProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
@@ -44,6 +45,7 @@ public class StudentController {
     private final StatisticsService statisticsService;
     private final GroupService groupService;
     private final UserService userService;
+    private final ProgramService programService;
     private final SecurityUtils securityUtils;
 
     @GetMapping("/my/courses")
@@ -53,6 +55,18 @@ public class StudentController {
     })
     public ResponseEntity<List<CourseDto>> myCourses() {
         return ResponseEntity.ok(courseService.getMyCourses());
+    }
+
+    @GetMapping("/my/programs")
+    @Operation(summary = "Получить программы текущего пользователя")
+    public ResponseEntity<List<ProgramDto>> myPrograms() {
+        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
+    }
+
+    @GetMapping("/my/programs/{programId}")
+    @Operation(summary = "Получить программу текущего пользователя")
+    public ResponseEntity<ProgramDto> myProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
     }
 
     @GetMapping("/my/profile")

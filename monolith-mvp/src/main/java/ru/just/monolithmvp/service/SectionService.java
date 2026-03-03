@@ -54,7 +54,7 @@ public class SectionService {
     public void delete(Long sectionId) {
         Section section = getSectionEntity(sectionId);
         List<Course> courses = courseRepository.findBySectionId(sectionId);
-        courses.forEach(course -> course.setSection(null));
+        courses.forEach(course -> course.setSection(getDefaultSection()));
         if (!courses.isEmpty()) {
             courseRepository.saveAll(courses);
         }

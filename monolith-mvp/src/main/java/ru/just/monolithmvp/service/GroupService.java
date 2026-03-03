@@ -13,7 +13,10 @@ import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
-import ru.just.monolithmvp.repository.*;
+import ru.just.monolithmvp.repository.AppUserRepository;
+import ru.just.monolithmvp.repository.GroupCourseAssignmentRepository;
+import ru.just.monolithmvp.repository.GroupMembershipRepository;
+import ru.just.monolithmvp.repository.LearningGroupRepository;
 
 import java.util.*;
 
@@ -26,6 +29,7 @@ public class GroupService {
     private final AppUserRepository userRepository;
     private final UserMapper userMapper;
     private final CourseService courseService;
+    private final ProgramService programService;
 
     @Transactional
     public GroupDto createGroup(CreateGroupRequest request) {
@@ -240,7 +244,10 @@ public class GroupService {
             throw new BadRequestException("User ids must not contain null values");
         }
 
-        userIds.forEach(userId -> membershipRepository.deleteByGroupIdAndUserId(groupId, userId));
+        userIds.forEach(userId -> {
+            membershipRepository.deleteByGroupIdAndUserId(groupId, userId);
+            programService.handleGroupMembershipRemoved(groupId, userId);
+        });
     }
 
     @Transactional
@@ -264,7 +271,7 @@ public class GroupService {
     private void applyAssignmentsToNewMembers(UUID groupId, List<GroupMembership> newMemberships) {
         List<Long> studentIds = newMemberships.stream()
                 .map(GroupMembership::getUser)
-                .filter(user -> user.getRole() == Role.STUDENT)
+                .filter(user -> user.getRole() == Role.STUDENT || user.getRole() == Role.ADMIN)
                 .map(AppUser::getId)
                 .distinct()
                 .toList();
@@ -282,6 +289,10 @@ public class GroupService {
             for (Long studentId : studentIds) {
                 courseService.enrollStudentToCourse(courseId, studentId);
             }
+        }
+
+        for (Long studentId : studentIds) {
+            programService.handleGroupMembershipAdded(groupId, studentId);
         }
     }
 }
