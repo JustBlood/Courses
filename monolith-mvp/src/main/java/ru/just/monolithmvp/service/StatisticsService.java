@@ -11,14 +11,11 @@ import ru.just.monolithmvp.model.Enrollment;
 import ru.just.monolithmvp.model.GroupMembership;
 import ru.just.monolithmvp.model.GroupType;
 import ru.just.monolithmvp.model.LessonSubmission;
-import ru.just.monolithmvp.model.ProgramEnrollment;
 import ru.just.monolithmvp.repository.CourseRepository;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.GroupMembershipRepository;
 import ru.just.monolithmvp.repository.LessonRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
-import ru.just.monolithmvp.repository.ProgramCourseRepository;
-import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
 import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.Duration;
@@ -34,8 +31,6 @@ public class StatisticsService {
     private final LessonRepository lessonRepository;
     private final CourseRepository courseRepository;
     private final GroupMembershipRepository groupMembershipRepository;
-    private final ProgramEnrollmentRepository programEnrollmentRepository;
-    private final ProgramCourseRepository programCourseRepository;
     private final SecurityUtils securityUtils;
 
     @Transactional(readOnly = true)
@@ -174,21 +169,6 @@ public class StatisticsService {
         Map<Long, List<GroupMembership>> membershipsByUser = groupMembershipRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.groupingBy(m -> m.getUser().getId()));
 
-        Set<Long> courseProgramIds = programCourseRepository.findByCourseId(courseId).stream()
-                .map(pc -> pc.getProgram().getId())
-                .collect(Collectors.toSet());
-
-        Map<Long, List<String>> programsByUser = new HashMap<>();
-        for (ProgramEnrollment enrollment : programEnrollmentRepository.findByUserIdIn(userIds)) {
-            Long programId = enrollment.getProgram().getId();
-            if (!courseProgramIds.contains(programId)) {
-                continue;
-            }
-            programsByUser
-                    .computeIfAbsent(enrollment.getUser().getId(), __ -> new ArrayList<>())
-                    .add(enrollment.getProgram().getTitle());
-        }
-
         StringBuilder csv = new StringBuilder();
         appendCsvRow(csv, List.of(
                 "Статус",
@@ -227,7 +207,7 @@ public class StatisticsService {
 
             List<GroupMembership> memberships = membershipsByUser.getOrDefault(userId, List.of());
 
-            String program = String.join(" | ", programsByUser.getOrDefault(userId, List.of()));
+            String program = "";
             String company = groupTitleByType(memberships, GroupType.COMPANY);
             String department = groupTitleByType(memberships, GroupType.DEPARTMENT);
             String position = groupTitleByType(memberships, GroupType.POSITION);

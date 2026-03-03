@@ -18,13 +18,8 @@ import ru.just.monolithmvp.dto.common.IdsRequest;
 import ru.just.monolithmvp.dto.common.UuidIdsRequest;
 import ru.just.monolithmvp.dto.course.*;
 import ru.just.monolithmvp.dto.lesson.*;
-import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
-import ru.just.monolithmvp.dto.program.GroupAssignmentRequest;
-import ru.just.monolithmvp.dto.program.LearningProgramDto;
-import ru.just.monolithmvp.dto.program.ProgramTargetType;
 import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
 import ru.just.monolithmvp.service.CourseService;
-import ru.just.monolithmvp.service.ProgramService;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +37,6 @@ import java.util.UUID;
 })
 public class CoursesController {
     private final CourseService courseService;
-    private final ProgramService programService;
 
 
     @PostMapping("")
@@ -244,87 +238,4 @@ public class CoursesController {
         return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
     }
 
-    @PostMapping("/groups/{groupId}/assign")
-    @Operation(summary = "Назначить группу на target (курс/программа)")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Группа назначена на target", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или неподдерживаемый target", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Target или группа не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> assignGroupToTarget(@PathVariable UUID groupId,
-                                                            @RequestBody @Valid GroupAssignmentRequest request) {
-        if (request.targetType() == ProgramTargetType.COURSE) {
-            courseService.assignGroupToCourse(request.targetId(), groupId);
-            return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
-        }
-        programService.assignGroupToProgram(request.targetId(), groupId);
-        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
-    }
-
-    @PostMapping("/programs")
-    @Operation(summary = "Создать программу обучения")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Программа создана", content = @Content(schema = @Schema(implementation = LearningProgramDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<LearningProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
-        return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
-    }
-
-    @GetMapping("/programs")
-    @Operation(summary = "Получить список программ")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список программ", content = @Content(array = @ArraySchema(schema = @Schema(implementation = LearningProgramDto.class))))
-    })
-    public ResponseEntity<List<LearningProgramDto>> getPrograms() {
-        return ResponseEntity.ok(programService.getPrograms());
-    }
-
-    @GetMapping("/programs/{programId}")
-    @Operation(summary = "Получить программу по ID")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Программа найдена", content = @Content(schema = @Schema(implementation = LearningProgramDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Программа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<LearningProgramDto> getProgram(@PathVariable Long programId) {
-        return ResponseEntity.ok(programService.getProgram(programId));
-    }
-
-    @PutMapping("/programs/{programId}")
-    @Operation(summary = "Обновить программу")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Программа обновлена", content = @Content(schema = @Schema(implementation = LearningProgramDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Программа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<LearningProgramDto> updateProgram(@PathVariable Long programId,
-                                                            @RequestBody @Valid CreateLearningProgramRequest request) {
-        return ResponseEntity.ok(programService.updateProgram(programId, request));
-    }
-
-    @PostMapping("/programs/{programId}/assign")
-    @Operation(summary = "Назначить пользователей на программу")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи назначены на программу", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Программа/пользователь не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
-                                                             @RequestBody @Valid IdsRequest request) {
-        programService.assignUsersToProgram(programId, request.ids());
-        return ResponseEntity.ok(new ApiResponse("Users assigned to program"));
-    }
-
-    @PostMapping("/programs/{programId}/groups/assign")
-    @Operation(summary = "Назначить группы на программу")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Группы назначены на программу", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Программа/группа не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> assignGroupToProgram(@PathVariable Long programId,
-                                                             @RequestBody @Valid UuidIdsRequest request) {
-        request.ids().forEach(groupId -> programService.assignGroupToProgram(programId, groupId));
-        return ResponseEntity.ok(new ApiResponse("Group assigned to program"));
-    }
 }

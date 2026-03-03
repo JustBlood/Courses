@@ -49,7 +49,6 @@ public class UserService {
     private final MailProperties mailProperties;
     private final LearningGroupRepository learningGroupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
-    private final ProgramEnrollmentRepository programEnrollmentRepository;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
     private final FileStorageService fileStorageService;
@@ -223,7 +222,6 @@ public class UserService {
 
         submissionRepository.deleteByStudentId(userId);
         enrollmentRepository.deleteByUserId(userId);
-        programEnrollmentRepository.deleteByUserId(userId);
         passwordSetupTokenRepository.deleteByUser_Id(userId);
         groupMembershipRepository.deleteAll(groupMembershipRepository.findByUserId(userId));
         userRepository.delete(user);

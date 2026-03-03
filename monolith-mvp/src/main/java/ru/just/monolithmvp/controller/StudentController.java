@@ -18,7 +18,6 @@ import ru.just.monolithmvp.dto.course.CourseLearnerDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
-import ru.just.monolithmvp.dto.program.LearningProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
@@ -44,7 +43,6 @@ public class StudentController {
     private final LearningService learningService;
     private final StatisticsService statisticsService;
     private final GroupService groupService;
-    private final ProgramService programService;
     private final UserService userService;
     private final SecurityUtils securityUtils;
 
@@ -99,25 +97,6 @@ public class StudentController {
     })
     public ResponseEntity<UserDto> updateMyLastVisit() {
         return ResponseEntity.ok(userService.updateCurrentUserLastVisit());
-    }
-
-    @GetMapping("/my/programs")
-    @Operation(summary = "Получить назначенные программы обучения")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список программ", content = @Content(schema = @Schema(implementation = LearningProgramDto.class)))
-    })
-    public ResponseEntity<List<LearningProgramDto>> myPrograms() {
-        return ResponseEntity.ok(programService.getMyPrograms(securityUtils.currentUserId()));
-    }
-
-    @GetMapping("/my/programs/{programId}")
-    @Operation(summary = "Получить программу обучения по ID")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Программа найдена", content = @Content(schema = @Schema(implementation = LearningProgramDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Программа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<LearningProgramDto> myProgram(@PathVariable Long programId) {
-        return ResponseEntity.ok(programService.getMyProgram(securityUtils.currentUserId(), programId));
     }
 
     @GetMapping("/courses/{courseId}")

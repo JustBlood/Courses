@@ -23,11 +23,9 @@ public class GroupService {
     private final LearningGroupRepository groupRepository;
     private final GroupMembershipRepository membershipRepository;
     private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
-    private final GroupProgramAssignmentRepository groupProgramAssignmentRepository;
     private final AppUserRepository userRepository;
     private final UserMapper userMapper;
     private final CourseService courseService;
-    private final ProgramService programService;
 
     @Transactional
     public GroupDto createGroup(CreateGroupRequest request) {
@@ -283,17 +281,6 @@ public class GroupService {
         for (Long courseId : courseIds) {
             for (Long studentId : studentIds) {
                 courseService.enrollStudentToCourse(courseId, studentId);
-            }
-        }
-
-        List<Long> programIds = groupProgramAssignmentRepository.findByGroupId(groupId).stream()
-                .map(assignment -> assignment.getProgram().getId())
-                .distinct()
-                .toList();
-
-        for (Long programId : programIds) {
-            for (Long studentId : studentIds) {
-                programService.assignUsersToProgram(programId, List.of(studentId));
             }
         }
     }
