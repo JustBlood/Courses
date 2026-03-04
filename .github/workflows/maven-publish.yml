@@ -77,14 +77,14 @@ jobs:
       - name: Deploy via SSH (image only, no source copy)
         uses: appleboy/ssh-action@v1.2.0
         env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DEPLOY_PATH: '/backend'
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_IMAGE: ${{ needs.build_and_push.outputs.image }}
-          APP_PORT: ${{ secrets.APP_PORT }}
-          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          APP_PORT: 8080
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: 'courses'
+          POSTGRES_USER: 'postgres'
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
