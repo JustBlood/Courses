@@ -18,9 +18,8 @@ services:
       retries: 10
 
   monolith-mvp:
-    build:
-      context: .
-      dockerfile: monolith-mvp/Dockerfile
+    image: ${APP_IMAGE:?APP_IMAGE is required}
+    pull_policy: always
     container_name: monolith-mvp
     restart: unless-stopped
     depends_on:
