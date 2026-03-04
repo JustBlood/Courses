@@ -61,12 +61,12 @@ jobs:
           file: monolith-mvp/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/courses-monolith:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/courses-monolith:dev-latest
+            ghcr.io/justblood/courses-monolith:${{ github.sha }}
+            ghcr.io/justblood/courses-monolith:dev-latest
 
       - name: Export image metadata
         id: meta
-        run: echo "image=ghcr.io/${{ github.repository_owner }}/courses-monolith:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=ghcr.io/justblood/courses-monolith:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Deploy image on server
