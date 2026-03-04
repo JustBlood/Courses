@@ -73,11 +73,26 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_and_push
     environment: production
+    env:
+      DEPLOY_PATH: '/root/backend'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: docker-compose.monolith.yml
+          target: ${{ env.DEPLOY_PATH }}
+          overwrite: true
+
       - name: Deploy via SSH (image only, no source copy)
         uses: appleboy/ssh-action@v1.2.0
         env:
-          DEPLOY_PATH: '/root/backend'
+          DEPLOY_PATH: ${{ env.DEPLOY_PATH }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_IMAGE: ${{ needs.build_and_push.outputs.image }}
@@ -93,6 +108,7 @@ jobs:
           envs: DEPLOY_PATH,GHCR_USERNAME,GHCR_TOKEN,APP_IMAGE,APP_PORT,POSTGRES_PORT,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD
           script: |
             set -e
+            mkdir -p "$DEPLOY_PATH"
             cd "$DEPLOY_PATH"
 
             if [ ! -f docker-compose.monolith.yml ]; then
