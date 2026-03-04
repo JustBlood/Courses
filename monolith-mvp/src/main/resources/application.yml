@@ -37,6 +37,8 @@ app:
     from: ${APP_MAIL_FROM}
     invite-base-url: ${APP_MAIL_INVITE_BASE_URL}
   security:
+    cors:
+      allowed-origins: ${APP_SECURITY_CORS_ALLOWED_ORIGINS:http://localhost:3000}
     jwt:
       # Для non-dev окружений задаётся ТОЛЬКО через env/secret-store.
       secret: ${APP_SECURITY_JWT_SECRET:N3D5d6WST02SfSOpfg2P7i3atHNZ0QF4whatT0Q5GtL}
