@@ -97,15 +97,19 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APP_IMAGE: ${{ needs.build_and_push.outputs.image }}
           APP_PORT: 8080
+          SPRING_PROFILES_ACTIVE: pg,mail-smtp
           POSTGRES_PORT: 5432
           POSTGRES_DB: 'courses'
           POSTGRES_USER: 'postgres'
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          APP_BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+          APP_SECURITY_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SPRING_MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DEPLOY_PATH,GHCR_USERNAME,GHCR_TOKEN,APP_IMAGE,APP_PORT,POSTGRES_PORT,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD
+          envs: DEPLOY_PATH,GHCR_USERNAME,GHCR_TOKEN,APP_IMAGE,APP_PORT,SPRING_PROFILES_ACTIVE,POSTGRES_PORT,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,APP_BOOTSTRAP_ADMIN_PASSWORD,APP_SECURITY_JWT_SECRET,SPRING_MAIL_PASSWORD
           script: |
             set -e
             mkdir -p "$DEPLOY_PATH"
@@ -130,15 +134,20 @@ jobs:
 
             upsert_var APP_IMAGE "$APP_IMAGE"
             upsert_var APP_PORT "$APP_PORT"
+            upsert_var SPRING_PROFILES_ACTIVE "$SPRING_PROFILES_ACTIVE"
             upsert_var POSTGRES_PORT "$POSTGRES_PORT"
             upsert_var POSTGRES_DB "$POSTGRES_DB"
             upsert_var POSTGRES_USER "$POSTGRES_USER"
             upsert_var POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+            upsert_var APP_BOOTSTRAP_ADMIN_PASSWORD "$APP_BOOTSTRAP_ADMIN_PASSWORD"
+            upsert_var APP_SECURITY_JWT_SECRET "$APP_SECURITY_JWT_SECRET"
+            upsert_var SPRING_MAIL_PASSWORD "$SPRING_MAIL_PASSWORD"
 
             PREV_IMAGE=$(docker inspect monolith-mvp --format='{{.Config.Image}}' 2>/dev/null || true)
 
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
+            docker image rm -f "$APP_IMAGE" 2>/dev/null || true
             docker compose -f docker-compose.monolith.yml --env-file .env pull monolith-mvp
             docker compose -f docker-compose.monolith.yml --env-file .env up -d --force-recreate monolith-mvp
 
