@@ -1,0 +1,18 @@
+## TASK-006 (done) — создание пользователя с первичными назначениями
+- Что сделано:
+  - Расширен DTO-контракт `CreateUserRequest`: добавлены `groupIds` и `courseIds`.
+  - В `UserService.createUser` реализованы первичные назначения при создании пользователя:
+    - валидация входных списков и запрет `null`-идентификаторов,
+    - проверка существования целевых групп/курсов,
+    - защита от дублей,
+    - создание `GroupMembership` и `Enrollment` в рамках одной транзакции,
+    - enforcement ограничения по typed-группам (не более одной группы каждого типа на пользователя).
+  - Обновлён import-flow CSV под новый конструктор `CreateUserRequest`.
+  - Обновлён интеграционный тест `UserAuthStudentFlowIntegrationTest`:
+    - добавлен сценарий создания пользователя с первичными `groupIds/courseIds`;
+    - добавлены проверки сохранённых связей в БД (`GroupMembershipRepository`, `EnrollmentRepository`).
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest,CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 4, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-006` переведена в `done` в `memory-bank/tasks.json`.

@@ -1,0 +1,12 @@
+## TASK-002 (done) — стабилизация Flyway migrations
+- Что сделано:
+  - Проверен контур миграций Flyway на чистой PostgreSQL в docker-compose окружении.
+  - Подтверждено, что текущая миграция `V1__init_schema.sql` успешно применяется и фиксируется в `flyway_schema_history`.
+  - Подтверждён идемпотентный повторный прогон Flyway после restart приложения (без изменений схемы и без падений).
+- Финальная валидация test-steps:
+  - `docker compose -f docker-compose.monolith.yml --env-file monolith.env.example up -d --build` — успешно (чистый контур БД).
+  - `docker exec monolith-postgres psql -U postgres -d courses -c "select ... from flyway_schema_history ..."` — `V1__init_schema.sql`, `success=true`.
+  - `docker compose ... restart monolith-mvp` + проверка логов — `Schema "public" is up to date. No migration necessary.`
+  - Дополнительно: `curl -sS http://localhost:8099/actuator/health` → `{"status":"UP","groups":["liveness","readiness"]}`.
+- Итоговый статус задачи:
+  - `TASK-002` переведена в `done`.

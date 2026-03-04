@@ -1,0 +1,86 @@
+# =========================
+# VCS / IDE / OS
+# =========================
+.git/
+.github/
+.gitlab/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# =========================
+# Build artifacts (Java / Maven / Gradle)
+# =========================
+**/target/
+**/build/
+**/out/
+**/.gradle/
+**/dependency-reduced-pom.xml
+
+# =========================
+# Logs / reports / temp
+# =========================
+**/*.log
+**/logs/
+**/surefire-reports/
+**/failsafe-reports/
+**/jacoco/
+**/coverage/
+**/.cache/
+**/tmp/
+**/temp/
+
+# =========================
+# Databases / dumps / локальные данные
+# =========================
+data/
+monolith-mvp/data/
+**/*.mv.db
+**/*.h2.db
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.sql.gz
+**/*.dump
+**/*.bak
+
+# =========================
+# Бинарники / медиа / архивы
+# =========================
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg
+**/*.ico
+**/*.mp3
+**/*.wav
+**/*.mp4
+**/*.avi
+**/*.mov
+**/*.pdf
+**/*.zip
+**/*.tar
+**/*.gz
+**/*.7z
+**/*.jar
+**/*.class
+
+# =========================
+# Secrets / env
+# =========================
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*secret*
+**/*credentials*
+
+# =========================
+# Нерелевантные для текущего backend-анализа области
+# =========================
+media-service/**
+init-policies/**

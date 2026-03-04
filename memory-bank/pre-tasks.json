@@ -1,0 +1,444 @@
+{
+  "agent_instructions": {
+    "before_start": [
+      "Прочитай этот файл, tasks.json и git log --oneline -20",
+      "Выбери ОДНУ задачу pre-gap-analysis со статусом pending и наивысшим приоритетом среди ready-to-start",
+      "Проверь, что все dependencies выбранной задачи имеют статус done"
+    ],
+    "during_work": [
+      "Работай только над выбранной pre-задачей анализа",
+      "Фиксируй результат анализа в артефакте задачи (таблица/чеклист/отчёт)",
+      "Не меняй production-код, кроме задач, где это явно требуется"
+    ],
+    "before_finish": [
+      "Проверь, что выполнены все test_steps задачи",
+      "Меняй status на done только после фиксации артефакта анализа",
+      "Корректировка tasks.json разрешена только в PRE-020",
+      "Обнови summary в memory-bank/06-system-development-progress.md после закрытия PRE-020"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "PRE-001",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Зафиксировать baseline анализа: актуальный commit, профили запуска, доступные окружения и входные документы PRD.",
+      "acceptance_criteria": [
+        "Собран стартовый baseline проекта (commit/hash, profiles, env variables).",
+        "Список источников требований (PRD-00..07) зафиксирован в отчёте.",
+        "Определены границы анализа (monolith-mvp + связанные конфиги)."
+      ],
+      "test_steps": [
+        "Шаг 1: Зафиксировать git hash и список активных профилей Spring.",
+        "Шаг 2: Сформировать перечень анализируемых модулей и исключений.",
+        "Шаг 3: Проверить, что baseline-отчёт сохранён в рабочем контексте задачи."
+      ],
+      "dependencies": [],
+      "status": "done"
+    },
+    {
+      "id": "PRE-002",
+      "category": "integration",
+      "priority": "critical",
+      "description": "Провести инвентаризацию API-контуров: controllers, endpoint-карты, DTO-контракты и OpenAPI-описание.",
+      "acceptance_criteria": [
+        "Собрана таблица endpoint → controller → DTO.",
+        "Отмечены endpoint, покрывающие auth/user/course/learning/reporting.",
+        "Выявлены явные расхождения между endpoint-контрактами и PRD."
+      ],
+      "test_steps": [
+        "Шаг 1: Просканировать controller-классы и зафиксировать маршруты.",
+        "Шаг 2: Сопоставить маршруты с OpenAPI и фактическими DTO.",
+        "Шаг 3: Проверить полноту инвентаризации по всем ключевым модулям."
+      ],
+      "dependencies": [
+        "PRE-001"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-003",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Провести инвентаризацию доменных моделей: entity/enum/repository/mapper и ключевых связей между сущностями.",
+      "acceptance_criteria": [
+        "Собрана карта сущностей и связей (AppUser/Course/Lesson/.../Program).",
+        "Отмечены поля, критичные для FR и отчётности.",
+        "Найдены потенциальные несоответствия названий/типов полей PRD."
+      ],
+      "test_steps": [
+        "Шаг 1: Зафиксировать список сущностей и enum из model-пакета.",
+        "Шаг 2: Сопоставить сущности с repository и mapper-слоем.",
+        "Шаг 3: Сформировать список «модель соответствует/частично/не соответствует»."
+      ],
+      "dependencies": [
+        "PRE-001"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-004",
+      "category": "infrastructure",
+      "priority": "critical",
+      "description": "Сверить схему БД и миграции Flyway с текущими entity и PRD-полями.",
+      "acceptance_criteria": [
+        "Проверена цепочка миграций и целостность flyway_schema_history.",
+        "Сопоставлены таблицы/колонки с entity и обязательными полями PRD.",
+        "Сформирован список недостающих/избыточных миграций."
+      ],
+      "test_steps": [
+        "Шаг 1: Проанализировать migration scripts и итоговую схему.",
+        "Шаг 2: Сопоставить схему с полями domain-моделей.",
+        "Шаг 3: Зафиксировать gap-таблицу по миграциям."
+      ],
+      "dependencies": [
+        "PRE-003"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-005",
+      "category": "security",
+      "priority": "critical",
+      "description": "Сверить auth/security-контур: JWT, RBAC, password flows, exception handling и policy endpoint access.",
+      "acceptance_criteria": [
+        "Проверен контур login/set-password/change/reset и их ограничения.",
+        "Проверены правила доступа ADMIN/STUDENT по ключевым endpoint.",
+        "Сформирован перечень security-gaps относительно PRD/NFR."
+      ],
+      "test_steps": [
+        "Шаг 1: Проанализировать SecurityConfig, фильтры, AuthService.",
+        "Шаг 2: Проверить RBAC-правила на уровне endpoint/service.",
+        "Шаг 3: Зафиксировать найденные отклонения и уровень риска."
+      ],
+      "dependencies": [
+        "PRE-002"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-006",
+      "category": "functional",
+      "priority": "high",
+      "description": "Проверить сервисный слой и слойность controller→service→repository на соответствие архитектуре PRD.",
+      "acceptance_criteria": [
+        "Для ключевых модулей зафиксирован проход по слоям без утечек entity наружу.",
+        "Найдены места нарушения слойности/бизнес-логики в controller.",
+        "Составлен список задач на архитектурную нормализацию."
+      ],
+      "test_steps": [
+        "Шаг 1: Проследить цепочки вызовов для auth/user/course/learning/report.",
+        "Шаг 2: Проверить использование DTO/mapper вместо прямой отдачи entity.",
+        "Шаг 3: Зафиксировать нарушения и приоритеты исправления."
+      ],
+      "dependencies": [
+        "PRE-002",
+        "PRE-003"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-007",
+      "category": "integration",
+      "priority": "high",
+      "description": "Проверить интеграции SMTP/YouTube/файлового хранения и деградационные сценарии.",
+      "acceptance_criteria": [
+        "Проверен контур отправки email и fallback-поведение.",
+        "Зафиксирована работа ссылочного видеоконтента и файловых путей.",
+        "Сформирован список интеграционных рисков и пробелов."
+      ],
+      "test_steps": [
+        "Шаг 1: Проанализировать сервисы email и конфигурацию mail-properties.",
+        "Шаг 2: Проверить обработку внешних ссылок и файловых путей в уроках.",
+        "Шаг 3: Зафиксировать сценарии отказа и текущее поведение."
+      ],
+      "dependencies": [
+        "PRE-002",
+        "PRE-005"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-008",
+      "category": "integration",
+      "priority": "high",
+      "description": "Проверить текущий набор тестов (интеграционных/сквозных) и покрытие критических сценариев AC.",
+      "acceptance_criteria": [
+        "Собрана карта test coverage по AC-001..AC-019 и AC-101..AC-114.",
+        "Определены критичные сценарии без тестового покрытия.",
+        "Подготовлен список приоритетных тест-долгов."
+      ],
+      "test_steps": [
+        "Шаг 1: Инвентаризировать имеющиеся integration tests.",
+        "Шаг 2: Сопоставить тесты с AC-таблицей из PRD-06.",
+        "Шаг 3: Зафиксировать coverage-gap в отчёте."
+      ],
+      "dependencies": [
+        "PRE-002"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-009",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Сверить реализацию FR-001..FR-004 (users/profile/roles) с PRD и критериями AC.",
+      "acceptance_criteria": [
+        "Для FR-001..004 выставлен статус implemented/partial/missing.",
+        "Подтверждены/опровергнуты AC-001..AC-004 по фактическому коду и тестам.",
+        "Зафиксированы точечные gap-задачи для блока users/authz."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить код и endpoint по FR-001..004.",
+        "Шаг 2: Сопоставить поведение с AC-001..004.",
+        "Шаг 3: Записать результат в матрицу соответствия FR/AC."
+      ],
+      "dependencies": [
+        "PRE-004",
+        "PRE-005",
+        "PRE-006"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-010",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Сверить реализацию FR-005..FR-009 (courses/lessons/questions/scoring).",
+      "acceptance_criteria": [
+        "Для FR-005..009 заполнена матрица implemented/partial/missing.",
+        "Проверена поддержка типов уроков и вопросов, балльной модели.",
+        "Выделены несоответствия PRD и потенциальные точки миграций."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить модели/сервисы/endpoint блока courses/lessons.",
+        "Шаг 2: Сопоставить с AC-005..AC-009.",
+        "Шаг 3: Зафиксировать результаты и пробелы."
+      ],
+      "dependencies": [
+        "PRE-004",
+        "PRE-006"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-011",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Сверить реализацию FR-010..FR-014 (enrollment/review/learning flow).",
+      "acceptance_criteria": [
+        "Для FR-010..014 зафиксирован уровень реализации и корректность workflow.",
+        "Проверены статусы submission и логика reviewer-доступа.",
+        "Сформирован список доработок для критического learning path."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить code flow enrollment/reviewer/learning.",
+        "Шаг 2: Сопоставить с AC-010..AC-014.",
+        "Шаг 3: Зафиксировать gap и приоритеты."
+      ],
+      "dependencies": [
+        "PRE-006",
+        "PRE-009",
+        "PRE-010"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-012",
+      "category": "integration",
+      "priority": "high",
+      "description": "Сверить реализацию FR-015..FR-017 (statistics/reporting) включая формулы и формат колонок отчётов.",
+      "acceptance_criteria": [
+        "Проверены формулы эффективности и процента выполнения.",
+        "Проверен формат и состав колонок course/global reports.",
+        "Определены расхождения с AC-015..AC-017."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить StatisticsService и DTO отчётов.",
+        "Шаг 2: Сопоставить формулы/колонки с PRD-02 и PRD-06.",
+        "Шаг 3: Зафиксировать расхождения в отчёте."
+      ],
+      "dependencies": [
+        "PRE-006",
+        "PRE-008",
+        "PRE-011"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-013",
+      "category": "security",
+      "priority": "high",
+      "description": "Сверить реализацию FR-018..FR-019 (change/reset password) и связанные security/NFR требования.",
+      "acceptance_criteria": [
+        "Проверен контур смены/восстановления пароля и токен-политика.",
+        "Проверено хранение password hash и обработка ошибок.",
+        "Определены недостающие security-механизмы (rate-limit, anti-abuse и т.п.)."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить AuthService/AuthController по password flows.",
+        "Шаг 2: Сопоставить с AC-018..AC-019 и NFR-SEC.",
+        "Шаг 3: Зафиксировать gap и приоритет исправлений."
+      ],
+      "dependencies": [
+        "PRE-005",
+        "PRE-008"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-014",
+      "category": "functional",
+      "priority": "high",
+      "description": "Сверить реализацию FR-101..FR-105 (sections/programs/program rules/assignments).",
+      "acceptance_criteria": [
+        "Проверен блок разделов и программ на уровень готовности.",
+        "Проверены правила доступа к курсам программы.",
+        "Заполнена матрица соответствия AC-101..AC-105."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить model/service/controller по programs/sections.",
+        "Шаг 2: Сопоставить с AC-101..AC-105.",
+        "Шаг 3: Зафиксировать implemented/partial/missing."
+      ],
+      "dependencies": [
+        "PRE-006",
+        "PRE-010",
+        "PRE-011"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-015",
+      "category": "functional",
+      "priority": "high",
+      "description": "Сверить реализацию FR-106..FR-109 (groups/mass assignments/search/filter).",
+      "acceptance_criteria": [
+        "Проверены типы групп и ограничения membership.",
+        "Проверена механика массовых назначений через группы.",
+        "Проверены поиск/фильтрация и ограничения по ролям."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить GroupService и связанные endpoint.",
+        "Шаг 2: Сопоставить с AC-106..AC-109.",
+        "Шаг 3: Зафиксировать пробелы и их влияние на backlog."
+      ],
+      "dependencies": [
+        "PRE-006",
+        "PRE-014"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-016",
+      "category": "functional",
+      "priority": "high",
+      "description": "Сверить реализацию FR-110..FR-114 (advanced practice: threshold/attempts/time/random/stopLesson).",
+      "acceptance_criteria": [
+        "Проверена поддержка всех расширенных параметров практики.",
+        "Проверено сочетание stopLesson и lessonsFreeOrder.",
+        "Заполнена матрица соответствия AC-110..AC-114."
+      ],
+      "test_steps": [
+        "Шаг 1: Проверить practice-модели и LearningService-логику.",
+        "Шаг 2: Сопоставить поведение с AC-110..AC-114.",
+        "Шаг 3: Зафиксировать partial/missing по каждому параметру."
+      ],
+      "dependencies": [
+        "PRE-010",
+        "PRE-011"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-017",
+      "category": "infrastructure",
+      "priority": "medium",
+      "description": "Сверить NFR-контур: observability, audit, backup/restore, reliability и эксплуатационные пробелы.",
+      "acceptance_criteria": [
+        "Проверены логи/метрики/correlation-id/audit-trace по ключевым операциям.",
+        "Проверен статус backup/restore-процедур и RPO/RTO readiness.",
+        "Составлен список NFR-гепов с критичностью."
+      ],
+      "test_steps": [
+        "Шаг 1: Проанализировать runtime-конфиги и наблюдаемость.",
+        "Шаг 2: Проверить наличие аудита и backup-механик.",
+        "Шаг 3: Зафиксировать NFR-gap-report."
+      ],
+      "dependencies": [
+        "PRE-004",
+        "PRE-007",
+        "PRE-008"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-018",
+      "category": "integration",
+      "priority": "critical",
+      "description": "Собрать сводную матрицу соответствия FR/AC/NFR: implemented/partial/missing + оценка риска и effort.",
+      "acceptance_criteria": [
+        "Есть единый документ соответствия всех требований PRD.",
+        "Каждый gap имеет severity и оценку трудозатрат.",
+        "Определён приоритетный список блокеров для MVP-critical path."
+      ],
+      "test_steps": [
+        "Шаг 1: Консолидировать результаты PRE-009..PRE-017.",
+        "Шаг 2: Проставить severity/effort и phase (MVP/post-MVP).",
+        "Шаг 3: Проверить полноту матрицы по всем FR/AC/NFR."
+      ],
+      "dependencies": [
+        "PRE-009",
+        "PRE-010",
+        "PRE-011",
+        "PRE-012",
+        "PRE-013",
+        "PRE-014",
+        "PRE-015",
+        "PRE-016",
+        "PRE-017"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-019",
+      "category": "integration",
+      "priority": "critical",
+      "description": "Подготовить пакет изменений backlog: какие задачи tasks.json пометить done/obsolete, какие split/merge/add.",
+      "acceptance_criteria": [
+        "Сформирован change-set к tasks.json на основе матрицы gap-analysis.",
+        "Для каждой правки есть обоснование (ссылка на PRE-артефакт).",
+        "Согласован список новых/удаляемых/объединяемых задач."
+      ],
+      "test_steps": [
+        "Шаг 1: На базе PRE-018 собрать предложения по корректировкам.",
+        "Шаг 2: Проверить непротиворечивость зависимостей после правок.",
+        "Шаг 3: Подготовить финальный diff-план для tasks.json."
+      ],
+      "dependencies": [
+        "PRE-018"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "PRE-020",
+      "category": "integration",
+      "priority": "critical",
+      "description": "Внести финальную корректировку tasks.json по результатам gap-analysis и зафиксировать новую baseline-версию backlog.",
+      "acceptance_criteria": [
+        "tasks.json обновлён строго по согласованному change-set из PRE-019.",
+        "Статусы задач синхронизированы с фактическим уровнем реализации (done/partial→pending/new/obsolete).",
+        "Обновлены memory-bank контексты с итогами gap-analysis."
+      ],
+      "test_steps": [
+        "Шаг 1: Применить правки к tasks.json согласно PRE-019.",
+        "Шаг 2: Проверить валидность JSON и корректность зависимостей.",
+        "Шаг 3: Зафиксировать summary изменений и новую baseline backlog."
+      ],
+      "dependencies": [
+        "PRE-019"
+      ],
+      "status": "done"
+    }
+  ]
+}

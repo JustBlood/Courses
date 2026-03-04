@@ -1,0 +1,88 @@
+package ru.just.monolithmvp.exception;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.just.monolithmvp.dto.ApiResponse;
+import ru.just.monolithmvp.security.SecurityUtils;
+
+@Slf4j
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalExceptionHandler {
+
+    private final SecurityUtils securityUtils;
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiResponse> handleNotFound(NotFoundException ex) {
+        log.warn("event=api.exception type=NotFoundException status=404 message={}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse> handleBadRequest(BadRequestException ex) {
+        log.warn("event=api.exception type=BadRequestException status=400 message={}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse> handleValidation(MethodArgumentNotValidException ex) {
+        final String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .orElse("Validation error");
+        log.warn("event=api.exception type=MethodArgumentNotValidException status=400 message={}", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(message));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse> handleNotReadable(HttpMessageNotReadableException ex) {
+        log.warn("event=api.exception type=HttpMessageNotReadableException status=400 message=Validation error");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse("Validation error"));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse> handleAuthException(AccessDeniedException ex) {
+        log.warn("event=api.exception type=AccessDeniedException status=403 user={}", safeCurrentUser());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse("Access forbidden for user."));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse> handleBadCredentialsException(BadCredentialsException ex) {
+        log.warn("event=api.exception type=BadCredentialsException status=401 user={}", safeCurrentUser());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse("Invalid username or password."));
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse> handleDisabledException(DisabledException ex) {
+        log.warn("event=api.exception type=DisabledException status=401 message={}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse("User is disabled."));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse> handleOther(Exception ex) {
+        log.error("Unexpected global exception: " + ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse("Internal server error: " + ex.getMessage()));
+    }
+
+    private String safeCurrentUser() {
+        try {
+            return securityUtils.currentUser().getUsername();
+        } catch (Exception ex) {
+            return "anonymous";
+        }
+    }
+}

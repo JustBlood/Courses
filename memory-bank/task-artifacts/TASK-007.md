@@ -1,0 +1,16 @@
+## TASK-007 (done) — email-onboarding (FR-002)
+- Что сделано:
+  - Подтверждён рабочий onboarding-flow после создания пользователя без пароля:
+    - генерируется одноразовый `PasswordSetupToken`;
+    - формируется invite-ссылка `.../set-password?token=...`;
+    - отправка выполняется через `EmailService` (`YandexSmtpEmailService`/`NoopEmailService` fallback).
+  - Подтверждён set-password/login путь:
+    - `AuthService.setPassword` принимает токен и устанавливает новый password hash;
+    - повторное использование токена блокируется (`Token already used`);
+    - после успешной установки пароля пользователь проходит `login`.
+  - Подтверждён recover-password контур как часть FR-002 интеграции (генерация нового токена и установка нового пароля).
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=UserAuthStudentFlowIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 1, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-007` переведена в `done` в `memory-bank/tasks.json`.

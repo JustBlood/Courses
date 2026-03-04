@@ -1,0 +1,87 @@
+c:\Users\User\AllMine\prog\prog_java\mts\Courses\monolith-mvp\run-h2.log
+Процесс не может получить доступ к файлу, так как этот файл занят другим процессом.
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< ru.just:monolith-mvp >------------------------
+[INFO] Building monolith-mvp 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.3:run (default-cli) > test-compile @ monolith-mvp >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ monolith-mvp ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ monolith-mvp ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 79 source files with javac [debug release 21] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ monolith-mvp ---
+[INFO] skip non existing resourceDirectory c:\Users\User\AllMine\prog\prog_java\mts\Courses\monolith-mvp\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ monolith-mvp ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] <<< spring-boot:3.2.3:run (default-cli) < test-compile @ monolith-mvp <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.3:run (default-cli) @ monolith-mvp ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.3)
+
+2026-02-16T11:01:40.304+03:00  INFO 10740 --- [monolith-mvp] [           main] r.j.monolithmvp.MonolithMvpApplication   : Starting MonolithMvpApplication using Java 21.0.9 with PID 10740 (C:\Users\User\AllMine\prog\prog_java\mts\Courses\monolith-mvp\target\classes started by User in c:\Users\User\AllMine\prog\prog_java\mts\Courses\monolith-mvp)
+2026-02-16T11:01:40.306+03:00  INFO 10740 --- [monolith-mvp] [           main] r.j.monolithmvp.MonolithMvpApplication   : The following 1 profile is active: "h2"
+2026-02-16T11:01:41.097+03:00  INFO 10740 --- [monolith-mvp] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-02-16T11:01:41.187+03:00  INFO 10740 --- [monolith-mvp] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 82 ms. Found 9 JPA repository interfaces.
+2026-02-16T11:01:41.828+03:00  INFO 10740 --- [monolith-mvp] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8099 (http)
+2026-02-16T11:01:41.842+03:00  INFO 10740 --- [monolith-mvp] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-02-16T11:01:41.842+03:00  INFO 10740 --- [monolith-mvp] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2026-02-16T11:01:41.917+03:00  INFO 10740 --- [monolith-mvp] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-02-16T11:01:41.918+03:00  INFO 10740 --- [monolith-mvp] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1559 ms
+2026-02-16T11:01:41.962+03:00  INFO 10740 --- [monolith-mvp] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-02-16T11:01:46.344+03:00  INFO 10740 --- [monolith-mvp] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn1: url=jdbc:h2:file:./data/monolith-mvp-db user=SA
+2026-02-16T11:01:46.346+03:00  INFO 10740 --- [monolith-mvp] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-02-16T11:01:46.359+03:00  INFO 10740 --- [monolith-mvp] [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:./data/monolith-mvp-db'
+2026-02-16T11:01:46.521+03:00  INFO 10740 --- [monolith-mvp] [           main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.22.3 by Redgate
+2026-02-16T11:01:46.522+03:00  INFO 10740 --- [monolith-mvp] [           main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-02-16T11:01:46.522+03:00  INFO 10740 --- [monolith-mvp] [           main] o.f.c.internal.license.VersionPrinter    : 
+2026-02-16T11:01:46.562+03:00  INFO 10740 --- [monolith-mvp] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:h2:file:./data/monolith-mvp-db (H2 2.2)
+2026-02-16T11:01:46.573+03:00  WARN 10740 --- [monolith-mvp] [           main] o.f.c.internal.database.base.Database    : Flyway upgrade recommended: H2 2.2.224 is newer than this version of Flyway and support has not been tested. The latest supported version of H2 is 2.2.220.
+2026-02-16T11:01:46.612+03:00  INFO 10740 --- [monolith-mvp] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 2 migrations (execution time 00:00.026s)
+2026-02-16T11:01:46.620+03:00  INFO 10740 --- [monolith-mvp] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "PUBLIC": 2
+2026-02-16T11:01:46.623+03:00  INFO 10740 --- [monolith-mvp] [           main] o.f.core.internal.command.DbMigrate      : Schema "PUBLIC" is up to date. No migration necessary.
+2026-02-16T11:01:46.743+03:00  INFO 10740 --- [monolith-mvp] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-02-16T11:01:46.832+03:00  INFO 10740 --- [monolith-mvp] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-02-16T11:01:46.878+03:00  INFO 10740 --- [monolith-mvp] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-02-16T11:01:47.200+03:00  INFO 10740 --- [monolith-mvp] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-02-16T11:01:48.842+03:00  INFO 10740 --- [monolith-mvp] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-02-16T11:01:48.846+03:00  INFO 10740 --- [monolith-mvp] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-02-16T11:01:49.543+03:00  INFO 10740 --- [monolith-mvp] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-02-16T11:01:51.016+03:00  INFO 10740 --- [monolith-mvp] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@e73787, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@395065af, org.springframework.security.web.context.SecurityContextHolderFilter@7efcdcde, org.springframework.security.web.header.HeaderWriterFilter@5a59f3d9, org.springframework.web.filter.CorsFilter@4de5d46c, org.springframework.security.web.authentication.logout.LogoutFilter@8dba70a, ru.just.monolithmvp.security.JwtAuthenticationFilter@3985175e, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@352b4cf, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@7b2fb8f1, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@304d6881, org.springframework.security.web.session.SessionManagementFilter@178be8fc, org.springframework.security.web.access.ExceptionTranslationFilter@62765e11, org.springframework.security.web.access.intercept.AuthorizationFilter@556d8c78]
+2026-02-16T11:01:51.567+03:00  INFO 10740 --- [monolith-mvp] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8099 (http) with context path ''
+2026-02-16T11:01:51.578+03:00  INFO 10740 --- [monolith-mvp] [           main] r.j.monolithmvp.MonolithMvpApplication   : Started MonolithMvpApplication in 11.755 seconds (process running for 12.109)
+2026-02-16T11:02:18.367+03:00  INFO 10740 --- [monolith-mvp] [nio-8099-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-02-16T11:02:18.367+03:00  INFO 10740 --- [monolith-mvp] [nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-02-16T11:02:18.369+03:00  INFO 10740 --- [monolith-mvp] [nio-8099-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-02-16T11:02:30.336+03:00  WARN 10740 --- [monolith-mvp] [nio-8099-exec-2] r.j.m.service.NoopEmailService           : Mail sender is not configured. Invite was NOT sent. to=pwflow_test_1102@local.test, fullName=Password Flow Test, link=http://localhost:8099/api/v1/auth/set-password?token=bef41eae-c938-4910-a938-c20cad752a20
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  09:25 h
+[INFO] Finished at: 2026-02-16T20:26:53+03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.3:run (default-cli) on project monolith-mvp: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

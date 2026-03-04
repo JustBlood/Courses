@@ -30,3 +30,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local env files
+.env
+.env.*
+*.env
+*.env.*
+!*.env.example
+
+# Data
+data/
+/monolith-mvp/data/

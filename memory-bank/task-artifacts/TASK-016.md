@@ -1,0 +1,14 @@
+## TASK-016 (done) — FR-014 workflow развёрнутого ответа
+- Что сделано:
+  - Реализован целевой workflow open-ended review: `PENDING_REVIEW -> REWORK -> ACCEPTED`.
+  - В `LearningService.reviewOpenSubmission`:
+    - `toNextReview=true` переводит submission в `REWORK`;
+    - финальное принятие выставляет `ACCEPTED`;
+    - разрешён повторный review для статуса `REWORK`.
+  - В `LearningService.getPendingReviews` в pending-очередь добавлены submissions со статусом `REWORK` (вместе с `PENDING_REVIEW`).
+  - Обновлён интеграционный тест `CourseLessonCrudIntegrationTest` под новый промежуточный статус `REWORK`.
+- Финальная валидация test-steps:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test` → `BUILD SUCCESS`.
+  - Результат: `Tests run: 6, Failures: 0, Errors: 0`.
+- Итоговый статус задачи:
+  - `TASK-016` переведена в `done` в `memory-bank/tasks.json`.
