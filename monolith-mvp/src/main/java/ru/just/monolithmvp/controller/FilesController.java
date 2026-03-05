@@ -34,14 +34,13 @@ public class FilesController {
     private final FileStorageService fileStorageService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Загрузить файл и получить публичную ссылку на него")
+    @Operation(summary = "Загрузить файл и получить путь до него")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Файл загружен", content = @Content(schema = @Schema(implementation = FileUploadResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Некорректный файл", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<FileUploadResponse> upload(@RequestPart("file") MultipartFile file) {
         String storedPath = fileStorageService.store(file, "uploads");
-        String publicUrl = fileStorageService.toPublicUrl(storedPath);
-        return ResponseEntity.ok(new FileUploadResponse(publicUrl));
+        return ResponseEntity.ok(new FileUploadResponse(storedPath));
     }
 }

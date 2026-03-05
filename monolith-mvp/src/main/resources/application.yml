@@ -27,12 +27,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:200MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:200MB}
 
 app:
   storage:
     root-dir: ${APP_STORAGE_ROOT_DIR:data}
-    public-base-url: ${APP_STORAGE_PUBLIC_BASE_URL:http://localhost:8099/files}
-    user-avatar-dir: ${APP_STORAGE_USER_AVATAR_DIR:data/users/avatars}
   mail:
     from: ${APP_MAIL_FROM}
     invite-base-url: ${APP_MAIL_INVITE_BASE_URL}

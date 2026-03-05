@@ -6,15 +6,14 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
-import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -53,9 +52,6 @@ public class UserService {
     private final BusinessEventLogger businessEventLogger;
     private final FileStorageService fileStorageService;
 
-    @Value("${app.storage.user-avatar-dir:data/users/avatars}")
-    private String userAvatarDir;
-
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
 
     @Transactional
@@ -73,6 +69,7 @@ public class UserService {
             user.setEmail(request.email());
             user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
             user.setRole(request.role());
+            user.setAvatarFilePath(fileStorageService.normalizeStoredPath(request.avatarFilePath()));
             user.setActivation(true);
             user.setEnabled(!sendInvite);
             user.setPhone(request.phone());
@@ -101,7 +98,7 @@ public class UserService {
                     "role", user.getRole(),
                     "invite", sendInvite);
 
-            return userMapper.toDto(user);
+            return toUserDtoWithPublicAvatar(userMapper.toDto(user));
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.create", "failure",
                     "actor", actor,
@@ -127,6 +124,17 @@ public class UserService {
             user.setRole(request.role() != null ? request.role() : user.getRole());
             user.setPhone(request.phone() != null ? request.phone() : user.getPhone());
             user.setComment(request.comment() != null ? request.comment() : user.getComment());
+            if (request.avatarFilePath() != null) {
+                String oldAvatarPath = user.getAvatarFilePath();
+                String newAvatarPath = fileStorageService.normalizeStoredPath(request.avatarFilePath());
+                if (!fileStorageService.isFileExistsByRelativePath(newAvatarPath)) {
+                    throw new BadRequestException("New avatar path is not valid or file does not exists.");
+                }
+                if (!Objects.equals(oldAvatarPath, newAvatarPath)) {
+                    fileStorageService.deleteIfExists(oldAvatarPath);
+                    user.setAvatarFilePath(newAvatarPath);
+                }
+            }
             if (request.password() != null && !request.password().isBlank()) {
                 user.setPasswordHash(passwordEncoder.encode(request.password()));
                 user.setActivation(true);
@@ -139,7 +147,7 @@ public class UserService {
                     "userId", savedUser.getId(),
                     "email", savedUser.getEmail(),
                     "role", savedUser.getRole());
-            return userMapper.toDto(savedUser);
+            return toUserDtoWithPublicAvatar(userMapper.toDto(savedUser));
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.update", "failure",
                     "actor", actor,
@@ -150,12 +158,23 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateMyProfile(Long userId, UpdateMyProfileRequest request) {
+    public UserDto updateMyProfile(Long userId, UpdateUserRequest request) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        if (request.fullName() == null && request.phone() == null && request.comment() == null) {
+        if (request.fullName() == null
+                && request.email() == null
+                && request.role() == null
+                && request.avatarFilePath() == null
+                && request.phone() == null
+                && request.comment() == null
+                && request.password() == null) {
             throw new BadRequestException("At least one field must be provided for profile update");
+        }
+
+        Role currentRole = securityUtils.currentUser().getRole();
+        if (currentRole == Role.STUDENT && (request.role() != null || request.comment() != null)) {
+            throw new AccessDeniedException("Access forbidden for user.");
         }
 
         if (request.fullName() != null) {
@@ -163,6 +182,29 @@ public class UserService {
                 throw new BadRequestException("fullName must not be blank");
             }
             user.setFullName(request.fullName().trim());
+        }
+
+        if (request.email() != null) {
+            if (userRepository.existsByEmailAndIdNot(request.email(), userId)) {
+                throw new BadRequestException("Email already exists");
+            }
+            user.setEmail(request.email());
+        }
+
+        if (request.role() != null) {
+            user.setRole(request.role());
+        }
+
+        if (request.avatarFilePath() != null) {
+            String oldAvatarPath = user.getAvatarFilePath();
+            String newAvatarPath = fileStorageService.normalizeStoredPath(request.avatarFilePath());
+            if (!fileStorageService.isFileExistsByRelativePath(newAvatarPath)) {
+                throw new BadRequestException("New avatar path is not valid or file does not exists.");
+            }
+            if (!Objects.equals(oldAvatarPath, newAvatarPath)) {
+                fileStorageService.deleteIfExists(oldAvatarPath);
+                user.setAvatarFilePath(newAvatarPath);
+            }
         }
 
         if (request.phone() != null) {
@@ -173,7 +215,13 @@ public class UserService {
             user.setComment(request.comment().trim());
         }
 
-        return userMapper.toDto(userRepository.save(user));
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setActivation(true);
+            user.setEnabled(true);
+        }
+
+        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
     }
 
     @Transactional
@@ -198,14 +246,17 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream().map(userMapper::toDto).toList();
+        return userRepository.findAll().stream()
+                .map(userMapper::toDto)
+                .map(this::toUserDtoWithPublicAvatar)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public UserDto getUser(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        return userMapper.toDto(user);
+        return toUserDtoWithPublicAvatar(userMapper.toDto(user));
     }
 
     @Transactional
@@ -228,26 +279,6 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateUserAvatar(Long userId, MultipartFile file) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-
-        if (file == null || file.isEmpty()) {
-            throw new BadRequestException("Avatar file is empty");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new BadRequestException("Avatar must be an image");
-        }
-
-        String path = fileStorageService.store(file, userAvatarDir + "/" + userId);
-        fileStorageService.deleteIfExists(user.getAvatarFilePath());
-
-        user.setAvatarFilePath(path);
-        return userMapper.toDto(userRepository.save(user));
-    }
-
-    @Transactional
     public void deleteUsers(List<Long> userIds) {
         Long currentUserId = tryResolveCurrentUserId();
         if (currentUserId != null && userIds.contains(currentUserId)) {
@@ -261,7 +292,7 @@ public class UserService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
         user.setLastVisit(LocalDateTime.now());
-        return userMapper.toDto(userRepository.save(user));
+        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
     }
 
     @Transactional
@@ -301,6 +332,7 @@ public class UserService {
                             val(r, 3),
                             email,
                             ru.just.monolithmvp.model.Role.valueOf(roleRaw),
+                            null,
                             val(r, 6),
                             val(r, 14),
                             parseDateTime(val(r, 19)),
@@ -545,6 +577,25 @@ public class UserService {
 
     private String joinIds(List<LearningGroup> groups) {
         return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
+    }
+
+    private UserDto toUserDtoWithPublicAvatar(UserDto dto) {
+        return new UserDto(
+                dto.id(),
+                dto.fullName(),
+                dto.email(),
+                dto.role(),
+                dto.activation(),
+                dto.enabled(),
+                dto.phone(),
+                dto.comment(),
+                fileStorageService.normalizeStoredPath(dto.avatarFilePath()),
+                dto.createdAt(),
+                dto.createdBy(),
+                dto.lastVisit(),
+                dto.deactivatedAt(),
+                dto.deactivatedBy()
+        );
     }
 
 }

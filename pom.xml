@@ -17,7 +17,6 @@
 
     <modules>
         <module>monolith-mvp</module>
-        <module>media-service</module>
     </modules>
 
 </project>

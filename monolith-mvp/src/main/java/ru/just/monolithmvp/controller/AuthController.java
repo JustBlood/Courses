@@ -4,12 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.auth.*;
@@ -69,26 +67,5 @@ public class AuthController {
                                                    @Valid @RequestBody SetPasswordRequest request) {
         authService.setPassword(token, request);
         return ResponseEntity.ok(new ApiResponse("Password has been set"));
-    }
-
-    @PostMapping("/change-password")
-    @PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
-    @Operation(summary = "Сменить пароль в авторизованной сессии")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пароль успешно изменён",
-                    content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или неверный текущий пароль",
-                    content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Требуется аутентификация",
-                    content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Недостаточно прав",
-                    content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Внутренняя ошибка сервера",
-                    content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<ApiResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        authService.changePassword(request);
-        return ResponseEntity.ok(new ApiResponse("Password has been changed"));
     }
 }

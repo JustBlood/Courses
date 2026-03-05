@@ -9,7 +9,6 @@ POSTGRES_DB="${POSTGRES_DB:-courses}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 
 APP_CONTAINER="${APP_CONTAINER:-monolith-mvp}"
-APP_STORAGE_USER_AVATAR_DIR="${APP_STORAGE_USER_AVATAR_DIR:-/opt/app/data/users/avatars}"
 BACKUP_FILES_SOURCE="${BACKUP_FILES_SOURCE:-/opt/app/data}"
 
 case "${BACKUP_ROOT}" in
@@ -60,7 +59,6 @@ postgres_db=${POSTGRES_DB}
 postgres_user=${POSTGRES_USER}
 db_dump_file=${DB_DUMP_FILE}
 app_container=${APP_CONTAINER}
-app_storage_user_avatar_dir=${APP_STORAGE_USER_AVATAR_DIR}
 backup_files_source=${BACKUP_FILES_SOURCE}
 files_archive=${FILES_ARCHIVE}
 files_status=${FILES_STATUS}

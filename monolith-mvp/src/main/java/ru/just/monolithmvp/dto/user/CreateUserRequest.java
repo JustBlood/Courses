@@ -13,6 +13,7 @@ public record CreateUserRequest(
         @NotBlank String fullName,
         @NotBlank @Email String email,
         @NotNull Role role,
+        String avatarFilePath,
         String phone,
         String comment,
         LocalDateTime createdAt,
