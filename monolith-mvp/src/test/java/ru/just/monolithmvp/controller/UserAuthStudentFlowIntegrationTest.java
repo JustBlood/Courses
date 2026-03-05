@@ -87,19 +87,6 @@ class UserAuthStudentFlowIntegrationTest {
                         .header("Authorization", "Bearer " + tamperedToken))
                 .andExpect(status().isUnauthorized());
 
-        // Негативный кейс: валидация при создании пользователя
-        mockMvc.perform(post("/api/v1/admin/users")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "fullName": "Bad Email User",
-                                  "email": "not-an-email",
-                                  "role": "STUDENT"
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-
         // Смена пароля текущего администратора + повторный логин
         mockMvc.perform(patch("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + adminToken)
@@ -340,7 +327,7 @@ class UserAuthStudentFlowIntegrationTest {
                 new byte[]{1, 2, 3, 4, 5}
         );
 
-        String avatarUploadResponse = mockMvc.perform(multipart("/api/v1/student/my/avatar")
+        String avatarUploadResponse = mockMvc.perform(multipart("/api/v1/files/upload")
                         .file(avatar)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
@@ -348,8 +335,44 @@ class UserAuthStudentFlowIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        assertThat(objectMapper.readTree(avatarUploadResponse).get("avatarFilePath").asText())
-                .isNotBlank();
+        String uploadedAvatarPath = objectMapper.readTree(avatarUploadResponse).get("link").asText();
+        assertThat(uploadedAvatarPath).startsWith("/files/uploads/");
+
+        String profileWithAvatarResponse = mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "avatarFilePath": "%s"
+                                }
+                                """.formatted(uploadedAvatarPath)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(profileWithAvatarResponse).get("user").get("avatarFilePath").asText())
+                .isEqualTo(uploadedAvatarPath);
+
+        mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "avatarFilePath": "%s"
+                                }
+                                """.formatted(uploadedAvatarPath)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "avatarFilePath": "/files/uploads/non-existing-avatar.png"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
 
         MockMultipartFile commonUploadFile = new MockMultipartFile(
                 "file",

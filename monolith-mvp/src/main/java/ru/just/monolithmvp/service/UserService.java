@@ -6,7 +6,6 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,9 +52,6 @@ public class UserService {
     private final BusinessEventLogger businessEventLogger;
     private final FileStorageService fileStorageService;
 
-    @Value("${app.storage.user-avatar-dir:data/users/avatars}")
-    private String userAvatarDir;
-
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
 
     @Transactional
@@ -73,6 +69,7 @@ public class UserService {
             user.setEmail(request.email());
             user.setPasswordHash(passwordEncoder.encode(sendInvite ? UUID.randomUUID().toString() : request.password()));
             user.setRole(request.role());
+            user.setAvatarFilePath(fileStorageService.normalizeStoredPath(request.avatarFilePath()));
             user.setActivation(true);
             user.setEnabled(!sendInvite);
             user.setPhone(request.phone());
@@ -127,6 +124,17 @@ public class UserService {
             user.setRole(request.role() != null ? request.role() : user.getRole());
             user.setPhone(request.phone() != null ? request.phone() : user.getPhone());
             user.setComment(request.comment() != null ? request.comment() : user.getComment());
+            if (request.avatarFilePath() != null) {
+                String oldAvatarPath = user.getAvatarFilePath();
+                String newAvatarPath = fileStorageService.normalizeStoredPath(request.avatarFilePath());
+                if (!fileStorageService.isFileExistsByRelativePath(newAvatarPath)) {
+                    throw new BadRequestException("New avatar path is not valid or file does not exists.");
+                }
+                if (!Objects.equals(oldAvatarPath, newAvatarPath)) {
+                    fileStorageService.deleteIfExists(oldAvatarPath);
+                    user.setAvatarFilePath(newAvatarPath);
+                }
+            }
             if (request.password() != null && !request.password().isBlank()) {
                 user.setPasswordHash(passwordEncoder.encode(request.password()));
                 user.setActivation(true);
@@ -157,6 +165,7 @@ public class UserService {
         if (request.fullName() == null
                 && request.email() == null
                 && request.role() == null
+                && request.avatarFilePath() == null
                 && request.phone() == null
                 && request.comment() == null
                 && request.password() == null) {
@@ -184,6 +193,18 @@ public class UserService {
 
         if (request.role() != null) {
             user.setRole(request.role());
+        }
+
+        if (request.avatarFilePath() != null) {
+            String oldAvatarPath = user.getAvatarFilePath();
+            String newAvatarPath = fileStorageService.normalizeStoredPath(request.avatarFilePath());
+            if (!fileStorageService.isFileExistsByRelativePath(newAvatarPath)) {
+                throw new BadRequestException("New avatar path is not valid or file does not exists.");
+            }
+            if (!Objects.equals(oldAvatarPath, newAvatarPath)) {
+                fileStorageService.deleteIfExists(oldAvatarPath);
+                user.setAvatarFilePath(newAvatarPath);
+            }
         }
 
         if (request.phone() != null) {
@@ -258,26 +279,6 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateUserAvatar(Long userId, MultipartFile file) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-
-        if (file == null || file.isEmpty()) {
-            throw new BadRequestException("Avatar file is empty");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new BadRequestException("Avatar must be an image");
-        }
-
-        String path = fileStorageService.store(file, userAvatarDir + "/" + userId);
-        fileStorageService.deleteIfExists(user.getAvatarFilePath());
-
-        user.setAvatarFilePath(path);
-        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
-    }
-
-    @Transactional
     public void deleteUsers(List<Long> userIds) {
         Long currentUserId = tryResolveCurrentUserId();
         if (currentUserId != null && userIds.contains(currentUserId)) {
@@ -331,6 +332,7 @@ public class UserService {
                             val(r, 3),
                             email,
                             ru.just.monolithmvp.model.Role.valueOf(roleRaw),
+                            null,
                             val(r, 6),
                             val(r, 14),
                             parseDateTime(val(r, 19)),

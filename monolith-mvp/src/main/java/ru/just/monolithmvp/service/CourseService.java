@@ -474,7 +474,11 @@ public class CourseService {
         course.setTitle(request.title());
         course.setDescription(request.description());
         course.setAuthorFullName(request.authorFullName());
-        course.setCoverFilePath(fileStorageService.normalizeStoredPath(request.coverFilePath()));
+        final String newCoverFilePath = fileStorageService.normalizeStoredPath(request.coverFilePath());
+        if (newCoverFilePath != null && !fileStorageService.isFileExistsByRelativePath(newCoverFilePath)) {
+            throw new BadRequestException("New avatar path is not valid or file does not exists.");
+        }
+        course.setCoverFilePath(newCoverFilePath);
         course.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
         course.setDeadlineDays(request.deadlineDays());
         course.setLessonsFreeOrder(Boolean.TRUE.equals(request.lessonsFreeOrder()));

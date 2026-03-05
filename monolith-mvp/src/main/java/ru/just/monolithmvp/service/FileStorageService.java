@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -48,22 +49,26 @@ public class FileStorageService {
     }
 
     public void deleteIfExists(String path) {
-        if (path == null || path.isBlank()) {
-            return;
-        }
-
-        try {
-            String normalized = normalizeStoredPath(path);
-            if (normalized == null || !normalized.startsWith("/files/")) {
-                return;
+        if (isFileExistsByRelativePath(path)) {
+            try {
+                Files.deleteIfExists(getFullPathToFile(path).get());
+            } catch (IOException e) {
+                log.error("Error in file deleting.", e);
             }
-
-            String relativePath = normalized.substring("/files/".length());
-            Path filePath = resolveRootPath().resolve(relativePath).normalize();
-            Files.deleteIfExists(filePath);
-        } catch (IOException ex) {
-            log.error("IOException in file deleting.", ex);
         }
+    }
+
+    public boolean isFileExistsByRelativePath(String path) {
+        return getFullPathToFile(path).map(Files::exists).orElse(false);
+    }
+
+    private Optional<Path> getFullPathToFile(String path) {
+        String normalized = normalizeStoredPath(path);
+        if (normalized == null || !normalized.startsWith("/files/")) {
+            return Optional.empty();
+        }
+        String relativePath = normalized.substring("/files/".length());
+        return Optional.of(resolveRootPath().resolve(relativePath).normalize());
     }
 
     public String normalizeStoredPath(String storedPath) {

@@ -121,7 +121,6 @@ sh scripts/backup/check-backup-retention.sh
 
 Обязательные env-параметры:
 - `APP_STORAGE_ROOT_DIR` — корень файлового хранилища приложения (в контейнере обычно `/opt/app/data`)
-- `APP_STORAGE_PUBLIC_BASE_URL` — используется на инфраструктурном уровне (например для reverse-proxy/документации), но сами API-модели возвращают относительные пути.
 
 Поведение API:
 - upload endpoint возвращает относительный путь c префиксом `/files/`;

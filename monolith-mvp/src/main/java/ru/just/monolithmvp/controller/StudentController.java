@@ -8,11 +8,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.course.CourseDto;
 import ru.just.monolithmvp.dto.course.CourseLearnerDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
@@ -115,16 +113,6 @@ public class StudentController {
                 user.deactivatedAt(),
                 user.deactivatedBy()
         );
-    }
-
-    @PostMapping(value = "/my/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Загрузить/обновить аватар текущего пользователя")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Аватар обновлен", content = @Content(schema = @Schema(implementation = UserDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Некорректный файл", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public ResponseEntity<UserDto> uploadMyAvatar(@RequestPart("file") MultipartFile file) {
-        return ResponseEntity.ok(userService.updateUserAvatar(securityUtils.currentUserId(), file));
     }
 
     @PostMapping("/my/last-visit")

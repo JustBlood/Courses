@@ -13,4 +13,15 @@
   - added `StorageWebConfig` resource handler bound to `APP_STORAGE_ROOT_DIR`;
   - allowed unauthenticated read access to `/files/**` in security config.
 - Runtime/env/docker alignment:
-  - added/updated `APP_STORAGE_ROOT_DIR` and `APP_STORAGE_PUBLIC_BASE_URL` in compose/env examples.
+  - aligned to single storage config key `APP_STORAGE_ROOT_DIR` in compose/env examples.
+
+## 2026-03-05 — Storage config simplification (single logic)
+
+- Removed obsolete split storage settings:
+  - dropped `app.storage.user-avatar-dir` and `app.storage.public-base-url` from `application.yml`;
+  - dropped `APP_STORAGE_USER_AVATAR_DIR` and `APP_STORAGE_PUBLIC_BASE_URL` from env/compose examples.
+- Unified avatar upload path strategy with generic file upload strategy:
+  - `UserService.updateUserAvatar(...)` now stores files via `fileStorageService.store(file, "uploads")`.
+- Kept lifecycle behavior unchanged:
+  - old avatar/cover files are deleted on replacement;
+  - avatar/cover files are deleted on entity removal.

@@ -33,7 +33,6 @@ services:
       APP_MAIL_FROM: ${APP_MAIL_FROM:-kirillporozoff@yandex.ru}
       APP_MAIL_INVITE_BASE_URL: ${APP_MAIL_INVITE_BASE_URL:-http://localhost:8099}
       APP_STORAGE_ROOT_DIR: ${APP_STORAGE_ROOT_DIR:-/opt/app/data}
-      APP_STORAGE_PUBLIC_BASE_URL: ${APP_STORAGE_PUBLIC_BASE_URL:-http://localhost:8099/files}
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.yandex.ru}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-465}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-kirillporozoff}

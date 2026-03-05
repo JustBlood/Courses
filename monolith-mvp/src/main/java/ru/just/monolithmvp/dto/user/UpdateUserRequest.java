@@ -8,6 +8,7 @@ public record UpdateUserRequest(
         @Size(max = 255) String fullName,
         @Email @Size(max = 255) String email,
         Role role,
+        String avatarFilePath,
         @Size(max = 255) String phone,
         @Size(max = 2000) String comment,
         String password
