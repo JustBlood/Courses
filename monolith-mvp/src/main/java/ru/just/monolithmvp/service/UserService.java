@@ -8,13 +8,13 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
-import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -150,12 +150,22 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateMyProfile(Long userId, UpdateMyProfileRequest request) {
+    public UserDto updateMyProfile(Long userId, UpdateUserRequest request) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        if (request.fullName() == null && request.phone() == null && request.comment() == null) {
+        if (request.fullName() == null
+                && request.email() == null
+                && request.role() == null
+                && request.phone() == null
+                && request.comment() == null
+                && request.password() == null) {
             throw new BadRequestException("At least one field must be provided for profile update");
+        }
+
+        Role currentRole = securityUtils.currentUser().getRole();
+        if (currentRole == Role.STUDENT && (request.role() != null || request.comment() != null)) {
+            throw new AccessDeniedException("Access forbidden for user.");
         }
 
         if (request.fullName() != null) {
@@ -165,12 +175,29 @@ public class UserService {
             user.setFullName(request.fullName().trim());
         }
 
+        if (request.email() != null) {
+            if (userRepository.existsByEmailAndIdNot(request.email(), userId)) {
+                throw new BadRequestException("Email already exists");
+            }
+            user.setEmail(request.email());
+        }
+
+        if (request.role() != null) {
+            user.setRole(request.role());
+        }
+
         if (request.phone() != null) {
             user.setPhone(request.phone().trim());
         }
 
         if (request.comment() != null) {
             user.setComment(request.comment().trim());
+        }
+
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setActivation(true);
+            user.setEnabled(true);
         }
 
         return userMapper.toDto(userRepository.save(user));

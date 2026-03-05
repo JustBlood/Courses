@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,13 +101,12 @@ class UserAuthStudentFlowIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         // Смена пароля текущего администратора + повторный логин
-        mockMvc.perform(post("/api/v1/auth/change-password")
+        mockMvc.perform(patch("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "currentPassword": "admin123",
-                                  "newPassword": "Admin123!"
+                                  "password": "Admin123!"
                                 }
                                 """))
                 .andExpect(status().isOk());
@@ -161,6 +161,17 @@ class UserAuthStudentFlowIntegrationTest {
         // ADMIN имеет функциональность STUDENT
         mockMvc.perform(get("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + admin2Token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + admin2Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "comment": "admin self comment",
+                                  "role": "ADMIN"
+                                }
+                                """))
                 .andExpect(status().isOk());
 
         // Создаём STUDENT без пароля (через инвайт/токен)
@@ -236,26 +247,13 @@ class UserAuthStudentFlowIntegrationTest {
 
         String studentToken = login("student1@example.com", "StudPass1!");
 
-        // Негативный кейс: смена пароля с неверным currentPassword
-        mockMvc.perform(post("/api/v1/auth/change-password")
-                        .header("Authorization", "Bearer " + studentToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "currentPassword": "wrong",
-                                  "newPassword": "StudPass2!"
-                                }
-                                """))
-                .andExpect(status().isBadRequest());
-
         // Позитивная смена пароля студента
-        mockMvc.perform(post("/api/v1/auth/change-password")
+        mockMvc.perform(patch("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "currentPassword": "StudPass1!",
-                                  "newPassword": "StudPass2!"
+                                  "password": "StudPass2!"
                                 }
                                 """))
                 .andExpect(status().isOk());
@@ -399,6 +397,15 @@ class UserAuthStudentFlowIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
+        String studentProfileResponse = mockMvc.perform(get("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertTrue(objectMapper.readTree(studentProfileResponse).get("user").get("comment").isNull());
+
         mockMvc.perform(patch("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -406,7 +413,7 @@ class UserAuthStudentFlowIntegrationTest {
                                 {
                                   "fullName": "Student Self Updated",
                                   "phone": "+79992223344",
-                                  "comment": "self updated"
+                                  "email": "student1@example.com"
                                 }
                                 """))
                 .andExpect(status().isOk());
@@ -416,11 +423,21 @@ class UserAuthStudentFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "email": "hacker@example.com",
+                                  "email": "student-new@example.com",
                                   "role": "ADMIN"
                                 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/v1/student/my/profile")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "comment": "self updated"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
 
         // Негативный кейс: студент не может ходить в admin endpoints
         mockMvc.perform(get("/api/v1/admin/users")

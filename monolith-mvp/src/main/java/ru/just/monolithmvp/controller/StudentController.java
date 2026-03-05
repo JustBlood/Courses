@@ -21,8 +21,9 @@ import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
 import ru.just.monolithmvp.dto.program.ProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
-import ru.just.monolithmvp.dto.student.UpdateMyProfileRequest;
+import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
+import ru.just.monolithmvp.model.Role;
 import ru.just.monolithmvp.security.SecurityUtils;
 import ru.just.monolithmvp.service.*;
 
@@ -77,7 +78,7 @@ public class StudentController {
     public ResponseEntity<StudentProfileDto> myProfile() {
         Long userId = securityUtils.currentUserId();
         return ResponseEntity.ok(new StudentProfileDto(
-                userService.getUser(userId),
+                hideCommentForStudent(userService.getUser(userId)),
                 groupService.getUserGroups(userId)
         ));
     }
@@ -88,10 +89,32 @@ public class StudentController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль обновлён", content = @Content(schema = @Schema(implementation = StudentProfileDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
-    public ResponseEntity<StudentProfileDto> updateMyProfile(@Valid @RequestBody UpdateMyProfileRequest request) {
+    public ResponseEntity<StudentProfileDto> updateMyProfile(@Valid @RequestBody UpdateUserRequest request) {
         Long userId = securityUtils.currentUserId();
         UserDto updatedUser = userService.updateMyProfile(userId, request);
-        return ResponseEntity.ok(new StudentProfileDto(updatedUser, groupService.getUserGroups(userId)));
+        return ResponseEntity.ok(new StudentProfileDto(hideCommentForStudent(updatedUser), groupService.getUserGroups(userId)));
+    }
+
+    private UserDto hideCommentForStudent(UserDto user) {
+        if (user.role() != Role.STUDENT) {
+            return user;
+        }
+        return new UserDto(
+                user.id(),
+                user.fullName(),
+                user.email(),
+                user.role(),
+                user.activation(),
+                user.enabled(),
+                user.phone(),
+                null,
+                user.avatarFilePath(),
+                user.createdAt(),
+                user.createdBy(),
+                user.lastVisit(),
+                user.deactivatedAt(),
+                user.deactivatedBy()
+        );
     }
 
     @PostMapping(value = "/my/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

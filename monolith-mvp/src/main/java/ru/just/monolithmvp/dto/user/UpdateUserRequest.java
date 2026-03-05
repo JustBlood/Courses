@@ -1,13 +1,15 @@
 package ru.just.monolithmvp.dto.user;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import ru.just.monolithmvp.model.Role;
 
 public record UpdateUserRequest(
-        String fullName,
-        String email,
+        @Size(max = 255) String fullName,
+        @Email @Size(max = 255) String email,
         Role role,
-        String phone,
-        String comment,
+        @Size(max = 255) String phone,
+        @Size(max = 2000) String comment,
         String password
 ) {
 }
