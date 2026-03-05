@@ -101,7 +101,7 @@ public class UserService {
                     "role", user.getRole(),
                     "invite", sendInvite);
 
-            return userMapper.toDto(user);
+            return toUserDtoWithPublicAvatar(userMapper.toDto(user));
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.create", "failure",
                     "actor", actor,
@@ -139,7 +139,7 @@ public class UserService {
                     "userId", savedUser.getId(),
                     "email", savedUser.getEmail(),
                     "role", savedUser.getRole());
-            return userMapper.toDto(savedUser);
+            return toUserDtoWithPublicAvatar(userMapper.toDto(savedUser));
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.update", "failure",
                     "actor", actor,
@@ -200,7 +200,7 @@ public class UserService {
             user.setEnabled(true);
         }
 
-        return userMapper.toDto(userRepository.save(user));
+        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
     }
 
     @Transactional
@@ -225,14 +225,17 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream().map(userMapper::toDto).toList();
+        return userRepository.findAll().stream()
+                .map(userMapper::toDto)
+                .map(this::toUserDtoWithPublicAvatar)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public UserDto getUser(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        return userMapper.toDto(user);
+        return toUserDtoWithPublicAvatar(userMapper.toDto(user));
     }
 
     @Transactional
@@ -271,7 +274,7 @@ public class UserService {
         fileStorageService.deleteIfExists(user.getAvatarFilePath());
 
         user.setAvatarFilePath(path);
-        return userMapper.toDto(userRepository.save(user));
+        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
     }
 
     @Transactional
@@ -288,7 +291,7 @@ public class UserService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
         user.setLastVisit(LocalDateTime.now());
-        return userMapper.toDto(userRepository.save(user));
+        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
     }
 
     @Transactional
@@ -572,6 +575,25 @@ public class UserService {
 
     private String joinIds(List<LearningGroup> groups) {
         return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
+    }
+
+    private UserDto toUserDtoWithPublicAvatar(UserDto dto) {
+        return new UserDto(
+                dto.id(),
+                dto.fullName(),
+                dto.email(),
+                dto.role(),
+                dto.activation(),
+                dto.enabled(),
+                dto.phone(),
+                dto.comment(),
+                fileStorageService.normalizeStoredPath(dto.avatarFilePath()),
+                dto.createdAt(),
+                dto.createdBy(),
+                dto.lastVisit(),
+                dto.deactivatedAt(),
+                dto.deactivatedBy()
+        );
     }
 
 }

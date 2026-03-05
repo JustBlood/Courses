@@ -366,8 +366,12 @@ class UserAuthStudentFlowIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        assertThat(objectMapper.readTree(commonUploadResponse).get("link").asText())
-                .startsWith("http://localhost:8099/files/");
+        String uploadedRelativePath = objectMapper.readTree(commonUploadResponse).get("link").asText();
+        assertThat(uploadedRelativePath)
+                .startsWith("/files/uploads/");
+
+        mockMvc.perform(get(uploadedRelativePath))
+                .andExpect(status().isOk());
 
         String beforeLastVisitResponse = mockMvc.perform(get("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + studentToken))

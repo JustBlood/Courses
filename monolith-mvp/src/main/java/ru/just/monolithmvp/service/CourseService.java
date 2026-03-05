@@ -46,13 +46,14 @@ public class CourseService {
     private final SecurityUtils securityUtils;
     private final SectionService sectionService;
     private final BusinessEventLogger businessEventLogger;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public CourseDto createCourse(CreateCourseRequest request) {
         Course course = new Course();
         applyCourseFields(course, request);
         course.setCreatedByAdminId(securityUtils.currentUserId());
-        return courseMapper.toDto(courseRepository.save(course));
+        return toCourseDtoWithPublicCover(courseRepository.save(course));
     }
 
     @Transactional(readOnly = true)
@@ -78,15 +79,19 @@ public class CourseService {
         List<LessonDto> lessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId).stream()
                 .map(lessonMapper::toDto)
                 .toList();
-        return new CourseAdminDetailsDto(courseMapper.toDto(course), lessons);
+        return new CourseAdminDetailsDto(toCourseDtoWithPublicCover(course), lessons);
     }
 
     @Transactional
     public CourseDto updateCourse(Long courseId, CreateCourseRequest request) {
         Course course = getCourseEntity(courseId);
+        String oldCoverPath = course.getCoverFilePath();
         setLessonsToNewPositionsIfNeeded(courseId, request);
         applyCourseFields(course, request);
-        return courseMapper.toDto(courseRepository.save(course));
+        if (!Objects.equals(oldCoverPath, course.getCoverFilePath())) {
+            fileStorageService.deleteIfExists(oldCoverPath);
+        }
+        return toCourseDtoWithPublicCover(courseRepository.save(course));
     }
 
     private void setLessonsToNewPositionsIfNeeded(Long courseId, CreateCourseRequest request) {
@@ -118,6 +123,7 @@ public class CourseService {
         submissionRepository.deleteByLesson_Course_Id(courseId);
         enrollmentRepository.deleteByCourseId(courseId);
         courseReviewerRepository.deleteByCourseId(courseId);
+        fileStorageService.deleteIfExists(course.getCoverFilePath());
         courseRepository.delete(course);
     }
 
@@ -230,7 +236,7 @@ public class CourseService {
                 course.getId(),
                 course.getTitle(),
                 course.getDescription(),
-                course.getCoverFilePath(),
+                fileStorageService.normalizeStoredPath(course.getCoverFilePath()),
                 course.getDeadlineDays(),
                 lessons
         );
@@ -409,7 +415,7 @@ public class CourseService {
         Long userId = securityUtils.currentUserId();
         return enrollmentRepository.findByUserId(userId).stream()
                 .map(Enrollment::getCourse)
-                .map(courseMapper::toDto)
+                .map(this::toCourseDtoWithPublicCover)
                 .toList();
     }
 
@@ -468,7 +474,7 @@ public class CourseService {
         course.setTitle(request.title());
         course.setDescription(request.description());
         course.setAuthorFullName(request.authorFullName());
-        course.setCoverFilePath(request.coverFilePath());
+        course.setCoverFilePath(fileStorageService.normalizeStoredPath(request.coverFilePath()));
         course.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
         course.setDeadlineDays(request.deadlineDays());
         course.setLessonsFreeOrder(Boolean.TRUE.equals(request.lessonsFreeOrder()));
@@ -628,12 +634,33 @@ public class CourseService {
                 course.getId(),
                 course.getTitle(),
                 course.getDescription(),
-                course.getCoverFilePath(),
+                fileStorageService.normalizeStoredPath(course.getCoverFilePath()),
                 course.getSection().getId(),
                 course.getSection().getTitle(),
                 course.getSection().getPriority(),
                 theoryCount,
                 practiceCount
+        );
+    }
+
+    private CourseDto toCourseDtoWithPublicCover(Course course) {
+        CourseDto dto = courseMapper.toDto(course);
+        return new CourseDto(
+                dto.id(),
+                dto.title(),
+                dto.description(),
+                dto.authorFullName(),
+                fileStorageService.normalizeStoredPath(dto.coverFilePath()),
+                dto.passingThresholdPercent(),
+                dto.deadlineDays(),
+                dto.lessonsFreeOrder(),
+                dto.allowContinueAfterFail(),
+                dto.blockAfterDeadline(),
+                dto.keepAccessAfterDeadline(),
+                dto.includeInOverallStats(),
+                dto.sectionId(),
+                dto.sectionTitle(),
+                dto.sectionPriority()
         );
     }
 
