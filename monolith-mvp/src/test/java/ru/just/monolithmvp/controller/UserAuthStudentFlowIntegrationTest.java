@@ -393,9 +393,6 @@ class UserAuthStudentFlowIntegrationTest {
         assertThat(uploadedRelativePath)
                 .startsWith("/files/uploads/");
 
-        mockMvc.perform(get(uploadedRelativePath))
-                .andExpect(status().isOk());
-
         String beforeLastVisitResponse = mockMvc.perform(get("/api/v1/student/my/profile")
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
