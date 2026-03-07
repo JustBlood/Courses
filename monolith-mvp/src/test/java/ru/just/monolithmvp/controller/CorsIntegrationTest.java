@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,7 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=none",
         "spring.profiles.active=h2",
         "app.security.jwt.secret=test-jwt-secret-key-at-least-32-bytes-12345",
-        "app.security.cors.allowed-origins=http://localhost:3000"
+        "app.security.cors.allowed-origins=http://localhost:3000",
+        "app.storage.csp-frame-ancestors='self',http://localhost:3000,http://127.0.0.1:3000"
 })
 class CorsIntegrationTest {
 
@@ -46,5 +48,20 @@ class CorsIntegrationTest {
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void files_response_should_include_configured_csp_frame_ancestors_header() throws Exception {
+        mockMvc.perform(get("/files/non-existing-test-file.txt"))
+                .andExpect(header().string("Content-Security-Policy",
+                        "frame-ancestors 'self' http://localhost:3000 http://127.0.0.1:3000"))
+                .andExpect(header().doesNotExist("X-Frame-Options"));
+    }
+
+    @Test
+    void non_files_response_should_include_sameorigin_x_frame_options_header() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Frame-Options", "SAMEORIGIN"));
     }
 }

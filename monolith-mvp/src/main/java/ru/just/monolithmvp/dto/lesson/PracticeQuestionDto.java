@@ -6,7 +6,7 @@ import java.util.List;
 
 public record PracticeQuestionDto(
         Long id,
-        Integer index,
+        Integer position,
         QuestionType questionType,
         String questionText,
         String trainerHint,

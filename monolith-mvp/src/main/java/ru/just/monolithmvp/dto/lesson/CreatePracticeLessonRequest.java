@@ -10,6 +10,7 @@ import ru.just.monolithmvp.model.LessonType;
 import java.util.List;
 
 public record CreatePracticeLessonRequest(
+        @Min(1) Integer position,
         @NotBlank String title,
         String description,
         String coverFilePath,

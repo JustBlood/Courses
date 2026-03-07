@@ -8,6 +8,7 @@ import ru.just.monolithmvp.model.LessonType;
 import java.util.List;
 
 public record UpdatePracticeLessonRequest(
+        @Min(1) Integer position,
         String title,
         String description,
         String coverFilePath,

@@ -130,7 +130,7 @@ public class CourseService {
     @Transactional
     public LessonDto createTheoryLesson(Long courseId, CreateTheoryLessonRequest request) {
         Course course = getCourseEntity(courseId);
-        final int position = nextLessonPosition(courseId);
+        final int position = resolveCreateLessonPosition(courseId, request.position());
         validateCreateTheoryRequest(request);
 
         TheoryLesson lesson = new TheoryLesson();
@@ -145,7 +145,7 @@ public class CourseService {
     public LessonDto createPracticeLesson(Long courseId, CreatePracticeLessonRequest request) {
         Course course = getCourseEntity(courseId);
         validateCreatePracticeRequest(request);
-        final Integer lessonPosition = nextLessonPosition(courseId);
+        final Integer lessonPosition = resolveCreateLessonPosition(courseId, request.position());
 
         PracticeLesson lesson = new PracticeLesson();
         lesson.setCourse(course);
@@ -176,6 +176,8 @@ public class CourseService {
             throw new BadRequestException("Lesson does not belong to course");
         }
 
+        applyLessonPositionPatch(lesson, request.position());
+
         applyTheoryLessonFields(lesson, toCreateTheoryLessonRequest(request));
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
@@ -190,6 +192,8 @@ public class CourseService {
         if (!Objects.equals(lesson.getCourse().getId(), courseId)) {
             throw new BadRequestException("Lesson does not belong to course");
         }
+
+        applyLessonPositionPatch(lesson, request.position());
 
         CreatePracticeLessonRequest patchRequest = toCreatePracticeLessonRequest(request);
         validateUpdatePracticeRequest(patchRequest);
@@ -508,6 +512,12 @@ public class CourseService {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
                 request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
         lesson.setContentType(patchValue(request.contentType(), lesson.getContentType()));
+        if (LessonType.THEORY_PDF.equals(lesson.getLessonType())) {
+            if (request.content() != null && !fileStorageService.isFileExistsByRelativePath(request.content())) {
+                throw new BadRequestException("file is not exists");
+            }
+            fileStorageService.deleteIfExists(lesson.getContent());
+        }
         lesson.setContent(patchValue(request.content(), lesson.getContent()));
         lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
         lesson.setPartialPoints(0);
@@ -586,6 +596,7 @@ public class CourseService {
 
     private CreateTheoryLessonRequest toCreateTheoryLessonRequest(UpdateTheoryLessonRequest request) {
         return new CreateTheoryLessonRequest(
+                request.position(),
                 request.title(),
                 request.description(),
                 null,
@@ -604,6 +615,7 @@ public class CourseService {
 
     private CreatePracticeLessonRequest toCreatePracticeLessonRequest(UpdatePracticeLessonRequest request) {
         return new CreatePracticeLessonRequest(
+                request.position(),
                 request.title(),
                 request.description(),
                 null,
@@ -623,6 +635,62 @@ public class CourseService {
                 request.showCorrectAnswers(),
                 request.questions()
         );
+    }
+
+    private int resolveCreateLessonPosition(Long courseId, Integer requestedPosition) {
+        int nextPosition = nextLessonPosition(courseId);
+        if (requestedPosition == null) {
+            return nextPosition;
+        }
+
+        long lessonCount = lessonRepository.countByCourseId(courseId);
+        if (requestedPosition < 1 || requestedPosition > lessonCount + 1) {
+            throw new BadRequestException("lesson position must be between 1 and " + (lessonCount + 1));
+        }
+
+        if (requestedPosition <= lessonCount) {
+            List<Lesson> lessonsToShift = lessonRepository
+                    .findByCourse_IdAndPositionGreaterThanEqualOrderByPositionDesc(courseId, requestedPosition);
+            lessonsToShift.forEach(existing -> existing.setPosition(existing.getPosition() + 1));
+            lessonRepository.saveAll(lessonsToShift);
+        }
+
+        return requestedPosition;
+    }
+
+    private void applyLessonPositionPatch(Lesson lesson, Integer requestedPosition) {
+        if (requestedPosition == null || requestedPosition.equals(lesson.getPosition())) {
+            return;
+        }
+
+        long lessonCount = lessonRepository.countByCourseId(lesson.getCourse().getId());
+        if (requestedPosition < 1 || requestedPosition > lessonCount) {
+            throw new BadRequestException("lesson position must be between 1 and " + lessonCount);
+        }
+
+        Integer currentPosition = lesson.getPosition();
+        lesson.setPosition(-1);
+        lessonRepository.saveAndFlush(lesson);
+
+        List<Lesson> lessonsToShift;
+        if (requestedPosition < currentPosition) {
+            lessonsToShift = lessonRepository.findByCourse_IdAndPositionBetweenOrderByPositionAsc(
+                    lesson.getCourse().getId(),
+                    requestedPosition,
+                    currentPosition - 1
+            );
+            lessonsToShift.forEach(existing -> existing.setPosition(existing.getPosition() + 1));
+        } else {
+            lessonsToShift = lessonRepository.findByCourse_IdAndPositionBetweenOrderByPositionAsc(
+                    lesson.getCourse().getId(),
+                    currentPosition + 1,
+                    requestedPosition
+            );
+            lessonsToShift.forEach(existing -> existing.setPosition(existing.getPosition() - 1));
+        }
+
+        lessonRepository.saveAll(lessonsToShift);
+        lesson.setPosition(requestedPosition);
     }
 
     private boolean isTheoryLesson(Lesson lesson) {

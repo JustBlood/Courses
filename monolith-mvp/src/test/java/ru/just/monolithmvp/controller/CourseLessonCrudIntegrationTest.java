@@ -178,6 +178,10 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", blockingTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
         mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", nextTheoryId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
@@ -260,9 +264,11 @@ class CourseLessonCrudIntegrationTest {
         List<LessonSubmission> autoTheorySubmissions = lessonSubmissionRepository.findAll().stream()
                 .filter(s -> s.getLesson().getId().equals(theoryLessonId) && s.getStudent().getId().equals(studentId))
                 .toList();
-        assertThat(autoTheorySubmissions).hasSize(1);
-        assertThat(autoTheorySubmissions.get(0).getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
-        assertThat(autoTheorySubmissions.get(0).getPassed()).isTrue();
+        assertThat(autoTheorySubmissions).isEmpty();
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
 
         List<LessonSubmission> afterManualComplete = lessonSubmissionRepository.findAll().stream()
                 .filter(s -> s.getLesson().getId().equals(theoryLessonId) && s.getStudent().getId().equals(studentId))
@@ -384,6 +390,10 @@ class CourseLessonCrudIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
                         .header("Authorization", "Bearer " + studentDoneToken))
                 .andExpect(status().isOk());
 
@@ -672,6 +682,10 @@ class CourseLessonCrudIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", firstTheoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryLessonId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
@@ -1111,7 +1125,7 @@ class CourseLessonCrudIntegrationTest {
 
             List<Integer> indexes = new ArrayList<>();
             for (JsonNode question : questions) {
-                int questionIndex = question.get("index").asInt();
+                int questionIndex = question.get("position").asInt();
                 indexes.add(questionIndex);
                 assertThat(questionIndex).isBetween(1, 10);
             }
@@ -1610,6 +1624,10 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
         mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", practiceLessonId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
@@ -1787,7 +1805,7 @@ class CourseLessonCrudIntegrationTest {
 
         JsonNode updatedPractice = objectMapper.readTree(updatedPracticeResponse);
         assertThat(updatedPractice.get("title").asText()).isEqualTo("Practice 1 Updated");
-        assertThat(updatedPractice.get("questions").get(0).get("index").asInt()).isEqualTo(1);
+        assertThat(updatedPractice.get("questions").get(0).get("position").asInt()).isEqualTo(1);
         assertThat(updatedPractice.get("questions").get(0).get("questionText").asText())
                 .isEqualTo("Prime numbers updated");
 
