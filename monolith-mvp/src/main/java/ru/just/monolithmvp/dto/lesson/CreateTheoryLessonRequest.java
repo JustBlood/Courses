@@ -8,6 +8,7 @@ import ru.just.monolithmvp.model.TheoryContentType;
 import java.util.Map;
 
 public record CreateTheoryLessonRequest(
+        @Min(1) Integer position,
         @NotBlank String title,
         String description,
         String coverFilePath,

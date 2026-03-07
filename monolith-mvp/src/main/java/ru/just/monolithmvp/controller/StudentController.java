@@ -144,6 +144,17 @@ public class StudentController {
         return ResponseEntity.ok(learningService.getLessonForLearner(lessonId, securityUtils.currentUserId()));
     }
 
+    @PostMapping("/lessons/{lessonId}/complete-theory")
+    @Operation(summary = "Отметить теоретический урок как пройденный")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Теоретический урок отмечен как пройденный", content = @Content(schema = @Schema(implementation = SubmissionResultDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Невозможно отметить урок", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Урок не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<SubmissionResultDto> completeTheoryLesson(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(learningService.completeTheoryLesson(lessonId, securityUtils.currentUserId()));
+    }
+
     @PostMapping("/lessons/{lessonId}/submit-practice")
     @Operation(summary = "Отправить ответы по практическому уроку")
     @ApiResponses(value = {

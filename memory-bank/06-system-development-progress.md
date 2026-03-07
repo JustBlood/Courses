@@ -25,3 +25,20 @@
 - Kept lifecycle behavior unchanged:
   - old avatar/cover files are deleted on replacement;
   - avatar/cover files are deleted on entity removal.
+
+## 2026-03-07 — Lessons DTO alignment and explicit theory completion
+
+- Unified practical question DTO naming to `position` for create/update/get and learner payloads.
+- Added lesson `position` support in create/update lesson DTOs and wired position insert/reorder behavior in lesson service.
+- Removed implicit theory completion on lesson read; introduced explicit endpoint `POST /api/v1/student/lessons/{lessonId}/complete-theory`.
+- Added configurable files framing policy for split frontend/backend deployment:
+  - `app.storage.csp-frame-ancestors` / `APP_STORAGE_CSP_FRAME_ANCESTORS`;
+  - applied `Content-Security-Policy: frame-ancestors ...` for `/files/**` responses via MVC interceptor;
+  - supports multiple allowed embedding origins via comma-separated env/property value.
+
+## 2026-03-07 — Clickjacking hardening for mixed framing requirements
+
+- Reduced clickjacking risk after introducing `/files/**` embedding support:
+  - enabled `X-Frame-Options: SAMEORIGIN` for all endpoints by default;
+  - excluded only `/files/**` from `X-Frame-Options` to avoid conflict with cross-origin embedding use case;
+  - kept `Content-Security-Policy: frame-ancestors ...` on `/files/**` as the explicit allow-list mechanism.

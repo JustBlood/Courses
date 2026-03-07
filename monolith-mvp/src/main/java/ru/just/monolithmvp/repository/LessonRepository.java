@@ -9,6 +9,8 @@ import java.util.Optional;
 
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByCourse_IdAndPositionGreaterThan(Long courseId, Integer deletingLessonPosition);
+    List<Lesson> findByCourse_IdAndPositionGreaterThanEqualOrderByPositionDesc(Long courseId, Integer position);
+    List<Lesson> findByCourse_IdAndPositionBetweenOrderByPositionAsc(Long courseId, Integer fromInclusive, Integer toInclusive);
     List<Lesson> findByCourseIdOrderByPositionAsc(Long courseId);
     Lesson findFirstByCourse_IdOrderByPositionDesc(Long courseId);
     Optional<Lesson> findFirstByCourse_IdAndPositionLessThanOrderByPositionDesc(Long courseId, Integer position);

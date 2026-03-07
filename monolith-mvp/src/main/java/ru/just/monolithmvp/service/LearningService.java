@@ -41,10 +41,6 @@ public class LearningService {
         assertStopLessonAccessAllowed(userId, lesson);
         courseService.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
 
-        if (isTheoryLesson(lesson)) {
-            completeTheoryLessonInternal(userId, lesson);
-        }
-
         LearnerLessonDto.LearnerLessonDtoBuilder learnerLessonDtoBuilder = LearnerLessonDto.builder()
                 .id(lesson.getId())
                 .position(lesson.getPosition())
@@ -69,6 +65,27 @@ public class LearningService {
                     .theoryContent(theoryLesson.getContent());
         }
         return learnerLessonDtoBuilder.build();
+    }
+
+    @Transactional
+    public SubmissionResultDto completeTheoryLesson(Long lessonId, Long userId) {
+        Lesson lesson = courseService.getLessonEntity(lessonId);
+        validateStudentEnrolled(userId, lesson.getCourse().getId());
+        assertLessonAccessAllowed(userId, lesson);
+        assertStopLessonAccessAllowed(userId, lesson);
+        courseService.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
+
+        if (!isTheoryLesson(lesson)) {
+            throw new BadRequestException("Lesson is not THEORY");
+        }
+
+        LessonSubmission submission = completeTheoryLessonInternal(userId, lesson);
+        return new SubmissionResultDto(
+                submission.getId(),
+                submission.getStatus(),
+                submission.getPassed(),
+                "Theory lesson completed"
+        );
     }
 
     private List<PracticeQuestion> selectPracticeQuestionsForAttempt(PracticeLesson practiceLesson) {
@@ -363,7 +380,7 @@ public class LearningService {
         }
 
         if (question.getQuestionType() == QuestionType.MULTIPLE_CHOICE
-                && correctAnswers.containsAll(selectedAnswers)
+                && new HashSet<>(correctAnswers).containsAll(selectedAnswers)
                 && !selectedAnswers.isEmpty()) {
             return question.getPartialPoints() == null ? 0 : question.getPartialPoints();
         }

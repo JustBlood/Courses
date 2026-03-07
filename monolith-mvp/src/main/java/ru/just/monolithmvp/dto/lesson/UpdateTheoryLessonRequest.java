@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Min;
 import ru.just.monolithmvp.model.TheoryContentType;
 
 public record UpdateTheoryLessonRequest(
+        @Min(1) Integer position,
         String title,
         String description,
         String coverFilePath,

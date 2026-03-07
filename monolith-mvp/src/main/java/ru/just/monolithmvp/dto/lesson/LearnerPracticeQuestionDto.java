@@ -5,7 +5,7 @@ import ru.just.monolithmvp.model.QuestionType;
 import java.util.List;
 
 public record LearnerPracticeQuestionDto(
-        Integer index,
+        Integer position,
         QuestionType questionType,
         String questionText,
         List<String> options,
