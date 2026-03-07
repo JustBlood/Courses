@@ -1551,6 +1551,95 @@ class CourseLessonCrudIntegrationTest {
     }
 
     @Test
+    void learner_should_be_able_to_view_already_passed_lesson_after_deadline() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("view-passed-after-deadline");
+        Long studentId = createUser(adminToken, "View Passed Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "View Passed After Deadline Course",
+                                  "description": "view checks",
+                                  "authorFullName": "Admin",
+                                  "lessonsFreeOrder": false,
+                                  "deadlineDays": 1
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String firstTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory 1",
+                                  "description": "First",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "First content",
+                                  "fullPoints": 5
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long firstTheoryId = objectMapper.readTree(firstTheoryResponse).get("id").asLong();
+
+        String secondTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory 2",
+                                  "description": "Second",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Second content",
+                                  "fullPoints": 6
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long secondTheoryId = objectMapper.readTree(secondTheoryResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        var enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
+        enrollment.setEnrolledAt(LocalDateTime.now().minusDays(2));
+        enrollmentRepository.save(enrollment);
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", firstTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", secondTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void admin_and_student_course_lesson_crud_flow_should_work() throws Exception {
         String adminToken = login("admin@local", "admin123");
 

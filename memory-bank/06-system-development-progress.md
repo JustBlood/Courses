@@ -77,3 +77,15 @@
 - Resource-impact improvement:
   - `GET /api/v1/student/courses/{courseId}` no longer computes next lesson id;
   - next lesson is computed only on `GET /api/v1/student/courses/{courseId}/lessons/next`, reducing unnecessary work for course details requests.
+
+## 2026-03-08 — Learner lesson view policy for already passed lessons
+
+- Updated learner lesson read behavior (`GET /api/v1/student/lessons/{lessonId}`):
+  - if lesson is already passed by student, access is allowed in read mode even when regular progression constraints would block new attempts;
+  - this bypass applies to strict order, stop-lesson, and course deadline checks only for already passed lessons.
+- Progression constraints remain unchanged for not-passed lessons and for completion/submission actions:
+  - still enforced for `complete-theory`, `submit-practice`, and next lesson flow.
+- Added integration test coverage:
+  - `learner_should_be_able_to_view_already_passed_lesson_after_deadline` verifies:
+    - passed lesson remains viewable after deadline;
+    - not-passed lesson is still blocked after deadline.

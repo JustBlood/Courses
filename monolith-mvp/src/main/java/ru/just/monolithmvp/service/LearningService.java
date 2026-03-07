@@ -37,9 +37,12 @@ public class LearningService {
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
         final Lesson lesson = courseService.getLessonEntity(lessonId);
         validateStudentEnrolled(userId, lesson.getCourse().getId());
-        assertLessonAccessAllowed(userId, lesson);
-        assertStopLessonAccessAllowed(userId, lesson);
-        courseService.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
+        boolean lessonAlreadyPassed = isLessonPassedByStudent(userId, lessonId);
+        if (!lessonAlreadyPassed) {
+            assertLessonAccessAllowed(userId, lesson);
+            assertStopLessonAccessAllowed(userId, lesson);
+            courseService.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
+        }
 
         LearnerLessonDto.LearnerLessonDtoBuilder learnerLessonDtoBuilder = LearnerLessonDto.builder()
                 .id(lesson.getId())
@@ -501,5 +504,11 @@ public class LearningService {
         history.setChangedAt(LocalDateTime.now());
         history.setComment(comment);
         submissionStatusHistoryRepository.save(history);
+    }
+
+    private boolean isLessonPassedByStudent(Long studentId, Long lessonId) {
+        return submissionRepository
+                .findFirstByStudentIdAndLessonIdAndPassedTrueOrderBySubmittedAtDesc(studentId, lessonId)
+                .isPresent();
     }
 }
