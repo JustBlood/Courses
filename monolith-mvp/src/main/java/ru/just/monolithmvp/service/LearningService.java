@@ -67,6 +67,15 @@ public class LearningService {
         return learnerLessonDtoBuilder.build();
     }
 
+    @Transactional(readOnly = true)
+    public LearnerLessonDto getNextLessonForLearner(Long courseId, Long userId) {
+        Long nextLessonId = courseService.findNextLessonIdForLearner(userId, courseId);
+        if (nextLessonId == null) {
+            throw new BadRequestException("No next lesson available");
+        }
+        return getLessonForLearner(nextLessonId, userId);
+    }
+
     @Transactional
     public SubmissionResultDto completeTheoryLesson(Long lessonId, Long userId) {
         Lesson lesson = courseService.getLessonEntity(lessonId);

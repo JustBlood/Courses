@@ -42,3 +42,38 @@
   - enabled `X-Frame-Options: SAMEORIGIN` for all endpoints by default;
   - excluded only `/files/**` from `X-Frame-Options` to avoid conflict with cross-origin embedding use case;
   - kept `Content-Security-Policy: frame-ancestors ...` on `/files/**` as the explicit allow-list mechanism.
+
+## 2026-03-07 — Learner course flow progress DTO and next-lesson API
+
+- Implemented learner-facing progress enrichment without changing `CourseDto`:
+  - extended `CourseLearnerDto` with `completionPercent`, `completedLessons`, `remainingLessons`, `totalLessons`, `courseCompleted`, `nextLessonId`;
+  - extended `LearnerLessonSummaryDto` with `passed`, `pointsAwarded`, `blocked`, `blockReason`.
+- Added progress/blocking calculation in `CourseService.getCourseForLearner(...)`:
+  - lesson passed rule: at least one submission with `passed=true`;
+  - `pointsAwarded` is max points among learner submissions for lesson;
+  - `completionPercent` uses floor division, and for zero-lesson course returns `100`;
+  - `nextLessonId` is first lesson that is not passed and not blocked.
+- Added block reason mapping for learner lesson summary:
+  - `PREVIOUS_LESSON_NOT_PASSED` when strict order (`lessonsFreeOrder=false`) is violated;
+  - `STOP_LESSON_BLOCK` when an earlier stop-lesson is not passed.
+- Added learner endpoint:
+  - `GET /api/v1/student/courses/{courseId}/lessons/next` returning `LearnerLessonDto`;
+  - implemented via `LearningService.getNextLessonForLearner(...)`, reusing existing access checks through `getLessonForLearner(...)`.
+- Added integration coverage in `CourseLessonCrudIntegrationTest`:
+  - course progress fields and per-lesson blocked/passed/points;
+  - next-lesson endpoint behavior before progress, after partial progress, and after full completion.
+
+## 2026-03-07 — Learner flow simplification: single source for next lesson
+
+- Optimized learner flow by removing duplicated `nextLessonId` calculation from course details payload:
+  - removed `nextLessonId` from `CourseLearnerDto`;
+  - updated integration test expectations accordingly.
+- Refactored `CourseService.getCourseForLearner(...)` into smaller focused methods:
+  - `loadSubmissionsByLessonId(...)`,
+  - `resolvePassedLessonIds(...)`,
+  - `buildLearnerLessonSummaries(...)`,
+  - `toCourseLearnerDto(...)`.
+- Added dedicated `CourseService.findNextLessonIdForLearner(...)` and switched `LearningService.getNextLessonForLearner(...)` to use it.
+- Resource-impact improvement:
+  - `GET /api/v1/student/courses/{courseId}` no longer computes next lesson id;
+  - next lesson is computed only on `GET /api/v1/student/courses/{courseId}/lessons/next`, reducing unnecessary work for course details requests.
