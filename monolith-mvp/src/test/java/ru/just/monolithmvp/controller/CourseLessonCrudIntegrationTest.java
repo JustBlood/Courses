@@ -832,6 +832,165 @@ class CourseLessonCrudIntegrationTest {
     }
 
     @Test
+    void learner_course_progress_and_next_lesson_endpoint_should_return_expected_data() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("learner-progress");
+        Long studentId = createUser(adminToken, "Learner Progress", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Learner Progress Course",
+                                  "description": "Learner progress checks",
+                                  "authorFullName": "Admin",
+                                  "lessonsFreeOrder": false,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String firstTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory 1",
+                                  "description": "First",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "First content",
+                                  "fullPoints": 5
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long firstTheoryId = objectMapper.readTree(firstTheoryResponse).get("id").asLong();
+
+        String secondTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory 2",
+                                  "description": "Second",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Second content",
+                                  "fullPoints": 6
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long secondTheoryId = objectMapper.readTree(secondTheoryResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String learnerCourseBefore = mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode learnerCourseBeforeNode = objectMapper.readTree(learnerCourseBefore);
+
+        assertThat(learnerCourseBeforeNode.get("completionPercent").asInt()).isEqualTo(0);
+        assertThat(learnerCourseBeforeNode.get("completedLessons").asInt()).isEqualTo(0);
+        assertThat(learnerCourseBeforeNode.get("remainingLessons").asInt()).isEqualTo(2);
+        assertThat(learnerCourseBeforeNode.get("totalLessons").asInt()).isEqualTo(2);
+        assertThat(learnerCourseBeforeNode.get("courseCompleted").asBoolean()).isFalse();
+
+        JsonNode lessonsBefore = learnerCourseBeforeNode.get("lessons");
+        assertThat(lessonsBefore.size()).isEqualTo(2);
+        assertThat(lessonsBefore.get(0).get("id").asLong()).isEqualTo(firstTheoryId);
+        assertThat(lessonsBefore.get(0).get("passed").asBoolean()).isFalse();
+        assertThat(lessonsBefore.get(0).get("blocked").asBoolean()).isFalse();
+        assertThat(lessonsBefore.get(0).get("pointsAwarded").asInt()).isEqualTo(0);
+
+        assertThat(lessonsBefore.get(1).get("id").asLong()).isEqualTo(secondTheoryId);
+        assertThat(lessonsBefore.get(1).get("passed").asBoolean()).isFalse();
+        assertThat(lessonsBefore.get(1).get("blocked").asBoolean()).isTrue();
+        assertThat(lessonsBefore.get(1).get("blockReason").asText()).isEqualTo("PREVIOUS_LESSON_NOT_PASSED");
+
+        String nextLessonBefore = mockMvc.perform(get("/api/v1/student/courses/{courseId}/lessons/next", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(objectMapper.readTree(nextLessonBefore).get("id").asLong()).isEqualTo(firstTheoryId);
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        String learnerCourseMid = mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode learnerCourseMidNode = objectMapper.readTree(learnerCourseMid);
+
+        assertThat(learnerCourseMidNode.get("completionPercent").asInt()).isEqualTo(50);
+        assertThat(learnerCourseMidNode.get("completedLessons").asInt()).isEqualTo(1);
+        assertThat(learnerCourseMidNode.get("remainingLessons").asInt()).isEqualTo(1);
+        assertThat(learnerCourseMidNode.get("courseCompleted").asBoolean()).isFalse();
+
+        JsonNode lessonsMid = learnerCourseMidNode.get("lessons");
+        assertThat(lessonsMid.get(0).get("passed").asBoolean()).isTrue();
+        assertThat(lessonsMid.get(0).get("pointsAwarded").asInt()).isEqualTo(5);
+        assertThat(lessonsMid.get(0).get("blocked").asBoolean()).isFalse();
+        assertThat(lessonsMid.get(1).get("blocked").asBoolean()).isFalse();
+
+        String nextLessonMid = mockMvc.perform(get("/api/v1/student/courses/{courseId}/lessons/next", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(objectMapper.readTree(nextLessonMid).get("id").asLong()).isEqualTo(secondTheoryId);
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", secondTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        String learnerCourseAfter = mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode learnerCourseAfterNode = objectMapper.readTree(learnerCourseAfter);
+
+        assertThat(learnerCourseAfterNode.get("completionPercent").asInt()).isEqualTo(100);
+        assertThat(learnerCourseAfterNode.get("completedLessons").asInt()).isEqualTo(2);
+        assertThat(learnerCourseAfterNode.get("remainingLessons").asInt()).isEqualTo(0);
+        assertThat(learnerCourseAfterNode.get("courseCompleted").asBoolean()).isTrue();
+
+        mockMvc.perform(get("/api/v1/student/courses/{courseId}/lessons/next", courseId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void practice_lesson_should_support_all_question_types_and_partial_scoring() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
@@ -1388,6 +1547,95 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(successfulAttemptPayload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void learner_should_be_able_to_view_already_passed_lesson_after_deadline() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("view-passed-after-deadline");
+        Long studentId = createUser(adminToken, "View Passed Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "View Passed After Deadline Course",
+                                  "description": "view checks",
+                                  "authorFullName": "Admin",
+                                  "lessonsFreeOrder": false,
+                                  "deadlineDays": 1
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String firstTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory 1",
+                                  "description": "First",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "First content",
+                                  "fullPoints": 5
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long firstTheoryId = objectMapper.readTree(firstTheoryResponse).get("id").asLong();
+
+        String secondTheoryResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Theory 2",
+                                  "description": "Second",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Second content",
+                                  "fullPoints": 6
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long secondTheoryId = objectMapper.readTree(secondTheoryResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        var enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
+        enrollment.setEnrolledAt(LocalDateTime.now().minusDays(2));
+        enrollmentRepository.save(enrollment);
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", firstTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", secondTheoryId)
+                        .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isBadRequest());
     }
 

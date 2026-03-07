@@ -134,6 +134,17 @@ public class StudentController {
         return ResponseEntity.ok(courseService.getCourseForLearner(securityUtils.currentUserId(), courseId));
     }
 
+    @GetMapping("/courses/{courseId}/lessons/next")
+    @Operation(summary = "Получить следующий доступный урок для прохождения")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Следующий доступный урок", content = @Content(schema = @Schema(implementation = LearnerLessonDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Следующий урок отсутствует", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден или недоступен", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<LearnerLessonDto> nextLessonForLearner(@PathVariable Long courseId) {
+        return ResponseEntity.ok(learningService.getNextLessonForLearner(courseId, securityUtils.currentUserId()));
+    }
+
     @GetMapping("/lessons/{lessonId}")
     @Operation(summary = "Получить урок для прохождения")
     @ApiResponses(value = {

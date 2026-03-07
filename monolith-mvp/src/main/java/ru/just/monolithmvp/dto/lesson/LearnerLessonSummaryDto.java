@@ -6,6 +6,10 @@ public record LearnerLessonSummaryDto(
         Long id,
         Integer position,
         String title,
-        LessonType lessonType
+        LessonType lessonType,
+        Boolean passed,
+        Integer pointsAwarded,
+        Boolean blocked,
+        String blockReason
 ) {
 }
