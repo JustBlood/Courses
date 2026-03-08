@@ -239,3 +239,34 @@
 - Noted behavioral caveat for current implementation:
   - in open rework resubmit, only questions with previous `REWORK` (or missing/pending status) are reset to `PENDING_REVIEW` and have answers replaced;
   - previously accepted/rejected questions keep prior reviewer decision and answer snapshot in questionProgress.
+
+## 2026-03-09 — ADHOC open-lesson rework: TASK-05 submit flow closure
+
+- Closed remaining TASK-05 gaps in `LearningService.submitPractice(...)`:
+  - test practice path switched to true single-record upsert via `findWithLockingByStudentIdAndLessonId(...)`;
+  - explicit finalized submission guard added (`completed=true` blocks any new submit);
+  - test lesson awarded points switched to binary model (`lesson.fullPoints` or `0`), while per-question points remain in `questionProgress` only;
+  - attempt counting for both open and test paths now increments in the same submission record.
+
+- Implemented strict MULTIPLE_CHOICE partial rule per TASK-01 contract:
+  - `PARTIAL` only when `wrongSelected <= 1` and `missedCorrect <= 1`;
+  - otherwise `ZERO`.
+
+- Updated attempt/time-limit checks to align with single-submission model:
+  - attempt limit now uses `attemptCounter` from the single submission record;
+  - practice time-limit baseline now reads from the same record (`submittedAt`) with null-safe handling.
+
+- Added focused integration coverage for TASK-05:
+  - new `Task05SubmitFlowIntegrationTest` verifies:
+    - test submit upsert semantics and finalized-submit rejection,
+    - strict MULTIPLE_CHOICE partial vs zero behavior through API outcomes.
+
+- Target-flow converter policy:
+  - removed temporary legacy parsing fallback from `QuestionProgressJsonConverter`;
+  - converter now deserializes only the target payload shape (JSON array of `QuestionProgress`).
+
+- Test alignment for target converter flow:
+  - `Task05SubmitFlowIntegrationTest` now aligns H2 column type for `question_progress_json` before each test (`varchar`) to keep the test runtime consistent with converter target contract and avoid H2 JSON-wrapper behavior.
+
+- Build/test verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task05SubmitFlowIntegrationTest test` → **BUILD SUCCESS**.

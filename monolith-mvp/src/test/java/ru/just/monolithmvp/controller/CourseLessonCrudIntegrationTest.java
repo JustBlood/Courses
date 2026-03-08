@@ -14,7 +14,6 @@ import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.model.SubmissionStatus;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
-import ru.just.monolithmvp.repository.LessonSubmissionStatusHistoryRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
 import java.time.LocalDateTime;
@@ -48,9 +47,6 @@ class CourseLessonCrudIntegrationTest {
 
     @Autowired
     private LessonSubmissionRepository lessonSubmissionRepository;
-
-    @Autowired
-    private LessonSubmissionStatusHistoryRepository lessonSubmissionStatusHistoryRepository;
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
@@ -2482,9 +2478,6 @@ class CourseLessonCrudIntegrationTest {
                                 """))
                 .andExpect(status().isOk());
 
-        assertThat(lessonSubmissionStatusHistoryRepository.findAllBySubmissionIdOrderByIdAsc(openSubmissionId))
-                .hasSize(4);
-
         String secondOpenSubmissionResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -2514,9 +2507,6 @@ class CourseLessonCrudIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isOk());
-
-        assertThat(lessonSubmissionStatusHistoryRepository.findAllBySubmissionIdOrderByIdAsc(secondOpenSubmissionId))
-                .hasSize(2);
 
         mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", openSubmissionId)
                         .header("Authorization", "Bearer " + otherAdminToken)

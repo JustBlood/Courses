@@ -28,7 +28,7 @@ public class QuestionProgressJsonConverter implements AttributeConverter<List<Qu
             return new ArrayList<>();
         }
         try {
-            return OBJECT_MAPPER.readValue(dbData, new TypeReference<>() {
+            return OBJECT_MAPPER.readValue(dbData.trim(), new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Failed to deserialize question progress json", e);
