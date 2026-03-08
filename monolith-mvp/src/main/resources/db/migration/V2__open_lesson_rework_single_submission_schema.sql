@@ -1,8 +1,7 @@
 -- TASK-02: single-submission progress model for lessons
 
 -- 1) lesson_submissions: extend to store per-question progress in one JSON payload
-alter table lesson_submissions
-    add column completed boolean not null default false;
+alter table lesson_submissions rename column passed to completed;
 
 alter table lesson_submissions
     add column question_progress_json jsonb;

@@ -1108,7 +1108,7 @@ class CourseLessonCrudIntegrationTest {
                 .orElseThrow();
 
         assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
-        assertThat(submission.getPassed()).isTrue();
+        assertThat(submission.getCompleted()).isTrue();
         assertThat(submission.getPointsAwarded()).isEqualTo(3);
 
         String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")

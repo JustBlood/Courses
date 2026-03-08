@@ -13,8 +13,9 @@ import java.util.Optional;
 public interface LessonSubmissionRepository extends JpaRepository<LessonSubmission, Long> {
     List<LessonSubmission> findAllByStatusAndLessonCourseIdIn(SubmissionStatus status, List<Long> courseId);
     List<LessonSubmission> findByStudentIdAndLessonCourseId(Long studentId, Long courseId);
+    Optional<LessonSubmission> findByStudentIdAndLessonId(Long studentId, Long lessonId);
 
-    Optional<LessonSubmission> findFirstByStudentIdAndLessonIdAndPassedTrueOrderBySubmittedAtDesc(Long studentId,
+    Optional<LessonSubmission> findFirstByStudentIdAndLessonIdAndCompletedTrueOrderBySubmittedAtDesc(Long studentId,
                                                                                                     Long lessonId);
     Optional<LessonSubmission> findFirstByStudentIdAndLessonIdAndStatusOrderBySubmittedAtDesc(Long studentId,
                                                                                                 Long lessonId,
@@ -22,11 +23,11 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     long countByStudentIdAndLessonId(Long studentId, Long lessonId);
     Optional<LessonSubmission> findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(Long studentId, Long lessonId);
 
-    @Query("select count(distinct s.lesson.id) from LessonSubmission s where s.student.id = :studentId and s.lesson.course.id = :courseId and s.passed = true")
-    long countDistinctPassedLessons(Long studentId, Long courseId);
+    @Query("select count(distinct s.lesson.id) from LessonSubmission s where s.student.id = :studentId and s.lesson.course.id = :courseId and s.completed = true")
+    long countDistinctCompletedLessons(Long studentId, Long courseId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<LessonSubmission> findWithLockingById(Long id);
+    Optional<LessonSubmission> findWithLockingByStudentIdAndLessonId(Long studentId, Long lessonId);
 
     void deleteByStudentId(Long studentId);
     void deleteByLesson_Course_Id(Long courseId);

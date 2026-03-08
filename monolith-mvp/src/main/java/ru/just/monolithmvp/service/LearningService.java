@@ -29,7 +29,6 @@ public class LearningService {
     private final LessonSubmissionRepository submissionRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AppUserRepository userRepository;
-    private final LessonSubmissionStatusHistoryRepository submissionStatusHistoryRepository;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
     private final ProgramService programService;
@@ -96,7 +95,7 @@ public class LearningService {
         return new SubmissionResultDto(
                 submission.getId(),
                 submission.getStatus(),
-                submission.getPassed(),
+                submission.getCompleted(),
                 "Theory lesson completed"
         );
     }
@@ -164,7 +163,7 @@ public class LearningService {
 
             submission.setAnswerRaw(serializeAnswersByQuestion(answersByQuestion));
             submission.setStatus(SubmissionStatus.PENDING_REVIEW);
-            submission.setPassed(false);
+            submission.setCompleted(false);
             submission.setPointsAwarded(0);
             submission.setSubmittedAt(LocalDateTime.now());
             submission.setReviewedByAdminId(null);
@@ -172,7 +171,6 @@ public class LearningService {
             submission.setReviewComment(null);
 
             submission = submissionRepository.save(submission);
-            saveSubmissionStatusHistory(submission, previousStatus, SubmissionStatus.PENDING_REVIEW, null, null);
             return new SubmissionResultDto(
                     submission.getId(),
                     submission.getStatus(),
@@ -206,7 +204,7 @@ public class LearningService {
 
         submission.setAnswerRaw(serializeAnswersByQuestion(answersByQuestion));
         submission.setStatus(passed ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        submission.setPassed(passed);
+        submission.setCompleted(passed);
         submission.setPointsAwarded(pointsAwarded);
         submission = submissionRepository.save(submission);
         if (passed) {
@@ -216,7 +214,7 @@ public class LearningService {
         return new SubmissionResultDto(
                 submission.getId(),
                 submission.getStatus(),
-                submission.getPassed(),
+                submission.getCompleted(),
                 passed ? "Practice completed" : "Practice is not completed"
         );
     }
@@ -244,7 +242,7 @@ public class LearningService {
     @Transactional
     public SubmissionResultDto reviewOpenSubmission(Long submissionId, ReviewOpenSubmissionRequest request) {
         Long reviewerId = securityUtils.currentUserId();
-        LessonSubmission submission = submissionRepository.findWithLockingById(submissionId)
+        LessonSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new NotFoundException("Submission not found: " + submissionId));
 
         SubmissionStatus previousStatus = submission.getStatus();
@@ -258,7 +256,7 @@ public class LearningService {
         }
 
         boolean finalPassed = request.passed();
-        SubmissionStatus finalStatus = request.passed() ? SubmissionStatus.ACCEPTED : SubmissionStatus.INCOMPLETE;
+        SubmissionStatus finalStatus = request.passed() ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE;
         if (request.toNextReview()) {
             finalStatus = SubmissionStatus.REWORK;
             finalPassed = false;
@@ -269,7 +267,7 @@ public class LearningService {
                     : submission.getLesson().getFullPoints()
                 : 0;
 
-        submission.setPassed(finalPassed);
+        submission.setCompleted(finalPassed);
         submission.setStatus(finalStatus);
         submission.setPointsAwarded(pointsAwarded);
         submission.setReviewComment(request.comment());
@@ -277,7 +275,6 @@ public class LearningService {
         submission.setReviewedAt(LocalDateTime.now());
 
         submission = submissionRepository.save(submission);
-        saveSubmissionStatusHistory(submission, previousStatus, finalStatus, reviewerId, request.comment());
         if (finalPassed) {
             markEnrollmentCompletedIfDone(submission.getStudent().getId(), submission.getLesson().getCourse().getId());
         }
@@ -296,7 +293,7 @@ public class LearningService {
         return new SubmissionResultDto(
                 submission.getId(),
                 submission.getStatus(),
-                submission.getPassed(),
+                submission.getCompleted(),
                 "Submission reviewed"
         );
     }
@@ -335,7 +332,7 @@ public class LearningService {
             return;
         }
 
-        boolean hasBlockingStopLesson = lessonRepository.existsUnpassedStopLessonBeforePosition(
+        boolean hasBlockingStopLesson = lessonRepository.existsUncompletedStopLessonBeforePosition(
                 lesson.getCourse().getId(),
                 studentId,
                 lesson.getPosition()
@@ -371,7 +368,7 @@ public class LearningService {
         submission.setLesson(lesson);
         submission.setStudent(getStudent(studentId));
         submission.setStatus(SubmissionStatus.COMPLETE);
-        submission.setPassed(true);
+        submission.setCompleted(true);
         submission.setPointsAwarded(lesson.getFullPoints());
         submission.setSubmittedAt(LocalDateTime.now());
 
@@ -523,21 +520,6 @@ public class LearningService {
         if (LocalDateTime.now().isAfter(deadlineAt)) {
             throw new BadRequestException("Time limit exceeded for this lesson");
         }
-    }
-
-    private void saveSubmissionStatusHistory(LessonSubmission submission,
-                                             SubmissionStatus fromStatus,
-                                             SubmissionStatus toStatus,
-                                             Long changedByAdminId,
-                                             String comment) {
-        LessonSubmissionStatusHistory history = new LessonSubmissionStatusHistory();
-        history.setSubmission(submission);
-        history.setFromStatus(fromStatus);
-        history.setToStatus(toStatus);
-        history.setChangedByAdminId(changedByAdminId);
-        history.setChangedAt(LocalDateTime.now());
-        history.setComment(comment);
-        submissionStatusHistoryRepository.save(history);
     }
 
     private boolean isLessonPassedByStudent(Long studentId, Long lessonId) {

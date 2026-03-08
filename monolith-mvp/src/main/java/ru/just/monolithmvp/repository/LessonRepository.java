@@ -28,8 +28,8 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
                     from LessonSubmission s
                     where s.lesson.id = l.id
                       and s.student.id = :studentId
-                      and s.passed = true
+                      and s.completed = true
               )
             """)
-    boolean existsUnpassedStopLessonBeforePosition(Long courseId, Long studentId, Integer targetPosition);
+    boolean existsUncompletedStopLessonBeforePosition(Long courseId, Long studentId, Integer targetPosition);
 }

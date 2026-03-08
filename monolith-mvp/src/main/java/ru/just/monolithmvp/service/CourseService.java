@@ -275,7 +275,7 @@ public class CourseService {
 
     private Set<Long> resolvePassedLessonIds(Map<Long, List<LessonSubmission>> submissionsByLessonId) {
         return submissionsByLessonId.entrySet().stream()
-                .filter(entry -> entry.getValue().stream().anyMatch(submission -> Boolean.TRUE.equals(submission.getPassed())))
+                .filter(entry -> entry.getValue().stream().anyMatch(submission -> Boolean.TRUE.equals(submission.getCompleted())))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }

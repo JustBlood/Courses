@@ -153,3 +153,28 @@
 - Migration policy decision (explicit):
   - no automatic deduplication is performed before unique index creation;
   - migration is allowed to fail on duplicate historical submissions, as agreed.
+
+## 2026-03-08 — ADHOC open-lesson rework: TASK-03 domain/entity/repository alignment
+
+- Updated lesson submission domain model for single-record flow:
+  - `LessonSubmission` now contains lifecycle field `completed`;
+  - added `questionProgress` mapped to `question_progress_json` via JPA converter;
+  - added `attemptCounter` field for attempt tracking in same record;
+  - kept `passed`/`pointsAwarded` for compatibility with current dependent services until next tasks.
+- Added new question-level domain types:
+  - `QuestionPointsType` (`FULL`, `PARTIAL`, `ZERO`),
+  - `OpenReviewStatus` (`PENDING_REVIEW`, `ACCEPTED`, `REWORK`, `REJECTED`),
+  - `QuestionProgress` (answer/points/review snapshot per question),
+  - `QuestionProgressJsonConverter` for JSON serialization/deserialization.
+- Removed obsolete status history layer:
+  - deleted `LessonSubmissionStatusHistory` model,
+  - deleted `LessonSubmissionStatusHistoryRepository`,
+  - removed `saveSubmissionStatusHistory(...)` usage from `LearningService`.
+- Updated enums/repository contracts for new flow direction:
+  - removed obsolete lesson-level `SubmissionStatus.ACCEPTED`;
+  - review transition now uses `COMPLETE` instead of `ACCEPTED`;
+  - `LessonSubmissionRepository` enriched with single-record methods:
+    - `findByStudentIdAndLessonId(...)`,
+    - `findWithLockingByStudentIdAndLessonId(...)`.
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → `BUILD SUCCESS`.
