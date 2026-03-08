@@ -19,6 +19,7 @@ import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -141,9 +142,11 @@ public class LearningService {
         LessonSubmission submission;
         markEnrollmentStarted(studentId, lesson.getCourse().getId());
 
+        Map<Integer, List<String>> answersByQuestion = validateAndNormalizeAnswersByQuestion(practiceLesson, request);
+
         if (lesson.getLessonType() == LessonType.PRACTICE_OPEN_ANSWER) {
-            if (request.openAnswer() == null || request.openAnswer().isBlank()) {
-                throw new BadRequestException("openAnswer is required for assignment task");
+            if (practiceLesson.getQuestions().stream().anyMatch(q -> q.getQuestionType() != QuestionType.OPEN_ANSWER)) {
+                throw new BadRequestException("PRACTICE_OPEN_ANSWER lesson must contain only OPEN_ANSWER questions");
             }
 
             Optional<LessonSubmission> reworkSubmission = submissionRepository
@@ -159,7 +162,7 @@ public class LearningService {
                 submission.setStudent(getStudent(studentId));
             }
 
-            submission.setAnswerRaw(request.openAnswer());
+            submission.setAnswerRaw(serializeAnswersByQuestion(answersByQuestion));
             submission.setStatus(SubmissionStatus.PENDING_REVIEW);
             submission.setPassed(false);
             submission.setPointsAwarded(0);
@@ -183,7 +186,9 @@ public class LearningService {
         submission.setStudent(getStudent(studentId));
         submission.setSubmittedAt(LocalDateTime.now());
 
-        Map<Integer, List<String>> answersByQuestion = resolveAnswersByQuestion(practiceLesson, request);
+        if (practiceLesson.getQuestions().stream().anyMatch(q -> q.getQuestionType() == QuestionType.OPEN_ANSWER)) {
+            throw new BadRequestException("PRACTICE_TEST lesson must contain only test questions");
+        }
 
         int pointsAwarded = 0;
         for (PracticeQuestion question : practiceLesson.getQuestions()) {
@@ -191,10 +196,7 @@ public class LearningService {
                 continue;
             }
             
-            List<String> selectedAnswers = normalizeList(answersByQuestion.get(question.getQuestionIndex()));
-            if (selectedAnswers.isEmpty()) {
-                continue;
-            }
+            List<String> selectedAnswers = answersByQuestion.get(question.getQuestionIndex());
 
             List<String> correctAnswers = normalizeList(splitRaw(question.getCorrectAnswersRaw()));
             pointsAwarded += scoreQuestion(question, selectedAnswers, correctAnswers);
@@ -400,21 +402,53 @@ public class LearningService {
         return 0;
     }
 
-    private Map<Integer, List<String>> resolveAnswersByQuestion(PracticeLesson lesson, PracticeSubmissionRequest request) {
-        if (request.questionAnswers() != null && !request.questionAnswers().isEmpty()) {
-            return request.questionAnswers();
+    private Map<Integer, List<String>> validateAndNormalizeAnswersByQuestion(PracticeLesson lesson,
+                                                                             PracticeSubmissionRequest request) {
+        Map<Integer, List<String>> incoming = request.questionAnswers();
+        if (incoming == null || incoming.isEmpty()) {
+            throw new BadRequestException("questionAnswers is required");
         }
 
-        if (request.selectedAnswers() == null || request.selectedAnswers().isEmpty()) {
-            throw new BadRequestException("selectedAnswers or questionAnswers is required for choice tasks");
+        if (lesson.getQuestions() == null || lesson.getQuestions().isEmpty()) {
+            throw new BadRequestException("Practice lesson has no questions");
         }
 
-        PracticeQuestion firstQuestion = lesson.getQuestions().stream()
-                .filter(q -> QuestionType.TEST_QUESTIONS.contains(q.getQuestionType()))
-                .min(Comparator.comparing(PracticeQuestion::getQuestionIndex))
-                .orElseThrow(() -> new BadRequestException("Practice lesson has no test questions"));
+        Set<Integer> lessonQuestionIndexes = lesson.getQuestions().stream()
+                .map(PracticeQuestion::getQuestionIndex)
+                .collect(Collectors.toSet());
 
-        return Map.of(firstQuestion.getQuestionIndex(), request.selectedAnswers());
+        Set<Integer> incomingQuestionIndexes = incoming.keySet();
+        if (!lessonQuestionIndexes.equals(incomingQuestionIndexes)) {
+            throw new BadRequestException("questionAnswers must contain answers for all lesson questions and only for them");
+        }
+
+        Map<Integer, PracticeQuestion> questionsByIndex = lesson.getQuestions().stream()
+                .collect(Collectors.toMap(PracticeQuestion::getQuestionIndex, q -> q));
+
+        Map<Integer, List<String>> normalized = new HashMap<>();
+        for (Integer questionIndex : lessonQuestionIndexes) {
+            PracticeQuestion question = questionsByIndex.get(questionIndex);
+            List<String> answers = normalizeList(incoming.get(questionIndex));
+            if (answers.isEmpty()) {
+                throw new BadRequestException("Each question must have a non-empty answer list");
+            }
+
+            if (question.getQuestionType() == QuestionType.OPEN_ANSWER) {
+                if (answers.size() != 1) {
+                    throw new BadRequestException("OPEN_ANSWER question must have exactly one answer");
+                }
+                normalized.put(questionIndex, answers);
+                continue;
+            }
+
+            if (question.getQuestionType() == QuestionType.SINGLE_CHOICE && answers.size() != 1) {
+                throw new BadRequestException("SINGLE_CHOICE question must have exactly one selected answer");
+            }
+
+            normalized.put(questionIndex, answers);
+        }
+
+        return normalized;
     }
 
     private String serializeAnswersByQuestion(Map<Integer, List<String>> answersByQuestion) {

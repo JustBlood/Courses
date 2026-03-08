@@ -1927,7 +1927,9 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "openAnswer": "My open answer"
+                                  "questionAnswers": {
+                                    "1": ["My open answer"]
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -2306,7 +2308,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "openAnswer": "ignored"
+                                  "questionAnswers": {}
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -2354,7 +2356,7 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "selectedAnswers": ["x"]
+                                  "questionAnswers": {}
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -2364,7 +2366,9 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "openAnswer": "My detailed answer"
+                                  "questionAnswers": {
+                                    "1": ["My detailed answer"]
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -2443,7 +2447,9 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "openAnswer": "My detailed answer v2"
+                                  "questionAnswers": {
+                                    "1": ["My detailed answer v2"]
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -2484,7 +2490,9 @@ class CourseLessonCrudIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "openAnswer": "Brand new answer"
+                                  "questionAnswers": {
+                                    "1": ["Brand new answer"]
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -2522,6 +2530,142 @@ class CourseLessonCrudIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void open_practice_with_multiple_questions_should_require_full_question_answers_and_be_reviewed_as_single_submission() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("multi-open-student");
+        Long studentId = createUser(adminToken, "Multi Open Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String reviewerEmail = uniqueEmail("multi-open-reviewer");
+        Long reviewerId = createUser(adminToken, "Multi Open Reviewer", reviewerEmail, "ADMIN");
+        String reviewerToken = setPasswordAndLogin(reviewerId, reviewerEmail, "Admin123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Multi Open Course",
+                                  "description": "Multiple open questions",
+                                  "authorFullName": "Admin",
+                                  "passingThresholdPercent": 70,
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        String openPracticeResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/practice", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Open Practice Multi",
+                                  "description": "Two open questions",
+                                  "lessonType": "PRACTICE_OPEN_ANSWER",
+                                  "fullPoints": 8,
+                                  "partialPoints": 3,
+                                  "questions": [
+                                    {
+                                      "position": 1,
+                                      "questionType": "OPEN_ANSWER",
+                                      "questionText": "Explain JVM",
+                                      "trainerHint": "Details",
+                                      "fullPoints": 4,
+                                      "partialPoints": 2
+                                    },
+                                    {
+                                      "position": 2,
+                                      "questionType": "OPEN_ANSWER",
+                                      "questionText": "Explain JIT",
+                                      "trainerHint": "Details",
+                                      "fullPoints": 4,
+                                      "partialPoints": 1
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long openPracticeLessonId = objectMapper.readTree(openPracticeResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["Only first answer"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        String submissionResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", openPracticeLessonId)
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionAnswers": {
+                                    "1": ["First open answer"],
+                                    "2": ["Second open answer"]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long submissionId = objectMapper.readTree(submissionResponse).get("submissionId").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/reviewers", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(reviewerId)))
+                .andExpect(status().isOk());
+
+        String reviewResponse = mockMvc.perform(post("/api/v1/admin/progress/reviews/{submissionId}", submissionId)
+                        .header("Authorization", "Bearer " + reviewerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "passed": true,
+                                  "partialPoints": false,
+                                  "toNextReview": false,
+                                  "comment": "Approved"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode review = objectMapper.readTree(reviewResponse);
+        assertThat(review.get("status").asText()).isEqualTo("ACCEPTED");
+        assertThat(review.get("passed").asBoolean()).isTrue();
     }
 
     @Test

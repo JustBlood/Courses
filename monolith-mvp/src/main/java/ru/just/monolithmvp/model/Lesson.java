@@ -40,20 +40,20 @@ public class Lesson {
     private LessonType lessonType;
 
     @Column(nullable = false)
-    private Integer fullPoints = 1; // TODO: добавить в логику сервисов
+    private Integer fullPoints = 1;
 
     @Column(nullable = false)
-    private Integer partialPoints = 0; // TODO: добавить в логику сервисов
+    private Integer partialPoints = 0;
 
     @Column(nullable = false)
-    private Boolean stopLesson = false; // TODO: добавить в логику сервисов
+    private Boolean stopLesson = false;
 
     @Column(nullable = false)
-    private Boolean blockedDuringAttempt = true; // TODO: добавить в логику сервисов
+    private Boolean blockedDuringAttempt = true;
 
     @Column
-    private Integer attemptLimit; // TODO: добавить в логику сервисов
+    private Integer attemptLimit;
 
     @Column
-    private Integer timeLimitMinutes; // TODO: добавить в логику сервисов
+    private Integer timeLimitMinutes;
 }

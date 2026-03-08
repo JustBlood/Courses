@@ -950,6 +950,20 @@ public class CourseService {
                 throw new BadRequestException("question position must be >= 1");
             }
         }
+
+        boolean hasOpenQuestions = request.questions().stream().anyMatch(q -> q.questionType() == QuestionType.OPEN_ANSWER);
+        boolean hasTestQuestions = request.questions().stream().anyMatch(q -> QuestionType.TEST_QUESTIONS.contains(q.questionType()));
+        if (hasOpenQuestions && hasTestQuestions) {
+            throw new BadRequestException("Practice lesson must contain either only OPEN_ANSWER or only test questions");
+        }
+
+        if (request.lessonType() == LessonType.PRACTICE_OPEN_ANSWER && hasTestQuestions) {
+            throw new BadRequestException("PRACTICE_OPEN_ANSWER lesson must contain only OPEN_ANSWER questions");
+        }
+
+        if (request.lessonType() == LessonType.PRACTICE_TEST && hasOpenQuestions) {
+            throw new BadRequestException("PRACTICE_TEST lesson must contain only test questions");
+        }
     }
 
     public List<String> splitRaw(String raw) {

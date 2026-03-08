@@ -89,3 +89,29 @@
   - `learner_should_be_able_to_view_already_passed_lesson_after_deadline` verifies:
     - passed lesson remains viewable after deadline;
     - not-passed lesson is still blocked after deadline.
+
+## 2026-03-08 — Practice submission contract hardening and multi-open review flow
+
+- Unified student practice submission contract to a single payload field:
+  - `PracticeSubmissionRequest` now contains only `questionAnswers` (`questionIndex -> List<String>`).
+  - Removed legacy `openAnswer` and `selectedAnswers` usage from backend flow.
+- Hardened submission validation in `LearningService.submitPractice(...)`:
+  - `questionAnswers` is mandatory;
+  - payload must contain answers for all lesson questions and only for them;
+  - each question must have non-empty answer list;
+  - `SINGLE_CHOICE` must contain exactly one selected answer;
+  - `OPEN_ANSWER` must contain exactly one textual answer.
+- Enforced strict lesson/question type consistency:
+  - `PRACTICE_OPEN_ANSWER` accepts only `OPEN_ANSWER` questions;
+  - `PRACTICE_TEST` accepts only test question types;
+  - mixed test/open question pools in one practice lesson are rejected at lesson create/update validation.
+- Extended open-practice workflow to support multiple open questions in one lesson:
+  - student submits all open-question answers via full `questionAnswers` map;
+  - answers are stored as serialized per-question map in single submission;
+  - admin review remains submission-level (review of whole lesson attempt).
+- Updated integration tests accordingly:
+  - replaced old `openAnswer`/`selectedAnswers` payloads with `questionAnswers`;
+  - added dedicated test `open_practice_with_multiple_questions_should_require_full_question_answers_and_be_reviewed_as_single_submission`.
+- Verification:
+  - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test -DskipITs`
+  - result: **BUILD SUCCESS**, tests run: 17, failures: 0, errors: 0.
