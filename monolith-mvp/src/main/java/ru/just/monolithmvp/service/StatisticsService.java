@@ -58,7 +58,7 @@ public class StatisticsService {
         return enrollmentRepository.findByCourseId(courseId).stream()
                 .map(e -> {
                     int earned = earnedPoints(e.getUser().getId(), courseId);
-                    long completed = submissionRepository.countDistinctPassedLessons(e.getUser().getId(), courseId);
+                    long completed = submissionRepository.countDistinctCompletedLessons(e.getUser().getId(), courseId);
                     double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
                     double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
                     return new CourseStudentStatDto(
@@ -201,7 +201,7 @@ public class StatisticsService {
         for (Enrollment enrollment : enrollments) {
             Long userId = enrollment.getUser().getId();
             int earned = earnedPoints(userId, courseId);
-            long completed = submissionRepository.countDistinctPassedLessons(userId, courseId);
+            long completed = submissionRepository.countDistinctCompletedLessons(userId, courseId);
             double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
             double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
 
@@ -261,7 +261,7 @@ public class StatisticsService {
         Long courseId = e.getCourse().getId();
         int maxPoints = maxPoints(courseId);
         int earned = earnedPoints(userId, courseId);
-        long completed = submissionRepository.countDistinctPassedLessons(userId, courseId);
+        long completed = submissionRepository.countDistinctCompletedLessons(userId, courseId);
         long totalLessons = lessonRepository.countByCourseId(courseId);
         double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
         double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;

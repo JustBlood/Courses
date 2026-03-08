@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.course.CourseSummaryDto;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
+import ru.just.monolithmvp.dto.learning.PendingSubmissionQuestionDto;
 import ru.just.monolithmvp.dto.learning.ReviewOpenSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
@@ -39,12 +40,23 @@ public class ProgressController {
     private final StatisticsService statisticsService;
 
     @GetMapping("/reviews/pending")
-    @Operation(summary = "Получить pending ответы для ручной проверки")
+    @Operation(summary = "Получить pending submissions по open-урокам для ручной проверки")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список ответов для проверки", content = @Content(schema = @Schema(implementation = PendingSubmissionDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список submissions для проверки по урокам", content = @Content(schema = @Schema(implementation = PendingSubmissionDto.class)))
     })
     public ResponseEntity<List<PendingSubmissionDto>> pendingReviews() {
         return ResponseEntity.ok(learningService.getPendingReviews());
+    }
+
+    @GetMapping("/reviews/pending/{submissionId}")
+    @Operation(summary = "Получить вопросы open-урока для детального ревью")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список вопросов submission для ревью", content = @Content(schema = @Schema(implementation = PendingSubmissionQuestionDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Submission уже финализирован или не является open-уроком", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Submission не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<List<PendingSubmissionQuestionDto>> pendingReviewQuestions(@PathVariable Long submissionId) {
+        return ResponseEntity.ok(learningService.getPendingReviewQuestions(submissionId));
     }
 
     @GetMapping("/reviews/courses")
@@ -57,7 +69,7 @@ public class ProgressController {
     }
 
     @PostMapping("/reviews/{submissionId}")
-    @Operation(summary = "Проверить open-ended ответ (rework/accepted)")
+    @Operation(summary = "Сохранить решения ревью по всем вопросам open-урока")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Результат проверки сохранён", content = @Content(schema = @Schema(implementation = SubmissionResultDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Некорректный статус или payload", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),

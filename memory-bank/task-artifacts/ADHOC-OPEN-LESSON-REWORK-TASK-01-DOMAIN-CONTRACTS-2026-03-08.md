@@ -151,9 +151,12 @@ ANSWER:
         "submissionId": 1,
         "lessonId": 1,
         "lessonTitle": "Урок №1",
+        "courseId": 1,
         "courseTitle": "Курс такой-то",
         "studentId": 1,
-        "studentFullname": "Зубенко Михаил Петрович"
+        "studentFullname": "Зубенко Михаил Петрович",
+        "submittedAt": "дата в LocalDateTime_формате",
+        "attempt": 1
     }
 ]
 ```

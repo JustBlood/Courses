@@ -27,9 +27,6 @@ public class LessonSubmission {
     @JoinColumn(name = "student_id", nullable = false)
     private AppUser student;
 
-    @Column(length = 4000)
-    private String answerRaw;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SubmissionStatus status;
@@ -52,6 +49,4 @@ public class LessonSubmission {
 
     private Long reviewedByAdminId;
     private LocalDateTime reviewedAt;
-    @Column(length = 2000)
-    private String reviewComment;
 }

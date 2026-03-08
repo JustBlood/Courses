@@ -9,6 +9,12 @@ alter table lesson_submissions
 alter table lesson_submissions
     add column attempt_counter integer not null default 0;
 
+alter table lesson_submissions
+    drop column if exists answer_raw;
+
+alter table lesson_submissions
+    drop column if exists review_comment;
+
 update lesson_submissions
 set completed = case
     when status in ('COMPLETE', 'INCOMPLETE') then true

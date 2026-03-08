@@ -178,3 +178,64 @@
     - `findWithLockingByStudentIdAndLessonId(...)`.
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → `BUILD SUCCESS`.
+
+## 2026-03-08 — ADHOC open-lesson rework: TASK-04 DTO/API contracts for learning/review
+
+- Updated learning DTO contracts to match TASK-01/TASK-04 target API shape:
+  - `PracticeSubmissionRequest` kept as `questionAnswers` (`questionIndex -> answers[]`) with aligned Swagger description.
+  - `ReviewOpenSubmissionRequest` replaced old booleans (`passed/partialPoints/toNextReview/comment`) with map contract:
+    - `questionReviews: Map<Integer, ReviewQuestionDecisionDto>`.
+  - Added `ReviewQuestionDecisionDto` for per-question review decision:
+    - `submissionStatus` (`OpenReviewStatus`), `awardedPoints`, `reviewComment`.
+  - Expanded `PendingSubmissionDto` for admin pending list contract:
+    - `submissionId`, `lessonId`, `lessonTitle`, `courseId`, `courseTitle`, `studentId`, `studentFullname`, `submittedAt`, `attempt`.
+  - Added `PendingSubmissionQuestionDto` for detailed question-level pending review payload.
+
+- Updated admin API endpoints in `ProgressController`:
+  - kept `GET /api/v1/admin/progress/reviews/pending` as lesson-level list endpoint;
+  - added `GET /api/v1/admin/progress/reviews/pending/{submissionId}` for full question-level review details;
+  - updated Swagger summaries/descriptions to match review-by-all-questions flow.
+
+- Updated `LearningService` contract handling for new DTO/API behavior:
+  - `getPendingReviews()` now returns expanded pending list payload (including course and attempt fields).
+  - Added `getPendingReviewQuestions(submissionId)`:
+    - loads open lesson questions,
+    - merges question text/hints/fullPoints with current answer/progress/review state,
+    - blocks finalized submissions and non-open lessons.
+  - Reworked `reviewOpenSubmission(...)` to consume per-question decisions for all questions:
+    - validates full question coverage by `questionIndex`,
+    - validates status/awardedPoints rules (`REWORK`/`REJECTED` => `0`, `ACCEPTED` in `0..fullPoints`),
+    - stores question-level review state into `questionProgress`,
+    - aggregates lesson status (`REWORK` vs final `COMPLETE/INCOMPLETE`) and `completed`.
+
+- Aligned dependent compilation break from prior `passed -> completed` rename:
+  - updated remaining usages to repository methods `...Completed...` and `countDistinctCompletedLessons(...)` in `LearningService` and `StatisticsService`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → `BUILD SUCCESS`.
+
+## 2026-03-08 — ADHOC open-lesson rework: answerRaw removal and questionProgress-only flow
+
+- Confirmed migration strategy with product owner: **destructive**, no backfill from `answer_raw`.
+- Switched lesson submission model to questionProgress-only storage:
+  - removed `answerRaw` field from `LessonSubmission` entity;
+  - updated Flyway V2 migration to drop legacy column:
+    - `alter table lesson_submissions drop column if exists answer_raw;`.
+
+- Refactored `LearningService` to stop using any raw-answer serialization format:
+  - removed `serializeAnswersByQuestion(...)` and `deserializeAnswersByQuestion(...)` helpers;
+  - submit flow now writes student answers directly into `questionProgress`:
+    - open practice submit writes/updates per-question entries with `answers`, `reviewStatus=PENDING_REVIEW` for new/REWORK questions;
+    - test practice submit writes per-question `answers`, `pointsType`, `awardedPoints`.
+  - pending review details are now built only from `questionProgress`.
+  - review flow updates existing question progress entries directly, without fallback to `answer_raw`.
+
+- Additional alignment done during refactor:
+  - test scoring helper now reuses `QuestionPointsType` resolution for consistent per-question state.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → `BUILD SUCCESS`.
+
+- Noted behavioral caveat for current implementation:
+  - in open rework resubmit, only questions with previous `REWORK` (or missing/pending status) are reset to `PENDING_REVIEW` and have answers replaced;
+  - previously accepted/rejected questions keep prior reviewer decision and answer snapshot in questionProgress.
