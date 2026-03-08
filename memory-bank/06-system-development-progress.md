@@ -313,3 +313,23 @@
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -Dtest=Task06ReviewFlowIntegrationTest test -q` → success (exit code 0);
   - `mvn -f monolith-mvp/pom.xml -Dtest=Task05SubmitFlowIntegrationTest test -q` → success (exit code 0).
+
+## 2026-03-09 — ADHOC open-lesson rework: TASK-07 statistics/learner-summary alignment
+
+- Aligned learner summary logic in `CourseService` to single-submission model:
+  - replaced lesson submissions aggregation `Map<Long, List<LessonSubmission>>` with `Map<Long, LessonSubmission>`;
+  - removed best-of-many semantics (`max(points)` and `anyMatch(completed)`);
+  - `passed` and `pointsAwarded` are now derived directly from the single submission record per lesson.
+
+- Aligned `StatisticsService` calculations to single-submission model:
+  - `earnedPoints(...)` no longer computes per-lesson max across attempts; now sums current `pointsAwarded` values from single lesson submissions;
+  - `retakes(...)` no longer uses `count(submissions)-1`; now uses `attemptCounter` (`sum(max(0, attemptCounter - 1))`).
+
+- Added integration coverage for TASK-07:
+  - new `Task07StatisticsAndLearnerSummaryIntegrationTest` verifies:
+    - learner course summary (`passed`, `pointsAwarded`) after resubmit in one submission record,
+    - student/admin stats `earnedPoints` consistency,
+    - course CSV `Пересдач` sourced from `attemptCounter` and `Баллов` from current submission points.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test` → **BUILD SUCCESS**.

@@ -228,7 +228,7 @@ public class CourseService {
         assertCourseDeadlineNotExceededForStudent(userId, courseId);
         Course course = getCourseEntity(courseId);
         List<Lesson> courseLessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId);
-        Map<Long, List<LessonSubmission>> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
+        Map<Long, LessonSubmission> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
         Set<Long> passedLessonIds = resolvePassedLessonIds(submissionsByLessonId);
         List<LearnerLessonSummaryDto> lessons = buildLearnerLessonSummaries(course, courseLessons, submissionsByLessonId, passedLessonIds);
 
@@ -268,21 +268,25 @@ public class CourseService {
         return null;
     }
 
-    private Map<Long, List<LessonSubmission>> loadSubmissionsByLessonId(Long userId, Long courseId) {
+    private Map<Long, LessonSubmission> loadSubmissionsByLessonId(Long userId, Long courseId) {
         return submissionRepository.findByStudentIdAndLessonCourseId(userId, courseId).stream()
-                .collect(Collectors.groupingBy(submission -> submission.getLesson().getId()));
+                .collect(Collectors.toMap(
+                        submission -> submission.getLesson().getId(),
+                        submission -> submission,
+                        (left, right) -> right
+                ));
     }
 
-    private Set<Long> resolvePassedLessonIds(Map<Long, List<LessonSubmission>> submissionsByLessonId) {
+    private Set<Long> resolvePassedLessonIds(Map<Long, LessonSubmission> submissionsByLessonId) {
         return submissionsByLessonId.entrySet().stream()
-                .filter(entry -> entry.getValue().stream().anyMatch(submission -> Boolean.TRUE.equals(submission.getCompleted())))
+                .filter(entry -> Boolean.TRUE.equals(entry.getValue().getCompleted()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
     private List<LearnerLessonSummaryDto> buildLearnerLessonSummaries(Course course,
                                                                        List<Lesson> courseLessons,
-                                                                       Map<Long, List<LessonSubmission>> submissionsByLessonId,
+                                                                       Map<Long, LessonSubmission> submissionsByLessonId,
                                                                        Set<Long> passedLessonIds) {
         List<LearnerLessonSummaryDto> lessons = new ArrayList<>(courseLessons.size());
         boolean hasUnpassedStopBefore = false;
@@ -293,9 +297,8 @@ public class CourseService {
 
             String blockReason = resolveLessonBlockReason(course, courseLessons, index, passedLessonIds, hasUnpassedStopBefore);
             boolean blocked = blockReason != null;
-            Integer pointsAwarded = submissionsByLessonId.getOrDefault(lesson.getId(), List.of()).stream()
+            Integer pointsAwarded = Optional.ofNullable(submissionsByLessonId.get(lesson.getId()))
                     .map(LessonSubmission::getPointsAwarded)
-                    .max(Integer::compareTo)
                     .orElse(0);
 
             lessons.add(new LearnerLessonSummaryDto(
