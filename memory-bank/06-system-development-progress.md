@@ -270,3 +270,46 @@
 
 - Build/test verification:
   - `mvn -f monolith-mvp/pom.xml -Dtest=Task05SubmitFlowIntegrationTest test` → **BUILD SUCCESS**.
+
+## 2026-03-09 — ADHOC open-lesson rework: TASK-06 review flow closure
+
+- Closed TASK-06 review-flow gaps in `LearningService`:
+  - `getPendingReviews()` now returns both `PENDING_REVIEW` and `REWORK` submissions for reviewer scope;
+  - added explicit empty-scope fast return when reviewer has no assigned courses;
+  - added explicit reviewable-status guard for pending-details and review actions (`PENDING_REVIEW`/`REWORK` only);
+  - kept finalized submission lock (`completed=true` blocks pending-details and re-review).
+
+- Fixed open-lesson type validation robustness for JPA proxies:
+  - switched review-path lesson type checks to `Hibernate.unproxy(...)` before `PracticeLesson`/open-type checks;
+  - added open-lesson predicate that accepts canonical `PRACTICE_OPEN_ANSWER` and all-open-question practice lessons.
+
+- Repository update for new pending query semantics:
+  - added `findAllByStatusInAndLessonCourseIdIn(...)` in `LessonSubmissionRepository`.
+
+- Updated integration coverage for TASK-06:
+  - adjusted `Task06ReviewFlowIntegrationTest` final review payload/assertions to match lesson-level binary awarding on finalized open review (`fullPoints` or `0`),
+  - verified finalized open lesson is excluded from pending and cannot be reviewed again.
+
+- Build/test verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task06ReviewFlowIntegrationTest test -q` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task05SubmitFlowIntegrationTest,Task06ReviewFlowIntegrationTest test -q` → **BUILD SUCCESS**.
+
+## 2026-03-09 — ADHOC open-lesson rework: TASK-06 follow-up adjustments
+
+- Removed Hibernate-specific unproxy usage from review flow (`LearningService`):
+  - replaced `Hibernate.unproxy(...)` in review validation with explicit lesson loading by id.
+
+- Refined explicit loading approach to preserve open-practice type safety:
+  - added `LessonRepository.findPracticeLessonById(...)` (typed query to `PracticeLesson`);
+  - review validators now load `PracticeLesson` explicitly and then apply `isOpenPracticeLesson(...)` check.
+
+- Brought pending-list semantics back to agreed contract:
+  - pending list remains only `PENDING_REVIEW` in `getPendingReviews()`;
+  - removed no-longer-needed repository method `findAllByStatusInAndLessonCourseIdIn(...)`.
+
+- Updated TASK-06 integration expectation accordingly:
+  - `Task06ReviewFlowIntegrationTest` now asserts empty `/reviews/pending` after submission becomes `REWORK`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task06ReviewFlowIntegrationTest test -q` → success (exit code 0);
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task05SubmitFlowIntegrationTest test -q` → success (exit code 0).

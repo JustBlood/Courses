@@ -246,10 +246,10 @@ public class LearningService {
         Long adminId = securityUtils.currentUserId();
         final List<Long> courseIdsThatCanReview = courseService.findCoursesThatAdminCanReview(adminId).stream()
                 .map(Course::getId).toList();
-        final List<LessonSubmission> pendingOrReworkSubmissions = submissionRepository
+        final List<LessonSubmission> pendingSubmissions = submissionRepository
                 .findAllByStatusAndLessonCourseIdIn(SubmissionStatus.PENDING_REVIEW, courseIdsThatCanReview);
 
-        return pendingOrReworkSubmissions.stream()
+        return pendingSubmissions.stream()
                 .map(s -> new PendingSubmissionDto(
                         s.getId(),
                         s.getLesson().getId(),
@@ -310,11 +310,12 @@ public class LearningService {
         if (Boolean.TRUE.equals(submission.getCompleted())) {
             throw new BadRequestException("Submission is already finalized");
         }
-        if (!(submission.getLesson() instanceof PracticeLesson practiceLesson)
-                || submission.getLesson().getLessonType() != LessonType.PRACTICE_OPEN_ANSWER) {
-            throw new BadRequestException("Submission is not OPEN_ANSWER practice lesson");
+        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW && submission.getStatus() != SubmissionStatus.REWORK) {
+            throw new BadRequestException("Submission is not in reviewable status");
         }
-        return practiceLesson;
+
+        return (PracticeLesson) lessonRepository.findById(submission.getLesson().getId())
+                .orElseThrow(() -> new BadRequestException("Submission is not OPEN_ANSWER practice lesson"));
     }
 
     @Transactional
@@ -434,11 +435,8 @@ public class LearningService {
             throw new AccessDeniedException("Admin is not assigned as reviewer for this course");
         }
 
-        if (!(submission.getLesson() instanceof PracticeLesson practiceLesson)
-                || submission.getLesson().getLessonType() != LessonType.PRACTICE_OPEN_ANSWER) {
-            throw new BadRequestException("Submission is not OPEN_ANSWER practice lesson");
-        }
-        return practiceLesson;
+        return lessonRepository.findPracticeLessonById(submission.getLesson().getId())
+                .orElseThrow(() -> new BadRequestException("Submission is not OPEN_ANSWER practice lesson"));
     }
 
     private void validateStudentEnrolled(Long userId, Long courseId) {
