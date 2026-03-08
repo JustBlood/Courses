@@ -115,3 +115,41 @@
 - Verification:
   - `mvn -pl monolith-mvp -Dtest=CourseLessonCrudIntegrationTest test -DskipITs`
   - result: **BUILD SUCCESS**, tests run: 17, failures: 0, errors: 0.
+
+## 2026-03-08 — ADHOC open-lesson rework: TASK-01 domain model/contracts freeze
+
+- Created formal TASK-01 artifact:
+  - `memory-bank/task-artifacts/ADHOC-OPEN-LESSON-REWORK-TASK-01-DOMAIN-CONTRACTS-2026-03-08.md`.
+- Fixed unambiguous target model before code implementation:
+  - lesson-level statuses: `PENDING_REVIEW`, `REWORK`, `COMPLETE`, `INCOMPLETE`;
+  - question-level open review statuses: `PENDING_REVIEW`, `ACCEPTED`, `REWORK`, `REJECTED`;
+  - explicit rule that `REJECTED` is question-level only (never lesson-level).
+- Formalized `MULTIPLE_CHOICE` partial scoring rule:
+  - `PARTIAL` only when `wrongSelected <= 1` and `missedCorrect <= 1`,
+  - otherwise `ZERO`, including confirmed edge case with too many missed correct options.
+- Formalized finalization/lock rules:
+  - lesson is locked by `completed=true`;
+  - finalized lesson cannot be edited by student or reviewer;
+  - finalized open submissions are excluded from pending-review list.
+- Fixed payload contract direction for next tasks:
+  - both student submit and admin review are keyed by `questionIndex` (not `questionId`);
+  - open review request contains decisions for all lesson questions in a single request.
+
+## 2026-03-08 — ADHOC open-lesson rework: TASK-02 lesson progress schema migration
+
+- Added Flyway migration:
+  - `monolith-mvp/src/main/resources/db/migration/V2__open_lesson_rework_single_submission_schema.sql`.
+- `lesson_submissions` migrated towards single-record progress model by adding:
+  - `completed boolean not null default false`;
+  - `question_progress_json json` for question-level progress payload;
+  - `attempt_counter integer not null default 0`.
+- Backfill for existing rows:
+  - `completed=true` for statuses `COMPLETE` / `INCOMPLETE`, otherwise `false`.
+- Added unique index for single-submission flow:
+  - `uk_lesson_submissions_lesson_student` on `(lesson_id, student_id)`.
+- Removed obsolete old-flow tables at schema level:
+  - `submission_question_reviews` (drop-if-exists);
+  - `lesson_submission_status_history` (drop-if-exists).
+- Migration policy decision (explicit):
+  - no automatic deduplication is performed before unique index creation;
+  - migration is allowed to fail on duplicate historical submissions, as agreed.
