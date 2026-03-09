@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "lesson_submissions")
@@ -25,24 +27,26 @@ public class LessonSubmission {
     @JoinColumn(name = "student_id", nullable = false)
     private AppUser student;
 
-    @Column(length = 4000)
-    private String answerRaw;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SubmissionStatus status;
 
     @Column(nullable = false)
-    private Boolean passed;
+    private Boolean completed;
 
     @Column(nullable = false)
     private Integer pointsAwarded = 0;
+
+    @Convert(converter = QuestionProgressJsonConverter.class)
+    @Column(name = "question_progress_json")
+    private List<QuestionProgress> questionProgress = new ArrayList<>();
+
+    @Column(nullable = false)
+    private Integer attemptCounter = 0;
 
     @Column(nullable = false)
     private LocalDateTime submittedAt;
 
     private Long reviewedByAdminId;
     private LocalDateTime reviewedAt;
-    @Column(length = 2000)
-    private String reviewComment;
 }

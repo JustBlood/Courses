@@ -1,0 +1,181 @@
+{
+  "id": "ADHOC-OPEN-LESSON-REWORK-IMPLEMENTATION-PLAN-2026-03-08",
+  "createdAt": "2026-03-08T21:20:00+03:00",
+  "language": "ru",
+  "goal": "Последовательно реализовать новый flow прохождения уроков (test/open), question-level review и lesson-level progress без обратной совместимости.",
+  "executionRules": {
+    "noBackwardCompatibility": true,
+    "minimalMigrationsOnlyWhenRequired": true,
+    "focusOnScope": true,
+    "doNotMixUnrelatedRefactoring": true
+  },
+  "tasks": [
+    {
+      "id": "TASK-01",
+      "title": "Зафиксировать доменную модель и контракты",
+      "objective": "Формализовать новые статусы, правила финализации и payload'ы submit/review перед кодом.",
+      "deliverables": [
+        "Карта статусов lesson submission",
+        "Карта статусов review по вопросу",
+        "Правила partial scoring для MULTIPLE_CHOICE",
+        "Правила финализации урока и запрета на повторную правку"
+      ],
+      "acceptanceCriteria": [
+        "Все правила из постановки имеют однозначную формулировку",
+        "Нету противоречий по REWORK/REJECTED/COMPLETE",
+        "Используется questionIndex (не questionId)"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-02",
+      "title": "Подготовить новую схему хранения прогресса урока",
+      "objective": "Перевести lesson_submissions в модель одной записи на student+lesson с json-progress вопросов.",
+      "deliverables": [
+        "Новая миграция Flyway с добавлением нужных полей в lesson_submissions",
+        "Уникальный индекс (lesson_id, student_id)",
+        "Удаление таблиц submission_question_reviews и lesson_submission_status_history"
+      ],
+      "acceptanceCriteria": [
+        "Схема позволяет хранить question-level progress в одной json/jsonb колонке",
+        "История статусов и старая таблица review удалены полностью",
+        "Миграция запускается без ручных правок"
+      ],
+      "dependsOn": [
+        "TASK-01"
+      ]
+    },
+    {
+      "id": "TASK-03",
+      "title": "Обновить domain/entity/repository слой",
+      "objective": "Привести сущности и репозитории к новой схеме и lifecycle прогресса.",
+      "deliverables": [
+        "Обновлённая сущность LessonSubmission (json-progress, completed, attempt-counter при необходимости)",
+        "Новые/обновлённые enum'ы: question points type, open review status",
+        "Удаление model/repository для удалённых таблиц",
+        "Новые методы LessonSubmissionRepository для single-record flow"
+      ],
+      "acceptanceCriteria": [
+        "Код компилируется на уровне model/repository",
+        "Нет ссылок на удалённые классы/таблицы",
+        "Репозиторий поддерживает read/write текущего прогресса одной записью"
+      ],
+      "dependsOn": [
+        "TASK-02"
+      ]
+    },
+    {
+      "id": "TASK-04",
+      "title": "Переписать DTO и API контракты learning/review",
+      "objective": "Сделать payload'ы и response'ы под review по всем вопросам урока и расширенный pending.",
+      "deliverables": [
+        "Обновлённый PracticeSubmissionRequest (questionIndex -> answers)",
+        "Новые DTO для вопроса в pending и решения review",
+        "Обновлённые ReviewOpenSubmissionRequest и PendingSubmissionDto"
+      ],
+      "acceptanceCriteria": [
+        "DTO отражают review по ВСЕМ вопросам урока",
+        "Контракт не требует backward compatibility",
+        "Swagger-аннотации не противоречат новому flow"
+      ],
+      "dependsOn": [
+        "TASK-01",
+        "TASK-03"
+      ]
+    },
+    {
+      "id": "TASK-05",
+      "title": "Реализовать новый submit flow в LearningService",
+      "objective": "Сделать корректную обработку test/open с хранением progress per question и блокировкой после финализации.",
+      "deliverables": [
+        "submitPractice с upsert single submission",
+        "Scoring: FULL/PARTIAL/ZERO по правилам",
+        "Логика open submit: first submit по всем вопросам, resubmit только REWORK",
+        "Lesson points: либо lesson.fullPoints, либо 0 по порогу"
+      ],
+      "acceptanceCriteria": [
+        "Для финализированного урока submit запрещён",
+        "Для теста partial считается строго по согласованной формуле",
+        "Для open после REWORK принимаются только REWORK-вопросы",
+        "Сохраняются все ответы и question-level состояние"
+      ],
+      "dependsOn": [
+        "TASK-03",
+        "TASK-04"
+      ]
+    },
+    {
+      "id": "TASK-06",
+      "title": "Реализовать новый review flow в LearningService/ProgressController",
+      "objective": "Обеспечить review по всем вопросам урока с пересчётом финального статуса и баллов.",
+      "deliverables": [
+        "getPendingReviews отдаёт уроки/сабмишены с вопросами и текущими статусами",
+        "reviewOpenSubmission принимает решения по всем вопросам",
+        "Агрегация: есть REWORK -> REWORK; иначе финал COMPLETE/INCOMPLETE",
+        "REJECTED всегда с 0 баллов"
+      ],
+      "acceptanceCriteria": [
+        "Ревьювер не может менять финализированный урок",
+        "Ревьювер видит нефинализированные open-уроки своей зоны review",
+        "Итоговые lesson points и passed считаются после полного review"
+      ],
+      "dependsOn": [
+        "TASK-05"
+      ]
+    },
+    {
+      "id": "TASK-07",
+      "title": "Адаптировать зависимые сервисы статистики/learner-summary",
+      "objective": "Подстроить расчёты прогресса, баллов и ретраев под single-submission модель.",
+      "deliverables": [
+        "Обновлённый StatisticsService",
+        "Обновлённые расчёты в CourseService (learner summaries)",
+        "Корректная логика retakes/earned points"
+      ],
+      "acceptanceCriteria": [
+        "Статистика соответствует новой модели начисления баллов",
+        "Нет логики best-of-many submissions",
+        "Курс/уроки корректно отображают passed/points"
+      ],
+      "dependsOn": [
+        "TASK-05",
+        "TASK-06"
+      ]
+    },
+    {
+      "id": "TASK-08",
+      "title": "Обновить интеграционные тесты",
+      "objective": "Покрыть новые сценарии submit/review/finalize/rework и удалить устаревшие ожидания.",
+      "deliverables": [
+        "Обновлённый CourseLessonCrudIntegrationTest",
+        "Новые кейсы: partial rules, REWORK-cycle, финализация, lock after complete",
+        "Удаление тест-ожиданий по status_history"
+      ],
+      "acceptanceCriteria": [
+        "Тесты проверяют ключевые бизнес-правила постановки",
+        "Нет зависимости от удалённых таблиц/моделей",
+        "Сценарий review по всем вопросам урока покрыт"
+      ],
+      "dependsOn": [
+        "TASK-06",
+        "TASK-07"
+      ]
+    },
+    {
+      "id": "TASK-09",
+      "title": "Прогон тестов и фиксация решения в memory-bank",
+      "objective": "Проверить сборку/тесты и сохранить итоговые архитектурные решения.",
+      "deliverables": [
+        "Результат запуска mvn test по модулю",
+        "Запись в memory-bank/06-system-development-progress.md"
+      ],
+      "acceptanceCriteria": [
+        "Тестовый прогон зелёный или есть прозрачный отчёт о падениях",
+        "В memory-bank зафиксированы ключевые решения и отклонения"
+      ],
+      "dependsOn": [
+        "TASK-08"
+      ]
+    }
+  ]
+}

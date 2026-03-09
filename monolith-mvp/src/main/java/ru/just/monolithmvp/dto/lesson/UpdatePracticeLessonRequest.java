@@ -19,7 +19,7 @@ public record UpdatePracticeLessonRequest(
         @Min(1) Integer attemptLimit,
         @Min(1) Integer timeLimitMinutes,
         LessonType lessonType,
-        @Min(0) Integer partialPoints,
+        @Min(0) Integer fullPoints,
         @Min(0) @Max(100) Integer passingThresholdPercent,
         Boolean evaluateByCorrectCount,
         @Min(1) Integer randomQuestionCount,

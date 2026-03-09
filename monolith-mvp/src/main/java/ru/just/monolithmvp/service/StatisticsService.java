@@ -10,7 +10,6 @@ import ru.just.monolithmvp.model.AppUser;
 import ru.just.monolithmvp.model.Enrollment;
 import ru.just.monolithmvp.model.GroupMembership;
 import ru.just.monolithmvp.model.GroupType;
-import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.repository.CourseRepository;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.GroupMembershipRepository;
@@ -58,7 +57,7 @@ public class StatisticsService {
         return enrollmentRepository.findByCourseId(courseId).stream()
                 .map(e -> {
                     int earned = earnedPoints(e.getUser().getId(), courseId);
-                    long completed = submissionRepository.countDistinctPassedLessons(e.getUser().getId(), courseId);
+                    long completed = submissionRepository.countDistinctCompletedLessons(e.getUser().getId(), courseId);
                     double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
                     double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
                     return new CourseStudentStatDto(
@@ -201,7 +200,7 @@ public class StatisticsService {
         for (Enrollment enrollment : enrollments) {
             Long userId = enrollment.getUser().getId();
             int earned = earnedPoints(userId, courseId);
-            long completed = submissionRepository.countDistinctPassedLessons(userId, courseId);
+            long completed = submissionRepository.countDistinctCompletedLessons(userId, courseId);
             double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
             double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
 
@@ -261,7 +260,7 @@ public class StatisticsService {
         Long courseId = e.getCourse().getId();
         int maxPoints = maxPoints(courseId);
         int earned = earnedPoints(userId, courseId);
-        long completed = submissionRepository.countDistinctPassedLessons(userId, courseId);
+        long completed = submissionRepository.countDistinctCompletedLessons(userId, courseId);
         long totalLessons = lessonRepository.countByCourseId(courseId);
         double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
         double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
@@ -288,14 +287,9 @@ public class StatisticsService {
     }
 
     private int earnedPoints(Long studentId, Long courseId) {
-        List<LessonSubmission> submissions = submissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId);
-        Map<Long, Integer> bestByLesson = new HashMap<>();
-        for (LessonSubmission s : submissions) {
-            Long lessonId = s.getLesson().getId();
-            int points = Optional.ofNullable(s.getPointsAwarded()).orElse(0);
-            bestByLesson.merge(lessonId, points, Math::max);
-        }
-        return bestByLesson.values().stream().mapToInt(Integer::intValue).sum();
+        return submissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId).stream()
+                .mapToInt(s -> Optional.ofNullable(s.getPointsAwarded()).orElse(0))
+                .sum();
     }
 
     private String fmt(Object v) {
@@ -325,11 +319,8 @@ public class StatisticsService {
     }
 
     private int retakes(Long studentId, Long courseId) {
-        Map<Long, Long> attemptsByLesson = submissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId).stream()
-                .collect(Collectors.groupingBy(s -> s.getLesson().getId(), Collectors.counting()));
-
-        return attemptsByLesson.values().stream()
-                .mapToInt(count -> (int) Math.max(0L, count - 1L))
+        return submissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId).stream()
+                .mapToInt(s -> Math.max(0, Optional.ofNullable(s.getAttemptCounter()).orElse(0) - 1))
                 .sum();
     }
 

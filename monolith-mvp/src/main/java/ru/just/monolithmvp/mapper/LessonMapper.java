@@ -41,7 +41,6 @@ public class LessonMapper {
                 theoryLesson == null ? null : theoryLesson.getContentType(),
                 theoryLesson == null ? null : theoryLesson.getContent(),
                 lesson.getFullPoints(),
-                lesson.getPartialPoints(),
                 practiceLesson == null ? null : practiceLesson.getPassingThresholdPercent(),
                 practiceLesson == null ? null : practiceLesson.getEvaluateByCorrectCount(),
                 practiceLesson == null ? null : practiceLesson.getRandomQuestionCount(),

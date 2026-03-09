@@ -228,7 +228,7 @@ public class CourseService {
         assertCourseDeadlineNotExceededForStudent(userId, courseId);
         Course course = getCourseEntity(courseId);
         List<Lesson> courseLessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId);
-        Map<Long, List<LessonSubmission>> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
+        Map<Long, LessonSubmission> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
         Set<Long> passedLessonIds = resolvePassedLessonIds(submissionsByLessonId);
         List<LearnerLessonSummaryDto> lessons = buildLearnerLessonSummaries(course, courseLessons, submissionsByLessonId, passedLessonIds);
 
@@ -268,21 +268,25 @@ public class CourseService {
         return null;
     }
 
-    private Map<Long, List<LessonSubmission>> loadSubmissionsByLessonId(Long userId, Long courseId) {
+    private Map<Long, LessonSubmission> loadSubmissionsByLessonId(Long userId, Long courseId) {
         return submissionRepository.findByStudentIdAndLessonCourseId(userId, courseId).stream()
-                .collect(Collectors.groupingBy(submission -> submission.getLesson().getId()));
+                .collect(Collectors.toMap(
+                        submission -> submission.getLesson().getId(),
+                        submission -> submission,
+                        (left, right) -> right
+                ));
     }
 
-    private Set<Long> resolvePassedLessonIds(Map<Long, List<LessonSubmission>> submissionsByLessonId) {
+    private Set<Long> resolvePassedLessonIds(Map<Long, LessonSubmission> submissionsByLessonId) {
         return submissionsByLessonId.entrySet().stream()
-                .filter(entry -> entry.getValue().stream().anyMatch(submission -> Boolean.TRUE.equals(submission.getPassed())))
+                .filter(entry -> Boolean.TRUE.equals(entry.getValue().getCompleted()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
     private List<LearnerLessonSummaryDto> buildLearnerLessonSummaries(Course course,
                                                                        List<Lesson> courseLessons,
-                                                                       Map<Long, List<LessonSubmission>> submissionsByLessonId,
+                                                                       Map<Long, LessonSubmission> submissionsByLessonId,
                                                                        Set<Long> passedLessonIds) {
         List<LearnerLessonSummaryDto> lessons = new ArrayList<>(courseLessons.size());
         boolean hasUnpassedStopBefore = false;
@@ -293,9 +297,8 @@ public class CourseService {
 
             String blockReason = resolveLessonBlockReason(course, courseLessons, index, passedLessonIds, hasUnpassedStopBefore);
             boolean blocked = blockReason != null;
-            Integer pointsAwarded = submissionsByLessonId.getOrDefault(lesson.getId(), List.of()).stream()
+            Integer pointsAwarded = Optional.ofNullable(submissionsByLessonId.get(lesson.getId()))
                     .map(LessonSubmission::getPointsAwarded)
-                    .max(Integer::compareTo)
                     .orElse(0);
 
             lessons.add(new LearnerLessonSummaryDto(
@@ -637,7 +640,6 @@ public class CourseService {
         }
         lesson.setContent(patchValue(request.content(), lesson.getContent()));
         lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
-        lesson.setPartialPoints(0);
     }
 
     private void applyPracticeLessonFields(PracticeLesson lesson, CreatePracticeLessonRequest request) {
@@ -651,18 +653,7 @@ public class CourseService {
         lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswers(), lesson.getShowCorrectAnswersAfterCompletion()));
         lesson.setLessonType(patchValue(request.lessonType(), lesson.getLessonType()));
 
-        if (!CollectionUtils.isEmpty(request.questions())) {
-            lesson.setFullPoints(request.questions().stream()
-                    .mapToInt(q -> resolveQuestionFullPoints(q, Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount())))
-                    .sum());
-        }
-        if (request.partialPoints() != null) {
-            lesson.setPartialPoints(request.partialPoints());
-        }
-
-        if (lesson.getPartialPoints() > lesson.getFullPoints()) {
-            throw new BadRequestException("partialPoints > fullPoints");
-        }
+        lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
     }
 
     private <T> T patchValue(T requestedValue, T currentValue) {
@@ -696,7 +687,7 @@ public class CourseService {
             entity.setCorrectAnswersRaw(joinValues(q.correctAnswers()));
             int resolvedQuestionFullPoints = resolveQuestionFullPoints(q, evaluateByCorrectCount);
             entity.setFullPoints(resolvedQuestionFullPoints);
-            int resolvedQuestionPartialPoints = q.partialPoints() == null ? lesson.getPartialPoints() : q.partialPoints();
+            int resolvedQuestionPartialPoints = q.partialPoints() == null ? 0 : q.partialPoints();
             entity.setPartialPoints(Math.min(resolvedQuestionPartialPoints, resolvedQuestionFullPoints));
             mapped.add(entity);
         }
@@ -743,7 +734,7 @@ public class CourseService {
                 request.attemptLimit(),
                 request.timeLimitMinutes(),
                 request.lessonType(),
-                request.partialPoints(),
+                request.fullPoints(),
                 request.passingThresholdPercent(),
                 request.evaluateByCorrectCount(),
                 request.randomQuestionCount(),
@@ -949,6 +940,20 @@ public class CourseService {
             if (q.position() != null && q.position() < 1) {
                 throw new BadRequestException("question position must be >= 1");
             }
+        }
+
+        boolean hasOpenQuestions = request.questions().stream().anyMatch(q -> q.questionType() == QuestionType.OPEN_ANSWER);
+        boolean hasTestQuestions = request.questions().stream().anyMatch(q -> QuestionType.TEST_QUESTIONS.contains(q.questionType()));
+        if (hasOpenQuestions && hasTestQuestions) {
+            throw new BadRequestException("Practice lesson must contain either only OPEN_ANSWER or only test questions");
+        }
+
+        if (request.lessonType() == LessonType.PRACTICE_OPEN_ANSWER && hasTestQuestions) {
+            throw new BadRequestException("PRACTICE_OPEN_ANSWER lesson must contain only OPEN_ANSWER questions");
+        }
+
+        if (request.lessonType() == LessonType.PRACTICE_TEST && hasOpenQuestions) {
+            throw new BadRequestException("PRACTICE_TEST lesson must contain only test questions");
         }
     }
 
