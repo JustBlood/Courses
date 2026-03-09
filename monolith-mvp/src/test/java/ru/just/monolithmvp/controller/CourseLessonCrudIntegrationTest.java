@@ -1118,7 +1118,7 @@ class CourseLessonCrudIntegrationTest {
     }
 
     @Test
-    void learner_practice_questions_should_apply_random_question_count_and_shuffle_on_every_attempt() throws Exception {
+    void learner_practice_questions_should_return_all_questions_and_shuffle_on_every_attempt() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
         String studentEmail = uniqueEmail("random-shuffle-student");
@@ -1161,7 +1161,6 @@ class CourseLessonCrudIntegrationTest {
                                   "title": "Randomized Practice",
                                   "description": "FR-113",
                                   "lessonType": "PRACTICE_TEST",
-                                  "randomQuestionCount": 5,
                                   "shuffleOptions": true,
                                   "passingThresholdPercent": 60,
                                   "fullPoints": 1,
@@ -1267,7 +1266,7 @@ class CourseLessonCrudIntegrationTest {
 
             JsonNode learnerLesson = objectMapper.readTree(learnerLessonResponse);
             JsonNode questions = learnerLesson.get("questions");
-            assertThat(questions.size()).isEqualTo(5);
+            assertThat(questions.size()).isEqualTo(10);
 
             List<Integer> indexes = new ArrayList<>();
             for (JsonNode question : questions) {
@@ -1276,7 +1275,7 @@ class CourseLessonCrudIntegrationTest {
                 assertThat(questionIndex).isBetween(1, 10);
             }
 
-            assertThat(new HashSet<>(indexes)).hasSize(5);
+            assertThat(new HashSet<>(indexes)).hasSize(10);
             attemptSignatures.add(indexes.toString());
         }
 
@@ -2685,7 +2684,6 @@ class CourseLessonCrudIntegrationTest {
                                   "content": "Theory Content",
                                   "fullPoints": 7,
                                   "stopLesson": true,
-                                  "blockedDuringAttempt": false,
                                   "attemptLimit": 2,
                                   "timeLimitMinutes": 15
                                 }
@@ -2720,7 +2718,7 @@ class CourseLessonCrudIntegrationTest {
         assertThat(theoryAfterUpdate.get("theoryContent").asText()).isEqualTo(createdTheory.get("theoryContent").asText());
         assertThat(theoryAfterUpdate.get("fullPoints").asInt()).isEqualTo(createdTheory.get("fullPoints").asInt());
         assertThat(theoryAfterUpdate.get("stopLesson").asBoolean()).isEqualTo(createdTheory.get("stopLesson").asBoolean());
-        assertThat(theoryAfterUpdate.get("blockedDuringAttempt").asBoolean()).isEqualTo(createdTheory.get("blockedDuringAttempt").asBoolean());
+        assertThat(theoryAfterUpdate.get("blockedDuringAttempt")).isNull();
         assertThat(theoryAfterUpdate.get("attemptLimit").asInt()).isEqualTo(createdTheory.get("attemptLimit").asInt());
         assertThat(theoryAfterUpdate.get("timeLimitMinutes").asInt()).isEqualTo(createdTheory.get("timeLimitMinutes").asInt());
 
@@ -2734,13 +2732,11 @@ class CourseLessonCrudIntegrationTest {
                                   "lessonType": "PRACTICE_TEST",
                                   "passingThresholdPercent": 80,
                                   "evaluateByCorrectCount": true,
-                                  "randomQuestionCount": 1,
                                   "shuffleOptions": true,
                                   "showQuestionStatus": false,
                                   "showCorrectAnswers": true,
                                   "fullPoints": 1,
                                   "stopLesson": true,
-                                  "blockedDuringAttempt": false,
                                   "attemptLimit": 3,
                                   "timeLimitMinutes": 10,
                                   "questions": [
@@ -2792,13 +2788,13 @@ class CourseLessonCrudIntegrationTest {
         assertThat(practiceAfterUpdate.get("description").asText()).isEqualTo(createdPractice.get("description").asText());
         assertThat(practiceAfterUpdate.get("passingThresholdPercent").asInt()).isEqualTo(createdPractice.get("passingThresholdPercent").asInt());
         assertThat(practiceAfterUpdate.get("evaluateByCorrectCount").asBoolean()).isEqualTo(createdPractice.get("evaluateByCorrectCount").asBoolean());
-        assertThat(practiceAfterUpdate.get("randomQuestionCount").asInt()).isEqualTo(createdPractice.get("randomQuestionCount").asInt());
+        assertThat(practiceAfterUpdate.get("randomQuestionCount")).isNull();
         assertThat(practiceAfterUpdate.get("shuffleOnEveryAttempt").asBoolean()).isEqualTo(createdPractice.get("shuffleOnEveryAttempt").asBoolean());
         assertThat(practiceAfterUpdate.get("showCorrectAnswersAfterCompletion").asBoolean())
                 .isEqualTo(createdPractice.get("showCorrectAnswersAfterCompletion").asBoolean());
         assertThat(practiceAfterUpdate.get("fullPoints").asInt()).isEqualTo(createdPractice.get("fullPoints").asInt());
         assertThat(practiceAfterUpdate.get("stopLesson").asBoolean()).isEqualTo(createdPractice.get("stopLesson").asBoolean());
-        assertThat(practiceAfterUpdate.get("blockedDuringAttempt").asBoolean()).isEqualTo(createdPractice.get("blockedDuringAttempt").asBoolean());
+        assertThat(practiceAfterUpdate.get("blockedDuringAttempt")).isNull();
         assertThat(practiceAfterUpdate.get("attemptLimit").asInt()).isEqualTo(createdPractice.get("attemptLimit").asInt());
         assertThat(practiceAfterUpdate.get("timeLimitMinutes").asInt()).isEqualTo(createdPractice.get("timeLimitMinutes").asInt());
         assertThat(practiceAfterUpdate.get("questions").size()).isEqualTo(createdPractice.get("questions").size());
@@ -2806,6 +2802,94 @@ class CourseLessonCrudIntegrationTest {
                 .isEqualTo(createdPractice.get("questions").get(0).get("questionText").asText());
         assertThat(practiceAfterUpdate.get("questions").get(1).get("questionText").asText())
                 .isEqualTo(createdPractice.get("questions").get(1).get("questionText").asText());
+    }
+
+    @Test
+    void admin_progress_reset_endpoint_should_clear_student_course_progress() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String studentEmail = uniqueEmail("reset-progress-student");
+        Long studentId = createUser(adminToken, "Reset Progress Student", studentEmail, "STUDENT");
+        String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        String createCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Reset Progress Course",
+                                  "description": "reset progress checks",
+                                  "authorFullName": "Admin",
+                                  "deadlineDays": 30
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long courseId = objectMapper.readTree(createCourseResponse).get("id").asLong();
+
+        String theoryLessonResponse = mockMvc.perform(post("/api/v1/admin/courses/{courseId}/lessons/theory", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Reset Theory",
+                                  "description": "Theory",
+                                  "contentType": "HTML_TEXT",
+                                  "content": "Theory content",
+                                  "fullPoints": 5
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long theoryLessonId = objectMapper.readTree(theoryLessonResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/{courseId}/enrollments", courseId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
+        var enrollmentBeforeReset = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
+        enrollmentBeforeReset.setStartedAt(LocalDateTime.now().minusDays(1));
+        enrollmentBeforeReset.setCompletedAt(LocalDateTime.now());
+        enrollmentRepository.save(enrollmentBeforeReset);
+
+        assertThat(lessonSubmissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId)).isNotEmpty();
+
+        String resetResponse = mockMvc.perform(post("/api/v1/admin/progress/users/reset")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId": %d,
+                                  "courseId": %d
+                                }
+                                """.formatted(studentId, courseId)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(resetResponse).get("message").asText())
+                .isEqualTo("Student progress has been cleared");
+
+        assertThat(lessonSubmissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId)).isEmpty();
+
+        var enrollmentAfterReset = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
+        assertThat(enrollmentAfterReset.getStartedAt()).isNull();
+        assertThat(enrollmentAfterReset.getCompletedAt()).isNull();
     }
 
     private String login(String email, String password) throws Exception {

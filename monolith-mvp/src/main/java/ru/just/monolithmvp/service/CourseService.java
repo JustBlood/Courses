@@ -617,20 +617,18 @@ public class CourseService {
                                          String title,
                                          String description,
                                          Boolean stopLesson,
-                                         Boolean blockedDuringAttempt,
                                          Integer attemptLimit,
                                          Integer timeLimitMinutes) {
         lesson.setTitle(Optional.ofNullable(title).orElse(lesson.getTitle()));
         lesson.setDescription(Optional.ofNullable(description).orElse(lesson.getDescription()));
         lesson.setStopLesson(Optional.ofNullable(stopLesson).orElse(lesson.getStopLesson()));
-        lesson.setBlockedDuringAttempt(Optional.ofNullable(blockedDuringAttempt).orElse(lesson.getBlockedDuringAttempt()));
         lesson.setAttemptLimit(Optional.ofNullable(attemptLimit).orElse(lesson.getAttemptLimit()));
         lesson.setTimeLimitMinutes(Optional.ofNullable(timeLimitMinutes).orElse(lesson.getTimeLimitMinutes()));
     }
 
     private void applyTheoryLessonFields(TheoryLesson lesson, CreateTheoryLessonRequest request) {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
-                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
+                request.attemptLimit(), request.timeLimitMinutes());
         lesson.setContentType(patchValue(request.contentType(), lesson.getContentType()));
         if (LessonType.THEORY_PDF.equals(lesson.getLessonType())) {
             if (request.content() != null && !fileStorageService.isFileExistsByRelativePath(request.content())) {
@@ -644,10 +642,9 @@ public class CourseService {
 
     private void applyPracticeLessonFields(PracticeLesson lesson, CreatePracticeLessonRequest request) {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
-                request.blockedDuringAttempt(), request.attemptLimit(), request.timeLimitMinutes());
+                request.attemptLimit(), request.timeLimitMinutes());
         lesson.setPassingThresholdPercent(patchValue(request.passingThresholdPercent(), lesson.getPassingThresholdPercent()));
         lesson.setEvaluateByCorrectCount(patchValue(request.evaluateByCorrectCount(), lesson.getEvaluateByCorrectCount()));
-        lesson.setRandomQuestionCount(patchValue(request.randomQuestionCount(), lesson.getRandomQuestionCount()));
         lesson.setShuffleOnEveryAttempt(patchValue(request.shuffleOptions(), lesson.getShuffleOnEveryAttempt()));
         lesson.setShowQuestionStatus(patchValue(request.showQuestionStatus(), lesson.getShowQuestionStatus()));
         lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswers(), lesson.getShowCorrectAnswersAfterCompletion()));
@@ -658,13 +655,6 @@ public class CourseService {
 
     private <T> T patchValue(T requestedValue, T currentValue) {
         return requestedValue != null ? requestedValue : currentValue;
-    }
-
-    private String joinValues(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return null;
-        }
-        return String.join(";;", values);
     }
 
     private int nextLessonPosition(Long courseId) {
@@ -683,8 +673,8 @@ public class CourseService {
             entity.setQuestionType(q.questionType());
             entity.setQuestionText(q.questionText());
             entity.setTrainerHint(q.trainerHint());
-            entity.setOptionsRaw(joinValues(q.options()));
-            entity.setCorrectAnswersRaw(joinValues(q.correctAnswers()));
+            entity.setOptions(q.options() == null ? null : new ArrayList<>(q.options()));
+            entity.setCorrectAnswers(q.correctAnswers() == null ? null : new ArrayList<>(q.correctAnswers()));
             int resolvedQuestionFullPoints = resolveQuestionFullPoints(q, evaluateByCorrectCount);
             entity.setFullPoints(resolvedQuestionFullPoints);
             int resolvedQuestionPartialPoints = q.partialPoints() == null ? 0 : q.partialPoints();
@@ -726,18 +716,13 @@ public class CourseService {
                 request.position(),
                 request.title(),
                 request.description(),
-                null,
-                null,
-                null,
                 request.stopLesson(),
-                request.blockedDuringAttempt(),
                 request.attemptLimit(),
                 request.timeLimitMinutes(),
                 request.lessonType(),
                 request.fullPoints(),
                 request.passingThresholdPercent(),
                 request.evaluateByCorrectCount(),
-                request.randomQuestionCount(),
                 request.shuffleOptions(),
                 request.showQuestionStatus(),
                 request.showCorrectAnswers(),
@@ -760,7 +745,7 @@ public class CourseService {
             List<Lesson> lessonsToShift = lessonRepository
                     .findByCourse_IdAndPositionGreaterThanEqualOrderByPositionDesc(courseId, requestedPosition);
             lessonsToShift.forEach(existing -> existing.setPosition(existing.getPosition() + 1));
-            lessonRepository.saveAll(lessonsToShift);
+            lessonRepository.saveAllAndFlush(lessonsToShift);
         }
 
         return requestedPosition;
@@ -957,24 +942,6 @@ public class CourseService {
         }
     }
 
-    public List<String> splitRaw(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return Collections.emptyList();
-        }
-        return Arrays.stream(raw.split(";;", -1)).toList();
-    }
-
-    private void validateStudentsExist(List<Long> userIds) {
-        if (CollectionUtils.isEmpty(userIds)) {
-            throw new BadRequestException("ids must not be empty");
-        }
-        Set<Long> distinctIds = new HashSet<>(userIds);
-        List<AppUser> users = userRepository.findAllById(distinctIds);
-        if (users.size() != distinctIds.size()) {
-            throw new NotFoundException("Some users were not found");
-        }
-    }
-
     private String resolveCurrentActor() {
         return securityUtils.resolveCurrentActor();
     }
@@ -988,7 +955,6 @@ public class CourseService {
 
     @Transactional
     public void resetStudentCourseProgress(Long userId, Long courseId) {
-        getCourseEntity(courseId);
         Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new NotFoundException("Enrollment not found for user/course"));
 

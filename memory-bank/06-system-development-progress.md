@@ -333,3 +333,52 @@
 
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test` → **BUILD SUCCESS**.
+
+## 2026-03-09 — Learner practice answers visibility and scoring exposure by lesson flags
+
+- Extended learner lesson DTO contract for practice visibility settings:
+  - `LearnerLessonDto` now includes:
+    - `showQuestionStatus`,
+    - `showCorrectAnswersAfterCompletion`.
+
+- Extended learner practice-question DTO contract:
+  - `LearnerPracticeQuestionDto` now includes:
+    - `correctAnswers`,
+    - `pointsType`,
+    - `awardedPoints`.
+
+- Updated `LearningService.getLessonForLearner(...)` to use existing `PracticeLesson` flags as source of truth:
+  - always returns learner submitted answers (`userAnswers`) from `questionProgress`;
+  - question status/points (`status`, `pointsType`, `awardedPoints`) are returned only when `showQuestionStatus=true`;
+  - correct answers are returned only when:
+    - `showCorrectAnswersAfterCompletion=true`, and
+    - learner submission exists and is finalized (`completed=true`).
+
+- DTO design decision for this step:
+  - no additional feature flags or schema changes were introduced;
+  - visibility behavior is fully driven by already existing lesson model flags.
+
+- Build verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**.
+
+## 2026-03-09 — Learner DTO exposure refinement (current step)
+
+- Finalized learner-facing DTO payload for practice questions to explicitly expose learner result details:
+  - `LearnerPracticeQuestionDto` now carries `userAnswers`, `correctAnswers`, `status`, `pointsType`, `awardedPoints`.
+- Added lesson-level visibility flags to learner lesson response:
+  - `LearnerLessonDto.showQuestionStatus`,
+  - `LearnerLessonDto.showCorrectAnswersAfterCompletion`.
+- `LearningService.getLessonForLearner(...)` now maps `QuestionProgress.pointsType` into learner DTO and keeps visibility policy based on existing lesson flags.
+- Tests were intentionally not updated in this step (deferred by product-owner request); module compilation was validated.
+
+## 2026-03-09 — Admin progress reset endpoint test coverage
+
+- Added integration coverage for admin endpoint `POST /api/v1/admin/progress/users/reset` in:
+  - `CourseLessonCrudIntegrationTest.admin_progress_reset_endpoint_should_clear_student_course_progress`.
+- Test verifies full reset behavior for a student/course pair:
+  - existing lesson submissions are deleted;
+  - enrollment progress markers are cleared (`startedAt`, `completedAt` become `null`);
+  - API response message equals `Student progress has been cleared`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest#admin_progress_reset_endpoint_should_clear_student_course_progress test` → **BUILD SUCCESS**.
