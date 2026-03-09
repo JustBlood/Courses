@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,8 +39,8 @@ public class LessonSubmission {
     @Column(nullable = false)
     private Integer pointsAwarded = 0;
 
-    @Convert(converter = QuestionProgressJsonConverter.class)
-    @Column(name = "question_progress_json")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "question_progress_json", columnDefinition = "jsonb")
     private List<QuestionProgress> questionProgress = new ArrayList<>();
 
     @Column(nullable = false)
