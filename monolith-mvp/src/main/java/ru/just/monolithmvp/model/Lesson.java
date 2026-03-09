@@ -45,9 +45,6 @@ public class Lesson {
     @Column(nullable = false)
     private Boolean stopLesson = false;
 
-    @Column(nullable = false)
-    private Boolean blockedDuringAttempt = true;
-
     @Column
     private Integer attemptLimit;
 

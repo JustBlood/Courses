@@ -20,9 +20,6 @@ public class PracticeLesson extends Lesson {
     @Column(nullable = false)
     private Boolean evaluateByCorrectCount = false;
 
-    @Column
-    private Integer randomQuestionCount;
-
     @Column(nullable = false)
     private Boolean shuffleOnEveryAttempt = false;
 

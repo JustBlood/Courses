@@ -13,21 +13,16 @@ public record CreatePracticeLessonRequest(
         @Min(1) Integer position,
         @NotBlank String title,
         String description,
-        String coverFilePath,
-        Boolean requiresPreviousCompleted,
-        Boolean openForAccess,
         Boolean stopLesson,
-        Boolean blockedDuringAttempt,
         @Min(1) Integer attemptLimit,
         @Min(1) Integer timeLimitMinutes,
         @NotNull LessonType lessonType,
         @Min(0) Integer fullPoints,
         @Min(0) @jakarta.validation.constraints.Max(100) Integer passingThresholdPercent,
         Boolean evaluateByCorrectCount,
-        @Min(1) Integer randomQuestionCount,
         Boolean shuffleOptions,
         Boolean showQuestionStatus,
-        Boolean showCorrectAnswers, // fixme: возможно, неверно реализовано
+        Boolean showCorrectAnswers,
         @NotEmpty List<@Valid PracticeQuestionRequest> questions
 ) {
 }

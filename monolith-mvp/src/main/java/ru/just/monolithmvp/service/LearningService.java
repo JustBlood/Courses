@@ -4,19 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
-import ru.just.monolithmvp.dto.learning.PendingSubmissionQuestionDto;
-import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
-import ru.just.monolithmvp.dto.learning.ReviewOpenSubmissionRequest;
-import ru.just.monolithmvp.dto.learning.ReviewQuestionDecisionDto;
-import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
+import ru.just.monolithmvp.dto.learning.*;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
 import ru.just.monolithmvp.dto.lesson.LearnerPracticeQuestionDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.observability.BusinessEventLogger;
-import ru.just.monolithmvp.repository.*;
+import ru.just.monolithmvp.repository.AppUserRepository;
+import ru.just.monolithmvp.repository.EnrollmentRepository;
+import ru.just.monolithmvp.repository.LessonRepository;
+import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
@@ -53,15 +51,45 @@ public class LearningService {
                 .description(lesson.getDescription())
                 .lessonType(lesson.getLessonType());
         if (LessonType.LessonSubType.PRACTICE.equals(lesson.getLessonType().getSubType())) {
-            final List<PracticeQuestion> practiceQuestions = selectPracticeQuestionsForAttempt((PracticeLesson) lesson);
-            final List<LearnerPracticeQuestionDto> questions = practiceQuestions.stream().map(question -> new LearnerPracticeQuestionDto(
-                    question.getQuestionIndex(),
-                    question.getQuestionType(),
-                    question.getQuestionText(),
-                    courseService.splitRaw(question.getOptionsRaw()),
-                    question.getFullPoints(),
-                    question.getPartialPoints()
-            )).toList();
+            final PracticeLesson practiceLesson = (PracticeLesson) lesson;
+            final LessonSubmission submission = submissionRepository.findByStudentIdAndLessonId(userId, lessonId)
+                    .orElse(null);
+            final Map<Integer, QuestionProgress> questionProgressByIndex = Optional.ofNullable(submission)
+                    .map(LessonSubmission::getQuestionProgress)
+                    .stream()
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toMap(QuestionProgress::getQuestionIndex, q -> q, (left, right) -> right));
+            final boolean showQuestionStatus = Boolean.TRUE.equals(practiceLesson.getShowQuestionStatus());
+            final boolean showCorrectAnswers = Boolean.TRUE.equals(practiceLesson.getShowCorrectAnswersAfterCompletion())
+                    && submission != null
+                    && Boolean.TRUE.equals(submission.getCompleted());
+
+            final List<PracticeQuestion> practiceQuestions = selectPracticeQuestionsForAttempt(practiceLesson);
+            final List<LearnerPracticeQuestionDto> questions = practiceQuestions.stream().map(question -> {
+                final QuestionProgress questionProgress = questionProgressByIndex.get(question.getQuestionIndex());
+                return new LearnerPracticeQuestionDto(
+                        question.getQuestionIndex(),
+                        question.getQuestionType(),
+                        question.getQuestionText(),
+                        Optional.ofNullable(question.getOptions()).orElse(List.of()),
+                        questionProgress != null ? questionProgress.getAnswers() : List.of(),
+                        showCorrectAnswers && question.getCorrectAnswers() != null && !question.getCorrectAnswers().isEmpty()
+                                ? question.getCorrectAnswers()
+                                : null,
+                        showQuestionStatus
+                                ? Optional.ofNullable(questionProgress)
+                                .map(QuestionProgress::getReviewStatus)
+                                .orElse(null)
+                                : null,
+                        showQuestionStatus
+                                ? Optional.ofNullable(questionProgress)
+                                .map(QuestionProgress::getAwardedPoints)
+                                .orElse(null)
+                                : null,
+                        question.getFullPoints(),
+                        question.getPartialPoints()
+                );
+            }).toList();
             learnerLessonDtoBuilder.questions(questions);
         } else {
             TheoryLesson theoryLesson = (TheoryLesson) lesson;
@@ -104,12 +132,6 @@ public class LearningService {
 
     private List<PracticeQuestion> selectPracticeQuestionsForAttempt(PracticeLesson practiceLesson) {
         List<PracticeQuestion> selectedQuestions = new ArrayList<>(courseService.getPracticeQuestionForLesson(practiceLesson.getId()));
-
-        Integer randomQuestionCount = practiceLesson.getRandomQuestionCount();
-        if (randomQuestionCount != null && randomQuestionCount > 0 && randomQuestionCount < selectedQuestions.size()) {
-            Collections.shuffle(selectedQuestions);
-            selectedQuestions = new ArrayList<>(selectedQuestions.subList(0, randomQuestionCount));
-        }
 
         if (Boolean.TRUE.equals(practiceLesson.getShuffleOnEveryAttempt())) {
             Collections.shuffle(selectedQuestions);
@@ -216,7 +238,7 @@ public class LearningService {
             
             List<String> selectedAnswers = answersByQuestion.get(question.getQuestionIndex());
 
-            List<String> correctAnswers = normalizeList(splitRaw(question.getCorrectAnswersRaw()));
+            List<String> correctAnswers = normalizeList(question.getCorrectAnswers());
             totalQuestionPoints += scoreQuestion(question, selectedAnswers, correctAnswers);
         }
 
@@ -616,13 +638,6 @@ public class LearningService {
         return values.stream().filter(Objects::nonNull).map(String::trim).filter(s -> !s.isBlank()).toList();
     }
 
-    private List<String> splitRaw(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(raw.split(";;", -1)).toList();
-    }
-
     private void validatePracticeAttemptLimit(Long studentId, Long lessonId, Integer attemptLimit) {
         if (attemptLimit == null || attemptLimit <= 0) {
             return;
@@ -707,7 +722,7 @@ public class LearningService {
                 .filter(question -> QuestionType.TEST_QUESTIONS.contains(question.getQuestionType()))
                 .map(question -> {
                     List<String> selectedAnswers = answersByQuestion.getOrDefault(question.getQuestionIndex(), List.of());
-                    List<String> correctAnswers = normalizeList(splitRaw(question.getCorrectAnswersRaw()));
+                    List<String> correctAnswers = normalizeList(question.getCorrectAnswers());
                     QuestionPointsType pointsType = resolveTestQuestionPointsType(question, selectedAnswers, correctAnswers);
                     int awardedPoints = switch (pointsType) {
                         case FULL -> question.getFullPoints() == null ? 0 : question.getFullPoints();
@@ -740,7 +755,7 @@ public class LearningService {
             long wrongSelected = selectedSet.stream().filter(answer -> !correctSet.contains(answer)).count();
             long missedCorrect = correctSet.stream().filter(answer -> !selectedSet.contains(answer)).count();
 
-            if (wrongSelected <= 1 && missedCorrect <= 1 && splitRaw(question.getOptionsRaw()).size() != 3) {
+            if (wrongSelected <= 1 && missedCorrect <= 1 && Optional.ofNullable(question.getOptions()).orElse(List.of()).size() != 3) {
                 return QuestionPointsType.PARTIAL;
             }
         }

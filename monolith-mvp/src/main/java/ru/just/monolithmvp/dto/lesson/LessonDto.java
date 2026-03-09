@@ -12,7 +12,6 @@ public record LessonDto(
         String title,
         String description,
         Boolean stopLesson,
-        Boolean blockedDuringAttempt,
         Integer attemptLimit,
         Integer timeLimitMinutes,
         LessonType lessonType,
@@ -21,7 +20,6 @@ public record LessonDto(
         Integer fullPoints,
         Integer passingThresholdPercent,
         Boolean evaluateByCorrectCount,
-        Integer randomQuestionCount,
         Boolean shuffleOnEveryAttempt,
         Boolean showCorrectAnswersAfterCompletion,
         List<PracticeQuestionDto> questions

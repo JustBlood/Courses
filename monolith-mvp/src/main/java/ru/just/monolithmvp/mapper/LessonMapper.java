@@ -1,6 +1,5 @@
 package ru.just.monolithmvp.mapper;
 
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import ru.just.monolithmvp.dto.lesson.LessonDto;
 import ru.just.monolithmvp.dto.lesson.PracticeQuestionDto;
@@ -8,20 +7,13 @@ import ru.just.monolithmvp.model.Lesson;
 import ru.just.monolithmvp.model.PracticeLesson;
 import ru.just.monolithmvp.model.PracticeQuestion;
 import ru.just.monolithmvp.model.TheoryLesson;
-import ru.just.monolithmvp.service.CourseService;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class LessonMapper {
-
-
-    private final CourseService courseService;
-    @Lazy
-    public LessonMapper(CourseService courseService) {
-        this.courseService = courseService;
-    }
 
     public LessonDto toDto(Lesson lesson) {
         TheoryLesson theoryLesson = lesson instanceof TheoryLesson t ? t : null;
@@ -34,7 +26,6 @@ public class LessonMapper {
                 lesson.getTitle(),
                 lesson.getDescription(),
                 lesson.getStopLesson(),
-                lesson.getBlockedDuringAttempt(),
                 lesson.getAttemptLimit(),
                 lesson.getTimeLimitMinutes(),
                 lesson.getLessonType(),
@@ -43,7 +34,6 @@ public class LessonMapper {
                 lesson.getFullPoints(),
                 practiceLesson == null ? null : practiceLesson.getPassingThresholdPercent(),
                 practiceLesson == null ? null : practiceLesson.getEvaluateByCorrectCount(),
-                practiceLesson == null ? null : practiceLesson.getRandomQuestionCount(),
                 practiceLesson == null ? null : practiceLesson.getShuffleOnEveryAttempt(),
                 practiceLesson == null ? null : practiceLesson.getShowCorrectAnswersAfterCompletion(),
                 practiceLesson == null ? Collections.emptyList() : toQuestionDtos(practiceLesson.getQuestions())
@@ -61,8 +51,8 @@ public class LessonMapper {
                         q.getQuestionType(),
                         q.getQuestionText(),
                         q.getTrainerHint(),
-                        courseService.splitRaw(q.getOptionsRaw()),
-                        courseService.splitRaw(q.getCorrectAnswersRaw()),
+                        Optional.ofNullable(q.getOptions()).orElse(List.of()),
+                        Optional.ofNullable(q.getCorrectAnswers()).orElse(List.of()),
                         q.getFullPoints(),
                         q.getPartialPoints()
                 ))

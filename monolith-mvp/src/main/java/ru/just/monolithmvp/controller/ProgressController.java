@@ -11,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ru.just.monolithmvp.dto.ApiResponse;
+import ru.just.monolithmvp.dto.ResetStudentProgressRequest;
 import ru.just.monolithmvp.dto.course.CourseSummaryDto;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionQuestionDto;
@@ -88,6 +90,17 @@ public class ProgressController {
     })
     public ResponseEntity<List<CourseStudentStatDto>> courseStats(@PathVariable Long courseId) {
         return ResponseEntity.ok(statisticsService.courseStats(courseId));
+    }
+
+    @PostMapping("/users/reset")
+    @Operation(summary = "Сбросить прогресс пользователя по курсу")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс пользователя по курсу сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не записан на курс/курс не существует/пользователь не существует", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> resetStudentProgressByCourse(@RequestBody ResetStudentProgressRequest resetRequest) {
+        courseService.resetStudentCourseProgress(resetRequest.userId(), resetRequest.courseId());
+        return ResponseEntity.ok(new ApiResponse("Student progress has been cleared"));
     }
 
     @GetMapping(value = "/reports/summary.csv", produces = MediaType.TEXT_PLAIN_VALUE)
