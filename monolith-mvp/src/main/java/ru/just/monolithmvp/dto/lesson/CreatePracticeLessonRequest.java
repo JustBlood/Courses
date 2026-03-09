@@ -21,7 +21,7 @@ public record CreatePracticeLessonRequest(
         @Min(1) Integer attemptLimit,
         @Min(1) Integer timeLimitMinutes,
         @NotNull LessonType lessonType,
-        @Min(0) Integer partialPoints,
+        @Min(0) Integer fullPoints,
         @Min(0) @jakarta.validation.constraints.Max(100) Integer passingThresholdPercent,
         Boolean evaluateByCorrectCount,
         @Min(1) Integer randomQuestionCount,

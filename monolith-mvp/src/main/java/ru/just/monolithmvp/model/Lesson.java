@@ -43,9 +43,6 @@ public class Lesson {
     private Integer fullPoints = 1;
 
     @Column(nullable = false)
-    private Integer partialPoints = 0;
-
-    @Column(nullable = false)
     private Boolean stopLesson = false;
 
     @Column(nullable = false)

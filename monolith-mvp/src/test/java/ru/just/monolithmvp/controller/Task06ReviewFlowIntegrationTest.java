@@ -196,7 +196,7 @@ class Task06ReviewFlowIntegrationTest {
         LessonSubmission finalizedSubmission = lessonSubmissionRepository.findById(submissionId).orElseThrow();
         assertThat(finalizedSubmission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
         assertThat(finalizedSubmission.getCompleted()).isTrue();
-        assertThat(finalizedSubmission.getPointsAwarded()).isEqualTo(20);
+        assertThat(finalizedSubmission.getPointsAwarded()).isEqualTo(10);
 
         String pendingAfterFinalizeResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/pending")
                         .header("Authorization", "Bearer " + reviewerToken))

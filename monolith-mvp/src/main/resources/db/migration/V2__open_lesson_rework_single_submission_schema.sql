@@ -15,6 +15,9 @@ alter table lesson_submissions
 alter table lesson_submissions
     drop column if exists review_comment;
 
+alter table lessons
+    drop column if exists partial_points;
+
 update lesson_submissions
 set completed = case
     when status in ('COMPLETE', 'INCOMPLETE') then true

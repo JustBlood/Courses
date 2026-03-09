@@ -640,7 +640,6 @@ public class CourseService {
         }
         lesson.setContent(patchValue(request.content(), lesson.getContent()));
         lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
-        lesson.setPartialPoints(0);
     }
 
     private void applyPracticeLessonFields(PracticeLesson lesson, CreatePracticeLessonRequest request) {
@@ -654,18 +653,7 @@ public class CourseService {
         lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswers(), lesson.getShowCorrectAnswersAfterCompletion()));
         lesson.setLessonType(patchValue(request.lessonType(), lesson.getLessonType()));
 
-        if (!CollectionUtils.isEmpty(request.questions())) {
-            lesson.setFullPoints(request.questions().stream()
-                    .mapToInt(q -> resolveQuestionFullPoints(q, Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount())))
-                    .sum());
-        }
-        if (request.partialPoints() != null) {
-            lesson.setPartialPoints(request.partialPoints());
-        }
-
-        if (lesson.getPartialPoints() > lesson.getFullPoints()) {
-            throw new BadRequestException("partialPoints > fullPoints");
-        }
+        lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
     }
 
     private <T> T patchValue(T requestedValue, T currentValue) {
@@ -699,7 +687,7 @@ public class CourseService {
             entity.setCorrectAnswersRaw(joinValues(q.correctAnswers()));
             int resolvedQuestionFullPoints = resolveQuestionFullPoints(q, evaluateByCorrectCount);
             entity.setFullPoints(resolvedQuestionFullPoints);
-            int resolvedQuestionPartialPoints = q.partialPoints() == null ? lesson.getPartialPoints() : q.partialPoints();
+            int resolvedQuestionPartialPoints = q.partialPoints() == null ? 0 : q.partialPoints();
             entity.setPartialPoints(Math.min(resolvedQuestionPartialPoints, resolvedQuestionFullPoints));
             mapped.add(entity);
         }
@@ -746,7 +734,7 @@ public class CourseService {
                 request.attemptLimit(),
                 request.timeLimitMinutes(),
                 request.lessonType(),
-                request.partialPoints(),
+                request.fullPoints(),
                 request.passingThresholdPercent(),
                 request.evaluateByCorrectCount(),
                 request.randomQuestionCount(),

@@ -19,7 +19,6 @@ public record LessonDto(
         TheoryContentType theoryContentType,
         String theoryContent,
         Integer fullPoints,
-        Integer partialPoints,
         Integer passingThresholdPercent,
         Boolean evaluateByCorrectCount,
         Integer randomQuestionCount,

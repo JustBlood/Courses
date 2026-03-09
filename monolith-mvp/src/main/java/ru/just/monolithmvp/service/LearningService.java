@@ -220,7 +220,8 @@ public class LearningService {
             totalQuestionPoints += scoreQuestion(question, selectedAnswers, correctAnswers);
         }
 
-        boolean passed = totalQuestionPoints * 100 >= practiceLesson.getFullPoints() * practiceLesson.getPassingThresholdPercent();
+        final Integer maxPointsByAllQuestions = practiceLesson.getQuestions().stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).get();
+        boolean passed = totalQuestionPoints * 100 >= maxPointsByAllQuestions * practiceLesson.getPassingThresholdPercent();
         int lessonPointsAwarded = passed ? practiceLesson.getFullPoints() : 0;
 
         submission.setQuestionProgress(buildTestQuestionProgress(practiceLesson, answersByQuestion));
@@ -314,7 +315,7 @@ public class LearningService {
             throw new BadRequestException("Submission is not in reviewable status");
         }
 
-        return (PracticeLesson) lessonRepository.findById(submission.getLesson().getId())
+        return lessonRepository.findPracticeLessonById(submission.getLesson().getId())
                 .orElseThrow(() -> new BadRequestException("Submission is not OPEN_ANSWER practice lesson"));
     }
 
@@ -385,8 +386,9 @@ public class LearningService {
             nextProgress.add(questionProgress);
         }
 
+        final Integer maxPointsByAllQuestions = practiceLesson.getQuestions().stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).get();
         boolean finalPassed = !hasRework
-                && totalAwardedPoints * 100 >= practiceLesson.getFullPoints() * practiceLesson.getPassingThresholdPercent();
+                && totalAwardedPoints * 100 >= maxPointsByAllQuestions * practiceLesson.getPassingThresholdPercent();
         SubmissionStatus finalStatus = hasRework
                 ? SubmissionStatus.REWORK
                 : (finalPassed ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
