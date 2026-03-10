@@ -1,7 +1,6 @@
 package ru.just.monolithmvp.dto.lesson;
 
 import ru.just.monolithmvp.model.LessonType;
-import ru.just.monolithmvp.model.TheoryContentType;
 
 import java.util.List;
 
@@ -15,7 +14,6 @@ public record LessonDto(
         Integer attemptLimit,
         Integer timeLimitMinutes,
         LessonType lessonType,
-        TheoryContentType theoryContentType,
         String theoryContent,
         Integer fullPoints,
         Integer passingThresholdPercent,

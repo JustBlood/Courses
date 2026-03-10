@@ -382,3 +382,110 @@
 
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest#admin_progress_reset_endpoint_should_clear_student_course_progress test` → **BUILD SUCCESS**.
+
+## 2026-03-10 — ADHOC analysis for course/learning refactor scope
+
+- Performed targeted architecture/code analysis for the most complex domain area: course management + learning flow.
+- Fixed analysis and refactor plan in separate artifact:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-ANALYSIS-PLAN-2026-03-10.md`.
+- Key decisions prepared for upcoming implementation phase:
+  - refactor should start from domain-flag/DTO contract normalization,
+  - then split oversized `CourseService` and `LearningService` into focused use-case services,
+  - in parallel reduce DB roundtrips in statistics/reporting and clean repository/API technical debt.
+- Captured open requirement questions (course flags behavior, DTO compatibility strategy, ProgramService scope, implementation priority, JSON mapping strategy) to resolve before coding.
+
+## 2026-03-10 — ADHOC requirements fixation for next refactor-analysis wave
+
+- Updated analysis artifact according to explicit product-owner decisions:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-ANALYSIS-PLAN-2026-03-10.md`.
+- Fixed mandatory scope decisions before implementation:
+  - remove course fields `deadlineAt`, `allowContinueAfterFail`, `keepAccessAfterDeadline`;
+  - keep `blockAfterDeadline`, `includeInOverallStats`, `passingThresholdPercent` as configurable but still non-functional for now;
+  - make `lessonType` the single source of truth, remove `TheoryLesson.contentType`, remove `TheoryLesson.syncLessonType()`, and separately validate necessity of `PracticeLesson.syncLessonType()`;
+  - make `PracticeQuestion.questionType` non-null;
+  - allow optional simplification `null -> empty list` for `options/correctAnswers` only if it clearly reduces complexity;
+  - keep `reviewedByAdminId/reviewedAt`; evaluate `SubmissionStatus` terminal-flag approach pragmatically;
+  - allow removing `QuestionProgressJsonConverter` if confirmed redundant for current mapping.
+- Fixed process constraints for next phase:
+  - no coding changes until this fixation is approved;
+  - next step is mandatory subagent-driven architecture analysis for `CourseService`, `LearningService`, `StatisticsService`, repository aggregation layer, and `ProgramService` integration boundaries;
+  - priority is service decomposition with performance-aware boundaries (avoid over-fragmentation that increases DB roundtrips).
+
+## 2026-03-10 — ADHOC course/learning refactor analysis execution (runbook phase A/B/C)
+
+- Executed analysis runbook from:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-ANALYSIS-PLAN-2026-03-10.md`.
+
+- Produced Phase A artifact (domain/contracts + migration decisions):
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-A-DOMAIN-CONTRACT-DECISION-MATRIX-2026-03-10.md`.
+  - fixed decisions:
+    - remove `Course.deadlineAt`, `allowContinueAfterFail`, `keepAccessAfterDeadline`;
+    - keep configurable `blockAfterDeadline`, `includeInOverallStats`, `passingThresholdPercent`;
+    - use `lessonType` as single source of truth (remove `TheoryLesson.contentType` and `TheoryLesson.syncLessonType()` in implementation wave);
+    - make `PracticeQuestion.questionType` non-null;
+    - keep `LessonSubmission` model as `status + completed` for first wave;
+    - mark `QuestionProgressJsonConverter` as removable dead code (not used by current mapping).
+
+- Executed mandatory Phase B via parallel `backend-architect` subagents and consolidated outputs into:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-B-SUBAGENT-ARCH-ANALYSIS-2026-03-10.md`.
+  - captured:
+    - target decomposition boundaries for `CourseService` and `LearningService`;
+    - policy/utility centralization candidates;
+    - race-condition and transactional risk points;
+    - missing aggregation queries and repository-layer optimization points for statistics/reporting;
+    - bounded wave-1 integration scope for `ProgramService`.
+
+- Completed Phase C final consolidation into:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-C-CONSOLIDATED-PLAN-2026-03-10.md`.
+  - includes:
+    - unified target architecture map;
+    - final ordered backlog with dependencies/risks (`REF-CM-01..07`);
+    - readiness criteria for transition from analysis to implementation;
+    - regression test gate list for implementation waves.
+
+- Current analysis package status:
+  - **READY FOR IMPLEMENTATION PLANNING / EXECUTION**.
+
+## 2026-03-10 — ADHOC course/learning refactor: Wave 0 (REF-CM-01) execution
+
+- Executed Wave 0 from consolidated plan (`REF-CM-01` domain/contract alignment).
+
+- Domain and DTO contract changes implemented:
+  - removed from `Course` model and admin course payloads:
+    - `deadlineAt`,
+    - `allowContinueAfterFail`,
+    - `keepAccessAfterDeadline`;
+  - kept configurable fields unchanged:
+    - `blockAfterDeadline`,
+    - `includeInOverallStats`,
+    - `passingThresholdPercent`.
+
+- Lesson contract alignment implemented:
+  - removed `TheoryLesson.contentType` + `TheoryLesson.syncLessonType()`;
+  - removed `PracticeLesson.syncLessonType()`;
+  - switched theory create/update flow to `lessonType` as the only authoritative type field;
+  - removed theory content-type exposure from lesson DTO/mapper flow.
+
+- Practice question alignment implemented:
+  - enforced `PracticeQuestion.questionType` as non-null in model and DB migration.
+
+- DB migration added:
+  - `V4__course_learning_wave0_domain_contract_alignment.sql`:
+    - drops `courses.deadline_at`, `courses.allow_continue_after_fail`, `courses.keep_access_after_deadline`,
+    - drops `lessons.theory_content_type`,
+    - performs null precheck/fix for `practice_questions.question_type` and sets `NOT NULL`.
+
+- Dead code cleanup completed:
+  - removed `QuestionProgressJsonConverter` (unused by current entity mapping),
+  - removed obsolete `TheoryContentType` enum.
+
+- Regression verification:
+  - wave gate integration tests passed:
+    - `CourseLessonCrudIntegrationTest`,
+    - `Task05SubmitFlowIntegrationTest`,
+    - `Task06ReviewFlowIntegrationTest`,
+    - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+    - `Task08LearnerAnswersVisibilityIntegrationTest`,
+    - `ProgramManagementIntegrationTest`;
+  - result: **BUILD SUCCESS**, 33 tests, 0 failures/errors;
+  - post-cleanup compile check also passed (`mvn -f monolith-mvp/pom.xml -DskipTests compile`).

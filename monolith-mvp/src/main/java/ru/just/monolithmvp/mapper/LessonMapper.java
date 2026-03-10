@@ -29,7 +29,6 @@ public class LessonMapper {
                 lesson.getAttemptLimit(),
                 lesson.getTimeLimitMinutes(),
                 lesson.getLessonType(),
-                theoryLesson == null ? null : theoryLesson.getContentType(),
                 theoryLesson == null ? null : theoryLesson.getContent(),
                 lesson.getFullPoints(),
                 practiceLesson == null ? null : practiceLesson.getPassingThresholdPercent(),

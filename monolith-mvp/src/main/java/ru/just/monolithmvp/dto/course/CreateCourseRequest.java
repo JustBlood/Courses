@@ -14,9 +14,7 @@ public record CreateCourseRequest(
         @Min(0) @Max(100) Integer passingThresholdPercent,
         @Min(1) Integer deadlineDays,
         Boolean lessonsFreeOrder,
-        Boolean allowContinueAfterFail,
         Boolean blockAfterDeadline,
-        Boolean keepAccessAfterDeadline,
         Boolean includeInOverallStats,
         Long sectionId,
         Map<Long, Integer> lessonIdToPosition

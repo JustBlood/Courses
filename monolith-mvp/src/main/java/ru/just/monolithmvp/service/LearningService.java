@@ -94,7 +94,6 @@ public class LearningService {
         } else {
             TheoryLesson theoryLesson = (TheoryLesson) lesson;
             learnerLessonDtoBuilder
-                    .theoryContentType(theoryLesson.getContentType())
                     .theoryContent(theoryLesson.getContent());
         }
         return learnerLessonDtoBuilder.build();

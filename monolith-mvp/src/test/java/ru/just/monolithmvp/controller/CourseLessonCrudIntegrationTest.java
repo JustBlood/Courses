@@ -95,7 +95,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Blocking Theory",
                                   "description": "Must be passed first",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Blocking content",
                                   "fullPoints": 5,
                                   "stopLesson": true
@@ -114,7 +114,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Next Theory",
                                   "description": "Should be blocked until first passed",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Next content",
                                   "fullPoints": 4
                                 }
@@ -238,7 +238,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory FR-012",
                                   "description": "Theory description",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory content",
                                   "fullPoints": 5
                                 }
@@ -366,7 +366,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Stats Theory",
                                   "description": "One lesson",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory",
                                   "fullPoints": 10
                                 }
@@ -502,7 +502,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Report Theory",
                                   "description": "One lesson",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory",
                                   "fullPoints": 10
                                 }
@@ -643,7 +643,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory A",
                                   "description": "A",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "A",
                                   "fullPoints": 10
                                 }
@@ -660,7 +660,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory B",
                                   "description": "B",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "B",
                                   "fullPoints": 20
                                 }
@@ -870,7 +870,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory 1",
                                   "description": "First",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "First content",
                                   "fullPoints": 5
                                 }
@@ -888,7 +888,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory 2",
                                   "description": "Second",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Second content",
                                   "fullPoints": 6
                                 }
@@ -1421,7 +1421,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Deadline Theory",
                                   "description": "Theory",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory",
                                   "fullPoints": 5
                                 }
@@ -1569,7 +1569,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory 1",
                                   "description": "First",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "First content",
                                   "fullPoints": 5
                                 }
@@ -1587,7 +1587,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory 2",
                                   "description": "Second",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Second content",
                                   "fullPoints": 6
                                 }
@@ -1688,7 +1688,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory 1",
                                   "description": "Theory description",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory content",
                                   "fullPoints": 5
                                 }
@@ -2118,7 +2118,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory",
                                   "description": "Theory",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "text",
                                   "fullPoints": 1
                                 }
@@ -2680,7 +2680,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Theory Initial",
                                   "description": "Theory Description",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory Content",
                                   "fullPoints": 7,
                                   "stopLesson": true,
@@ -2714,7 +2714,6 @@ class CourseLessonCrudIntegrationTest {
         JsonNode theoryAfterUpdate = objectMapper.readTree(theoryAfterUpdateResponse);
         assertThat(theoryAfterUpdate.get("title").asText()).isEqualTo("Theory Updated");
         assertThat(theoryAfterUpdate.get("description").asText()).isEqualTo(createdTheory.get("description").asText());
-        assertThat(theoryAfterUpdate.get("theoryContentType").asText()).isEqualTo(createdTheory.get("theoryContentType").asText());
         assertThat(theoryAfterUpdate.get("theoryContent").asText()).isEqualTo(createdTheory.get("theoryContent").asText());
         assertThat(theoryAfterUpdate.get("fullPoints").asInt()).isEqualTo(createdTheory.get("fullPoints").asInt());
         assertThat(theoryAfterUpdate.get("stopLesson").asBoolean()).isEqualTo(createdTheory.get("stopLesson").asBoolean());
@@ -2836,7 +2835,7 @@ class CourseLessonCrudIntegrationTest {
                                 {
                                   "title": "Reset Theory",
                                   "description": "Theory",
-                                  "contentType": "HTML_TEXT",
+                                  "lessonType": "THEORY_TEXT",
                                   "content": "Theory content",
                                   "fullPoints": 5
                                 }

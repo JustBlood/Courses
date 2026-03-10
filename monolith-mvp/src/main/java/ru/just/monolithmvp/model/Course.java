@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,12 +40,6 @@ public class Course {
     private Boolean lessonsFreeOrder = false;
 
     @Column(nullable = false)
-    private Boolean allowContinueAfterFail = false;
-
-    @Column(nullable = false)
-    private Boolean keepAccessAfterDeadline = false;
-
-    @Column(nullable = false)
     private Boolean includeInOverallStats = true;
 
     @Column(nullable = false)
@@ -55,8 +48,6 @@ public class Course {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id")
     private Section section;
-
-    private LocalDateTime deadlineAt;
 
     @Column(nullable = false)
     private Boolean blockAfterDeadline = false;

@@ -32,12 +32,4 @@ public class PracticeLesson extends Lesson {
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionIndex ASC")
     private List<PracticeQuestion> questions = new ArrayList<>();
-
-    @PrePersist
-    @PreUpdate
-    private void syncLessonType() {
-        if (getLessonType() != LessonType.PRACTICE_OPEN_ANSWER) {
-            setLessonType(LessonType.PRACTICE_TEST);
-        }
-    }
 }

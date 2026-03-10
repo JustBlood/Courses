@@ -606,9 +606,7 @@ public class CourseService {
         course.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
         course.setDeadlineDays(request.deadlineDays());
         course.setLessonsFreeOrder(Boolean.TRUE.equals(request.lessonsFreeOrder()));
-        course.setAllowContinueAfterFail(Boolean.TRUE.equals(request.allowContinueAfterFail()));
         course.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
-        course.setKeepAccessAfterDeadline(Boolean.TRUE.equals(request.keepAccessAfterDeadline()));
         course.setIncludeInOverallStats(request.includeInOverallStats() == null || request.includeInOverallStats());
         course.setSection(request.sectionId() == null ? sectionService.getDefaultSection() : sectionService.getSectionEntity(request.sectionId()));
     }
@@ -629,13 +627,17 @@ public class CourseService {
     private void applyTheoryLessonFields(TheoryLesson lesson, CreateTheoryLessonRequest request) {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
                 request.attemptLimit(), request.timeLimitMinutes());
-        lesson.setContentType(patchValue(request.contentType(), lesson.getContentType()));
-        if (LessonType.THEORY_PDF.equals(lesson.getLessonType())) {
+        LessonType nextLessonType = patchValue(request.lessonType(), lesson.getLessonType());
+        boolean wasPdfLesson = LessonType.THEORY_PDF.equals(lesson.getLessonType());
+        if (LessonType.THEORY_PDF.equals(nextLessonType)) {
             if (request.content() != null && !fileStorageService.isFileExistsByRelativePath(request.content())) {
                 throw new BadRequestException("file is not exists");
             }
+        }
+        if (wasPdfLesson && request.content() != null && !Objects.equals(request.content(), lesson.getContent())) {
             fileStorageService.deleteIfExists(lesson.getContent());
         }
+        lesson.setLessonType(nextLessonType);
         lesson.setContent(patchValue(request.content(), lesson.getContent()));
         lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
     }
@@ -704,7 +706,7 @@ public class CourseService {
                 request.blockedDuringAttempt(),
                 request.attemptLimit(),
                 request.timeLimitMinutes(),
-                request.contentType(),
+                request.lessonType(),
                 request.content(),
                 request.fullPoints(),
                 null
@@ -819,9 +821,7 @@ public class CourseService {
                 dto.passingThresholdPercent(),
                 dto.deadlineDays(),
                 dto.lessonsFreeOrder(),
-                dto.allowContinueAfterFail(),
                 dto.blockAfterDeadline(),
-                dto.keepAccessAfterDeadline(),
                 dto.includeInOverallStats(),
                 dto.sectionId(),
                 dto.sectionTitle(),
@@ -858,8 +858,8 @@ public class CourseService {
         if (StringUtils.isBlank(request.title())) {
             throw new BadRequestException("title is required");
         }
-        if (request.contentType() == null) {
-            throw new BadRequestException("contentType is required");
+        if (request.lessonType() == null || request.lessonType().getSubType() != LessonType.LessonSubType.THEORY) {
+            throw new BadRequestException("lessonType must be one of theory types");
         }
         if (StringUtils.isBlank(request.content())) {
             throw new BadRequestException("content is required");
