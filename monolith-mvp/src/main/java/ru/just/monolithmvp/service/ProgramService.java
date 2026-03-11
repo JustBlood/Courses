@@ -6,11 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
 import ru.just.monolithmvp.dto.program.ProgramCourseDto;
 import ru.just.monolithmvp.dto.program.ProgramDto;
+import ru.just.monolithmvp.dto.program.ProgramGroupAssignRequest;
+import ru.just.monolithmvp.dto.program.ProgramUserAssignRequest;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
-import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -29,8 +30,7 @@ public class ProgramService {
     private final LearningGroupRepository learningGroupRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonSubmissionRepository lessonSubmissionRepository;
-    private final CourseService courseService;
-    private final SecurityUtils securityUtils;
+    private final CourseEnrollmentPort courseEnrollmentPort;
 
     @Transactional
     public ProgramDto createProgram(CreateLearningProgramRequest request) {
@@ -91,6 +91,12 @@ public class ProgramService {
     }
 
     @Transactional
+    public void updateProgramUsers(Long programId, ProgramUserAssignRequest request) {
+        validateNoOverlap(request.idsIn(), request.idsNotIn(), "Program users lists must be unique");
+        assignUsers(programId, request.idsIn(), request.idsNotIn());
+    }
+
+    @Transactional
     public void assignUsersToProgram(Long programId, List<Long> userIds) {
         assignUsers(programId, new LinkedHashSet<>(userIds), Set.of());
     }
@@ -132,6 +138,12 @@ public class ProgramService {
                                 .ifPresent(enrollment -> cleanupProgramEnrollment(enrollment, true));
                     });
         }
+    }
+
+    @Transactional
+    public void updateProgramGroups(Long programId, ProgramGroupAssignRequest request) {
+        validateNoOverlap(request.idsIn(), request.idsNotIn(), "Program groups lists must be unique");
+        assignGroups(programId, request.idsIn(), request.idsNotIn());
     }
 
     @Transactional(readOnly = true)
@@ -253,7 +265,7 @@ public class ProgramService {
         ProgramDto dto = toProgramDto(program, userId);
         for (ProgramCourseDto courseDto : dto.courses()) {
             if (Boolean.TRUE.equals(courseDto.available())) {
-                courseService.enrollStudentToCourse(courseDto.courseId(), userId);
+                courseEnrollmentPort.enrollStudentToCourse(courseDto.courseId(), userId);
             }
         }
     }
@@ -382,5 +394,11 @@ public class ProgramService {
 
     private boolean isLearnerRole(AppUser user) {
         return user.getRole() == Role.STUDENT || user.getRole() == Role.ADMIN;
+    }
+
+    private <T> void validateNoOverlap(Set<T> idsIn, Set<T> idsNotIn, String message) {
+        if (idsIn.stream().anyMatch(idsNotIn::contains)) {
+            throw new BadRequestException(message);
+        }
     }
 }

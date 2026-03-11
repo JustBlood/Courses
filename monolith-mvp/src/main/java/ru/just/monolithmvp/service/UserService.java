@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
+import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -48,6 +49,7 @@ public class UserService {
     private final MailProperties mailProperties;
     private final LearningGroupRepository learningGroupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final GroupService groupService;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
     private final FileStorageService fileStorageService;
@@ -222,6 +224,20 @@ public class UserService {
         }
 
         return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
+    }
+
+    @Transactional(readOnly = true)
+    public StudentProfileDto getStudentProfile(Long userId) {
+        return new StudentProfileDto(
+                hideCommentForStudent(getUser(userId)),
+                groupService.getUserGroups(userId)
+        );
+    }
+
+    @Transactional
+    public StudentProfileDto updateStudentProfile(Long userId, UpdateUserRequest request) {
+        UserDto updatedUser = updateMyProfile(userId, request);
+        return new StudentProfileDto(hideCommentForStudent(updatedUser), groupService.getUserGroups(userId));
     }
 
     @Transactional
@@ -595,6 +611,28 @@ public class UserService {
                 dto.lastVisit(),
                 dto.deactivatedAt(),
                 dto.deactivatedBy()
+        );
+    }
+
+    private UserDto hideCommentForStudent(UserDto user) {
+        if (user.role() != Role.STUDENT) {
+            return user;
+        }
+        return new UserDto(
+                user.id(),
+                user.fullName(),
+                user.email(),
+                user.role(),
+                user.activation(),
+                user.enabled(),
+                user.phone(),
+                null,
+                user.avatarFilePath(),
+                user.createdAt(),
+                user.createdBy(),
+                user.lastVisit(),
+                user.deactivatedAt(),
+                user.deactivatedBy()
         );
     }
 

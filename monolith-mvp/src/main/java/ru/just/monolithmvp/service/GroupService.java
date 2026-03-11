@@ -28,7 +28,7 @@ public class GroupService {
     private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
     private final AppUserRepository userRepository;
     private final UserMapper userMapper;
-    private final CourseService courseService;
+    private final CourseEnrollmentPort courseEnrollmentPort;
     private final ProgramService programService;
 
     @Transactional
@@ -287,7 +287,7 @@ public class GroupService {
 
         for (Long courseId : courseIds) {
             for (Long studentId : studentIds) {
-                courseService.enrollStudentToCourse(courseId, studentId);
+                courseEnrollmentPort.enrollStudentToCourse(courseId, studentId);
             }
         }
 

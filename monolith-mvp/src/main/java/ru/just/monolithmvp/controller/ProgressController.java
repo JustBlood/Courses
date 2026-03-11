@@ -20,7 +20,7 @@ import ru.just.monolithmvp.dto.learning.ReviewOpenSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
 import ru.just.monolithmvp.service.CourseService;
-import ru.just.monolithmvp.service.LearningService;
+import ru.just.monolithmvp.service.OpenReviewService;
 import ru.just.monolithmvp.service.StatisticsService;
 
 import java.util.List;
@@ -38,7 +38,7 @@ import java.util.List;
 })
 public class ProgressController {
     private final CourseService courseService;
-    private final LearningService learningService;
+    private final OpenReviewService openReviewService;
     private final StatisticsService statisticsService;
 
     @GetMapping("/reviews/pending")
@@ -47,7 +47,7 @@ public class ProgressController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список submissions для проверки по урокам", content = @Content(schema = @Schema(implementation = PendingSubmissionDto.class)))
     })
     public ResponseEntity<List<PendingSubmissionDto>> pendingReviews() {
-        return ResponseEntity.ok(learningService.getPendingReviews());
+        return ResponseEntity.ok(openReviewService.getPendingReviews());
     }
 
     @GetMapping("/reviews/pending/{submissionId}")
@@ -58,7 +58,7 @@ public class ProgressController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Submission не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<List<PendingSubmissionQuestionDto>> pendingReviewQuestions(@PathVariable Long submissionId) {
-        return ResponseEntity.ok(learningService.getPendingReviewQuestions(submissionId));
+        return ResponseEntity.ok(openReviewService.getPendingReviewQuestions(submissionId));
     }
 
     @GetMapping("/reviews/courses")
@@ -79,7 +79,7 @@ public class ProgressController {
     })
     public ResponseEntity<SubmissionResultDto> reviewOpenAnswer(@PathVariable Long submissionId,
                                                                 @RequestBody ReviewOpenSubmissionRequest request) {
-        return ResponseEntity.ok(learningService.reviewOpenSubmission(submissionId, request));
+        return ResponseEntity.ok(openReviewService.reviewOpenSubmission(submissionId, request));
     }
 
     @GetMapping("/courses/{courseId}/stats")

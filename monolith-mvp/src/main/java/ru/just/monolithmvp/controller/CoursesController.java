@@ -22,6 +22,8 @@ import ru.just.monolithmvp.dto.program.ProgramDto;
 import ru.just.monolithmvp.dto.program.ProgramGroupAssignRequest;
 import ru.just.monolithmvp.dto.program.ProgramUserAssignRequest;
 import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
+import ru.just.monolithmvp.service.CourseAssignmentService;
+import ru.just.monolithmvp.service.CourseLessonAdminService;
 import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.ProgramService;
 
@@ -40,6 +42,8 @@ import java.util.List;
 })
 public class CoursesController {
     private final CourseService courseService;
+    private final CourseLessonAdminService courseLessonAdminService;
+    private final CourseAssignmentService courseAssignmentService;
     private final ProgramService programService;
 
 
@@ -103,7 +107,7 @@ public class CoursesController {
     })
     public ResponseEntity<LessonDto> createTheoryLesson(@PathVariable Long courseId,
                                                         @Valid @RequestBody CreateTheoryLessonRequest request) {
-        return new ResponseEntity<>(courseService.createTheoryLesson(courseId, request), HttpStatus.CREATED);
+        return new ResponseEntity<>(courseLessonAdminService.createTheoryLesson(courseId, request), HttpStatus.CREATED);
     }
 
     @PostMapping("/{courseId}/lessons/practice")
@@ -114,7 +118,7 @@ public class CoursesController {
     })
     public ResponseEntity<LessonDto> createPracticeLesson(@PathVariable Long courseId,
                                                           @Valid @RequestBody CreatePracticeLessonRequest request) {
-        return new ResponseEntity<>(courseService.createPracticeLesson(courseId, request), HttpStatus.CREATED);
+        return new ResponseEntity<>(courseLessonAdminService.createPracticeLesson(courseId, request), HttpStatus.CREATED);
     }
 
     @GetMapping("/{courseId}/lessons/{lessonId}")
@@ -124,7 +128,7 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Урок/курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<LessonDto> getLesson(@PathVariable Long courseId, @PathVariable Long lessonId) {
-        return ResponseEntity.ok(courseService.getLesson(courseId, lessonId));
+        return ResponseEntity.ok(courseLessonAdminService.getLesson(courseId, lessonId));
     }
 
     @PutMapping("/{courseId}/lessons/{lessonId}/theory")
@@ -137,7 +141,7 @@ public class CoursesController {
     public ResponseEntity<LessonDto> updateTheoryLesson(@PathVariable Long courseId,
                                                         @PathVariable Long lessonId,
                                                         @Valid @RequestBody UpdateTheoryLessonRequest request) {
-        return ResponseEntity.ok(courseService.updateTheoryLesson(courseId, lessonId, request));
+        return ResponseEntity.ok(courseLessonAdminService.updateTheoryLesson(courseId, lessonId, request));
     }
 
     @PutMapping("/{courseId}/lessons/{lessonId}/practice")
@@ -150,7 +154,7 @@ public class CoursesController {
     public ResponseEntity<LessonDto> updatePracticeLesson(@PathVariable Long courseId,
                                                           @PathVariable Long lessonId,
                                                           @Valid @RequestBody UpdatePracticeLessonRequest request) {
-        return ResponseEntity.ok(courseService.updatePracticeLesson(courseId, lessonId, request));
+        return ResponseEntity.ok(courseLessonAdminService.updatePracticeLesson(courseId, lessonId, request));
     }
 
     @DeleteMapping("/{courseId}/lessons/{lessonId}")
@@ -160,7 +164,7 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Урок/курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> deleteLesson(@PathVariable Long courseId, @PathVariable Long lessonId) {
-        courseService.deleteLesson(courseId, lessonId);
+        courseLessonAdminService.deleteLesson(courseId, lessonId);
         return ResponseEntity.ok(new ApiResponse("Lesson deleted"));
     }
 
@@ -174,10 +178,7 @@ public class CoursesController {
     })
     public ResponseEntity<ApiResponse> assignStudent(@PathVariable Long courseId,
                                                      @RequestBody @Valid UserInNotInRequest request) {
-        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
-            return ResponseEntity.badRequest().body(new ApiResponse("Enrollment lists must be unique"));
-        }
-        courseService.enrollUnenrollStudents(courseId, request.idsIn(), request.idsNotIn());
+        courseAssignmentService.updateCourseEnrollments(courseId, request);
         return ResponseEntity.ok(new ApiResponse("Course enrollments updated"));
     }
 
@@ -188,7 +189,7 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<UserInNotInListsDto> getEnrollmentLists(@PathVariable Long courseId) {
-        return ResponseEntity.ok(courseService.getEnrollmentLists(courseId));
+        return ResponseEntity.ok(courseAssignmentService.getEnrollmentLists(courseId));
     }
 
     @PostMapping("/{courseId}/reviewers")
@@ -200,10 +201,7 @@ public class CoursesController {
     })
     public ResponseEntity<ApiResponse> assignReviewer(@PathVariable Long courseId,
                                                       @RequestBody @Valid UserInNotInRequest request) {
-        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
-            return ResponseEntity.badRequest().body(new ApiResponse("Reviewers lists must be unique"));
-        }
-        courseService.assignUnassignReviewers(courseId, request.idsIn(), request.idsNotIn());
+        courseAssignmentService.updateCourseReviewers(courseId, request);
         return ResponseEntity.ok(new ApiResponse("Course reviewers updated"));
     }
 
@@ -213,7 +211,7 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "ОК", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<UserInNotInListsDto> getCourseReviewers(@PathVariable Long courseId) {
-        return ResponseEntity.ok(courseService.getReviewersToCourseLists(courseId));
+        return ResponseEntity.ok(courseAssignmentService.getReviewersToCourseLists(courseId));
     }
 
     @PostMapping("/{courseId}/groups/assign")
@@ -225,7 +223,7 @@ public class CoursesController {
     })
     public ResponseEntity<ApiResponse> assignGroupToCourse(@PathVariable Long courseId,
                                                             @RequestBody @Valid UuidIdsRequest request) {
-        request.ids().forEach(groupId -> courseService.assignGroupToCourse(courseId, groupId));
+        courseAssignmentService.assignGroupsToCourse(courseId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Group assigned to course"));
     }
 
@@ -238,7 +236,7 @@ public class CoursesController {
     })
     public ResponseEntity<ApiResponse> unassignGroupFromCourse(@PathVariable Long courseId,
                                                                 @RequestBody @Valid UuidIdsRequest request) {
-        request.ids().forEach(groupId -> courseService.unassignGroupFromCourse(courseId, groupId));
+        courseAssignmentService.unassignGroupsFromCourse(courseId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
     }
 
@@ -271,10 +269,7 @@ public class CoursesController {
     @Operation(summary = "Назначить/снять пользователей для learning program")
     public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
                                                             @RequestBody @Valid ProgramUserAssignRequest request) {
-        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
-            return ResponseEntity.badRequest().body(new ApiResponse("Program users lists must be unique"));
-        }
-        programService.assignUsers(programId, request.idsIn(), request.idsNotIn());
+        programService.updateProgramUsers(programId, request);
         return ResponseEntity.ok(new ApiResponse("Program assignments updated"));
     }
 
@@ -282,10 +277,7 @@ public class CoursesController {
     @Operation(summary = "Назначить/снять группы для learning program")
     public ResponseEntity<ApiResponse> assignGroupsToProgram(@PathVariable Long programId,
                                                              @RequestBody @Valid ProgramGroupAssignRequest request) {
-        if (request.idsIn().stream().anyMatch(idIn -> request.idsNotIn().contains(idIn))) {
-            return ResponseEntity.badRequest().body(new ApiResponse("Program groups lists must be unique"));
-        }
-        programService.assignGroups(programId, request.idsIn(), request.idsNotIn());
+        programService.updateProgramGroups(programId, request);
         return ResponseEntity.ok(new ApiResponse("Program group assignments updated"));
     }
 

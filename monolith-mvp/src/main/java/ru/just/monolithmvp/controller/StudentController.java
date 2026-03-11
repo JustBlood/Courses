@@ -21,7 +21,6 @@ import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
-import ru.just.monolithmvp.model.Role;
 import ru.just.monolithmvp.security.SecurityUtils;
 import ru.just.monolithmvp.service.*;
 
@@ -40,9 +39,10 @@ import java.util.List;
 })
 public class StudentController {
     private final CourseService courseService;
+    private final CourseLearnerReadService courseLearnerReadService;
     private final LearningService learningService;
+    private final PracticeSubmissionService practiceSubmissionService;
     private final StatisticsService statisticsService;
-    private final GroupService groupService;
     private final UserService userService;
     private final ProgramService programService;
     private final SecurityUtils securityUtils;
@@ -74,11 +74,7 @@ public class StudentController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль текущего пользователя", content = @Content(schema = @Schema(implementation = StudentProfileDto.class)))
     })
     public ResponseEntity<StudentProfileDto> myProfile() {
-        Long userId = securityUtils.currentUserId();
-        return ResponseEntity.ok(new StudentProfileDto(
-                hideCommentForStudent(userService.getUser(userId)),
-                groupService.getUserGroups(userId)
-        ));
+        return ResponseEntity.ok(userService.getStudentProfile(securityUtils.currentUserId()));
     }
 
     @PatchMapping("/my/profile")
@@ -88,31 +84,7 @@ public class StudentController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<StudentProfileDto> updateMyProfile(@Valid @RequestBody UpdateUserRequest request) {
-        Long userId = securityUtils.currentUserId();
-        UserDto updatedUser = userService.updateMyProfile(userId, request);
-        return ResponseEntity.ok(new StudentProfileDto(hideCommentForStudent(updatedUser), groupService.getUserGroups(userId)));
-    }
-
-    private UserDto hideCommentForStudent(UserDto user) {
-        if (user.role() != Role.STUDENT) {
-            return user;
-        }
-        return new UserDto(
-                user.id(),
-                user.fullName(),
-                user.email(),
-                user.role(),
-                user.activation(),
-                user.enabled(),
-                user.phone(),
-                null,
-                user.avatarFilePath(),
-                user.createdAt(),
-                user.createdBy(),
-                user.lastVisit(),
-                user.deactivatedAt(),
-                user.deactivatedBy()
-        );
+        return ResponseEntity.ok(userService.updateStudentProfile(securityUtils.currentUserId(), request));
     }
 
     @PostMapping("/my/last-visit")
@@ -131,7 +103,7 @@ public class StudentController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден или недоступен", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<CourseLearnerDto> courseForLearner(@PathVariable Long courseId) {
-        return ResponseEntity.ok(courseService.getCourseForLearner(securityUtils.currentUserId(), courseId));
+        return ResponseEntity.ok(courseLearnerReadService.getCourseForLearner(securityUtils.currentUserId(), courseId));
     }
 
     @GetMapping("/courses/{courseId}/lessons/next")
@@ -163,7 +135,7 @@ public class StudentController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Урок не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<SubmissionResultDto> completeTheoryLesson(@PathVariable Long lessonId) {
-        return ResponseEntity.ok(learningService.completeTheoryLesson(lessonId, securityUtils.currentUserId()));
+        return ResponseEntity.ok(practiceSubmissionService.completeTheoryLesson(lessonId, securityUtils.currentUserId()));
     }
 
     @PostMapping("/lessons/{lessonId}/submit-practice")
@@ -175,7 +147,7 @@ public class StudentController {
     })
     public ResponseEntity<SubmissionResultDto> submitPractice(@PathVariable Long lessonId,
                                                               @RequestBody PracticeSubmissionRequest request) {
-        return ResponseEntity.ok(learningService.submitPractice(lessonId, request));
+        return ResponseEntity.ok(practiceSubmissionService.submitPractice(lessonId, request, securityUtils.currentUserId()));
     }
 
     @GetMapping("/my/stats")

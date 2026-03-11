@@ -489,3 +489,93 @@
     - `ProgramManagementIntegrationTest`;
   - result: **BUILD SUCCESS**, 33 tests, 0 failures/errors;
   - post-cleanup compile check also passed (`mvn -f monolith-mvp/pom.xml -DskipTests compile`).
+
+## 2026-03-11 — ADHOC course/learning refactor: Wave 1 (REF-CM-02/REF-CM-03) baseline closure
+
+- Completed Wave 1 baseline from consolidated Phase C plan:
+  - finalized `LearningService` as compatibility facade with delegation to:
+    - `LessonAccessPolicy`,
+    - `PracticeSubmissionService`,
+    - `OpenReviewService`;
+  - preserved learner lesson read-model assembly inside `LearningService`.
+
+- Aligned Program/Course integration boundary to port-based contract:
+  - `ProgramService` switched from direct `CourseService` enrollment calls to `CourseEnrollmentPort`;
+  - `GroupService` switched from direct `CourseService` enrollment calls to `CourseEnrollmentPort`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - regression gate executed:
+    - `CourseLessonCrudIntegrationTest`,
+    - `Task05SubmitFlowIntegrationTest`,
+    - `Task06ReviewFlowIntegrationTest`,
+    - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+    - `Task08LearnerAnswersVisibilityIntegrationTest`;
+  - result: **BUILD SUCCESS**, tests run: 25, failures: 0, errors: 0.
+
+- Wave status: **WAVE 1 DONE (baseline), ready for Wave 2 (`REF-CM-04`/`REF-CM-07`)**.
+
+## 2026-03-11 — Wave 1 follow-up: single source of truth for theory lesson type checks
+
+- Addressed duplicated helper logic identified during Wave 1 service review:
+  - duplicate `isTheoryLesson(...)` checks existed in `CourseService` and `PracticeSubmissionService`.
+
+- Introduced a single source of truth at domain enum level:
+  - `LessonType.isTheory()`;
+  - `LessonType.isPractice()` (added alongside for symmetric domain API).
+
+- Refactored services to consume unified domain predicate:
+  - `CourseService` theory-count calculation now uses `lesson.getLessonType().isTheory()`;
+  - `PracticeSubmissionService.completeTheoryLesson(...)` now uses `lesson.getLessonType().isTheory()`;
+  - removed duplicated private helper methods.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest test` → **BUILD SUCCESS** (20 tests, 0 failures/errors).
+
+## 2026-03-11 — Wave 1 follow-up: facade delegation cleanup after boundary migration
+
+- Reduced residual compatibility-facade coupling after Wave 1 decomposition by switching remaining internal consumers from `CourseService` pass-through methods to focused services:
+  - `EnrollmentProgressService`: `CourseService` -> `CourseLessonAdminService` for course lessons read;
+  - `OpenReviewService`: `CourseService` -> `CourseAssignmentService` for reviewer-scope and review-permission checks.
+
+- Finalized `CourseService` scope as thin public application facade for externally used course endpoints only:
+  - removed obsolete delegation methods that mirrored extracted services (`CourseLessonAdminService`, `CourseLearnerReadService`, `CourseAssignmentService`) and no longer had call sites;
+  - removed now-unused injected dependencies from `CourseService` (`CourseAccessPolicy`, `CourseLessonAdminService`) and cleaned unused imports;
+  - kept local private `getCourseEntity(...)` helper backed by `CourseLearnerReadService` for internal CRUD methods in `CourseService`.
+
+- Minor follow-up cleanup in learner read service facade:
+  - removed unused imports in `LearningService` after previous decomposition.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest,Task06ReviewFlowIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest,Task08LearnerAnswersVisibilityIntegrationTest test` → **BUILD SUCCESS**, `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-11 - Course/learning controllers: redundant controller logic cleanup
+
+- Performed controller-layer validation for course/learning endpoints and moved non-transport logic from controllers into services.
+
+- `CoursesController` cleanup:
+  - removed overlap-validation checks and per-id iteration loops from controller methods;
+  - switched to service-level orchestration methods:
+    - `courseAssignmentService.updateCourseEnrollments(...)`,
+    - `courseAssignmentService.updateCourseReviewers(...)`,
+    - `courseAssignmentService.assignGroupsToCourse(...)`,
+    - `courseAssignmentService.unassignGroupsFromCourse(...)`,
+    - `programService.updateProgramUsers(...)`,
+    - `programService.updateProgramGroups(...)`.
+
+- `StudentController` cleanup:
+  - removed profile composition and role-specific comment masking from controller;
+  - switched to application-service methods:
+    - `userService.getStudentProfile(...)`,
+    - `userService.updateStudentProfile(...)`.
+
+- Service additions introduced to host extracted logic:
+  - `CourseAssignmentService`: overlap validation and list-orchestration wrappers for enrollments/reviewers/groups;
+  - `ProgramService`: overlap validation wrappers for program users/groups updates;
+  - `UserService`: student profile assembly and student comment masking for profile endpoints.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest,Task06ReviewFlowIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest,Task08LearnerAnswersVisibilityIntegrationTest test` -> **BUILD SUCCESS**, `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
