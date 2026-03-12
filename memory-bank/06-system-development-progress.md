@@ -579,3 +579,45 @@
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
   - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest,Task06ReviewFlowIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest,Task08LearnerAnswersVisibilityIntegrationTest test` -> **BUILD SUCCESS**, `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-11 — ADHOC course/learning refactor: Wave 2 (REF-CM-04/REF-CM-07) completion
+
+- Completed Wave 2 performance/data-access scope from consolidated plan:
+  - `StatisticsService` preserved as compatibility facade and switched to delegation through:
+    - `StatisticsReportService`,
+    - `StatisticsQueryService`,
+    - `CsvReportRenderer`.
+
+- Implemented statistics query-layer aggregation to reduce per-row roundtrips:
+  - `LessonSubmissionRepository`:
+    - batch points sum by `(userId, courseId)`,
+    - batch completed lessons count by `(userId, courseId)`,
+    - batch retakes sum by `(userId, courseId)`;
+  - `LessonRepository`:
+    - batch max-points sum by `courseId`,
+    - batch lessons count by `courseId`;
+  - `EnrollmentRepository`:
+    - join-fetch read models (`findByUserIdWithUserAndCourse`, `findByCourseIdWithUserAndCourse`, `findAllWithUserAndCourse`);
+  - `GroupMembershipRepository`:
+    - join-fetch memberships by user set (`findByUserIdInWithGroup`).
+
+- Repository cleanup after usage scan (`REF-CM-07`):
+  - removed unused methods from `LessonSubmissionRepository`:
+    - `findFirstByStudentIdAndLessonIdAndStatusOrderBySubmittedAtDesc(...)`,
+    - `findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(...)`;
+  - kept `findWithLockingByStudentIdAndLessonId(...)` as actively used by submit/review critical flows.
+
+- Added/supporting artifacts for Wave 2 context continuity:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-C-CONSOLIDATED-PLAN-2026-03-10.md` updated with Wave 2 execution status section;
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-B-SUBAGENT-ARCH-ANALYSIS-2026-03-10.md` updated with implementation feedback against B3 recommendations.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - regression gate:
+    - `CourseLessonCrudIntegrationTest`,
+    - `Task05SubmitFlowIntegrationTest`,
+    - `Task06ReviewFlowIntegrationTest`,
+    - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+    - `Task08LearnerAnswersVisibilityIntegrationTest`,
+    - `ProgramManagementIntegrationTest`;
+  - result: **BUILD SUCCESS**, `Tests run: 33, Failures: 0, Errors: 0, Skipped: 0`.

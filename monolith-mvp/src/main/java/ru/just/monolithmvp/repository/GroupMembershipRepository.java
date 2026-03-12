@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import ru.just.monolithmvp.model.GroupMembership;
 import ru.just.monolithmvp.model.GroupType;
 
@@ -16,7 +17,16 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     void deleteByGroupIdAndUserId(UUID groupId, Long userId);
     void deleteByGroupId(UUID groupId);
     List<GroupMembership> findByUserId(Long userId);
-    List<GroupMembership> findByUserIdIn(List<Long> userIds);
+
+    @Query("""
+            select m
+            from GroupMembership m
+            join fetch m.user
+            join fetch m.group
+            where m.user.id in :userIds
+            """)
+    List<GroupMembership> findByUserIdInWithGroup(List<Long> userIds);
+
     List<GroupMembership> findByUserIdInAndGroup_Type(List<Long> userIds, GroupType type);
     Optional<GroupMembership> findByUserIdAndGroup_Type(Long userId, GroupType type);
     long countByUserIdAndGroup_Type(Long userId, GroupType type);

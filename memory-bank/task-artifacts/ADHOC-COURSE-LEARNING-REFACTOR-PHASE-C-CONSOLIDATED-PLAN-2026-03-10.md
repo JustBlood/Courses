@@ -211,3 +211,48 @@ Verification:
   - Result: **BUILD SUCCESS**, tests run: 25, failures: 0, errors: 0.
 
 Wave status after execution: **WAVE 1 DONE (baseline), READY FOR WAVE 2 (REF-CM-04/REF-CM-07)**.
+
+## 7) Execution status update — Wave 2 (REF-CM-04/REF-CM-07) completed on 2026-03-11
+
+Wave 2 implementation has been completed in the current working tree.
+
+Completed scope:
+
+1. `REF-CM-04` (Statistics + repository aggregation optimization)
+   - `StatisticsService` preserved as compatibility facade and delegated to:
+     - `StatisticsReportService` (DTO/report composition),
+     - `StatisticsQueryService` (aggregated read-model queries),
+     - `CsvReportRenderer` (CSV formatting/escaping only).
+   - Added batch aggregation queries and projections to reduce roundtrips:
+     - `LessonSubmissionRepository`:
+       - points sum by `(userId, courseId)`,
+       - completed lessons count by `(userId, courseId)`,
+       - retakes sum by `(userId, courseId)`;
+     - `LessonRepository`:
+       - max points by `courseId` batch,
+       - lessons count by `courseId` batch;
+     - `EnrollmentRepository`:
+       - join-fetch read models for user/course/all enrollments;
+     - `GroupMembershipRepository`:
+       - join-fetch memberships for user set.
+
+2. `REF-CM-07` (repository cleanup + regression safety)
+   - Removed unused repository methods after usage scan and verification:
+     - `LessonSubmissionRepository.findFirstByStudentIdAndLessonIdAndStatusOrderBySubmittedAtDesc(...)`,
+     - `LessonSubmissionRepository.findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(...)`.
+   - Existing locking method `findWithLockingByStudentIdAndLessonId(...)` was kept (actively used in submit/review critical paths).
+
+Verification:
+
+- Wave 2 compile gate:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**.
+- Wave regression gate:
+  - `CourseLessonCrudIntegrationTest`
+  - `Task05SubmitFlowIntegrationTest`
+  - `Task06ReviewFlowIntegrationTest`
+  - `Task07StatisticsAndLearnerSummaryIntegrationTest`
+  - `Task08LearnerAnswersVisibilityIntegrationTest`
+  - `ProgramManagementIntegrationTest`
+  - Result: **BUILD SUCCESS**, tests run: 33, failures: 0, errors: 0.
+
+Wave status after execution: **WAVE 2 DONE, READY FOR WAVE 3 (REF-CM-05) and cross-wave REF-CM-06 continuation**.

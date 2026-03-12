@@ -247,3 +247,50 @@ Rollback point после каждого шага: старый `CourseService` 
 - B2 LearningService decomposition + race-risk analysis,
 - B3 Statistics/repository aggregation analysis,
 - B4 ProgramService integration depth and safe boundaries.
+
+---
+
+## Execution status update — Wave 2 implementation feedback (2026-03-11)
+
+По результатам реализации Wave 2 (`REF-CM-04` + `REF-CM-07`) выводы B3 подтверждены и применены в коде.
+
+Что реализовано относительно рекомендаций B3:
+
+1. Разделение `StatisticsService`
+   - Введены отдельные компоненты:
+     - `StatisticsQueryService` — агрегирующие read-model запросы,
+     - `StatisticsReportService` — сборка DTO/API/CSV row-model,
+     - `CsvReportRenderer` — изолированный CSV-рендеринг (escape/header/row).
+   - `StatisticsService` оставлен как compatibility facade и делегирует в `StatisticsReportService`.
+
+2. Batch-агрегации и снижение roundtrip
+   - `LessonSubmissionRepository`:
+     - batch sum points по `(userId, courseId)`;
+     - batch count completed lessons по `(userId, courseId)`;
+     - batch sum retakes по `(userId, courseId)`.
+   - `LessonRepository`:
+     - batch sum max points по `courseId`;
+     - batch count lessons по `courseId`.
+   - `EnrollmentRepository`:
+     - join-fetch методы для user/course/all enrollments.
+   - `GroupMembershipRepository`:
+     - join-fetch memberships по списку пользователей.
+
+3. Repository cleanup (B3 candidate cleanup)
+   - После usage-scan удалены неиспользуемые методы:
+     - `findFirstByStudentIdAndLessonIdAndStatusOrderBySubmittedAtDesc(...)`,
+     - `findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(...)`.
+   - `findWithLockingByStudentIdAndLessonId(...)` оставлен, так как используется в submit/review critical paths.
+
+Верификация Wave 2:
+- `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+- regression gate:
+  - `CourseLessonCrudIntegrationTest`,
+  - `Task05SubmitFlowIntegrationTest`,
+  - `Task06ReviewFlowIntegrationTest`,
+  - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+  - `Task08LearnerAnswersVisibilityIntegrationTest`,
+  - `ProgramManagementIntegrationTest`;
+- результат: **BUILD SUCCESS**, 33 tests run, 0 failures/errors.
+
+Итог по B3 после реализации: целевая архитектура и performance-рекомендации применены, статистический контур переведён на агрегирующий query-layer без регрессий интеграционного gate.
