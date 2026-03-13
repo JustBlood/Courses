@@ -13,4 +13,5 @@ public interface GroupProgramAssignmentRepository extends JpaRepository<GroupPro
     List<GroupProgramAssignment> findByProgramId(Long programId);
     Optional<GroupProgramAssignment> findByGroupIdAndProgramId(UUID groupId, Long programId);
     void deleteByGroupIdAndProgramId(UUID groupId, Long programId);
+    void deleteByProgramId(Long programId);
 }

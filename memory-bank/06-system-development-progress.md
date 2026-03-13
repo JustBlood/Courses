@@ -621,3 +621,37 @@
     - `Task08LearnerAnswersVisibilityIntegrationTest`,
     - `ProgramManagementIntegrationTest`;
   - result: **BUILD SUCCESS**, `Tests run: 33, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-12 — ADHOC course/learning refactor: Wave 3 (REF-CM-05) completion
+
+- Completed Wave 3 from consolidated Phase C plan (`Program integration alignment`).
+
+- Program integration and idempotent propagation updates:
+  - `ProgramService` keeps enrollment propagation via `CourseEnrollmentPort` and now uses a shared state resolver for both DTO read-model and propagation path:
+    - `resolveProgramCourseStatesForUser(...)`;
+  - replaced per-course enrollment lookups with batch preload:
+    - `EnrollmentRepository.findByUserIdAndCourseIdIn(...)`.
+
+- Assignment pattern parity (program two-lists contract):
+  - implemented missing method for programs assignment lists:
+    - `ProgramService.getProgramEnrollmentLists(programId)` returning `UserInNotInListsDto`;
+  - added admin endpoint:
+    - `GET /api/v1/admin/courses/programs/{programId}/assign`.
+
+- Program enrollment consistency hardening:
+  - direct unassign no longer removes `ProgramEnrollment` when user is still assigned through any program group;
+  - group unassign/group-membership removal now also preserves enrollment when user remains assigned through another group;
+  - save operations for program enrollments are now conditional (persist only newly created enrollments).
+
+- Repository read-path alignment:
+  - `ProgramEnrollmentRepository.findByUserId(...)` and `findByProgramId(...)` switched to join-fetch user/program read-model queries.
+
+- Integration coverage updates:
+  - `ProgramManagementIntegrationTest` expanded with wave-3 scenarios:
+    - two-lists program assignment API behavior,
+    - preserving enrollment on direct unassign while group assignment exists,
+    - removing enrollment after group unassignment.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test` -> **BUILD SUCCESS**, `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.

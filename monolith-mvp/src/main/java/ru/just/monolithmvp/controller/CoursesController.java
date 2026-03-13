@@ -17,15 +17,10 @@ import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.UuidIdsRequest;
 import ru.just.monolithmvp.dto.course.*;
 import ru.just.monolithmvp.dto.lesson.*;
-import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
-import ru.just.monolithmvp.dto.program.ProgramDto;
-import ru.just.monolithmvp.dto.program.ProgramGroupAssignRequest;
-import ru.just.monolithmvp.dto.program.ProgramUserAssignRequest;
 import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
 import ru.just.monolithmvp.service.CourseAssignmentService;
 import ru.just.monolithmvp.service.CourseLessonAdminService;
 import ru.just.monolithmvp.service.CourseService;
-import ru.just.monolithmvp.service.ProgramService;
 
 import java.util.List;
 
@@ -33,7 +28,7 @@ import java.util.List;
 @RequestMapping("/api/v1/admin/courses")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Admin: Courses & Programs", description = "Администрирование курсов, уроков, назначений и программ")
+@Tag(name = "Admin: Courses", description = "Администрирование курсов, уроков и назначений")
 @SecurityRequirement(name = "bearerAuth")
 @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Не аутентифицирован", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
@@ -44,7 +39,6 @@ public class CoursesController {
     private final CourseService courseService;
     private final CourseLessonAdminService courseLessonAdminService;
     private final CourseAssignmentService courseAssignmentService;
-    private final ProgramService programService;
 
 
     @PostMapping("")
@@ -60,7 +54,7 @@ public class CoursesController {
     @GetMapping("")
     @Operation(summary = "Получить каталог курсов по разделам")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Каталог курсов", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseSummaryDto.class ))))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Каталог курсов", content = @Content(array = @ArraySchema(schema = @Schema(implementation = SectionWithCoursesDto.class ))))
     })
     public ResponseEntity<List<SectionWithCoursesDto>> getAllCourses() {
         return ResponseEntity.ok(courseService.getCourseSummariesBySection());
@@ -239,55 +233,4 @@ public class CoursesController {
         courseAssignmentService.unassignGroupsFromCourse(courseId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
     }
-
-    @PostMapping("/programs")
-    @Operation(summary = "Создать learning program")
-    public ResponseEntity<ProgramDto> createProgram(@RequestBody @Valid CreateLearningProgramRequest request) {
-        return new ResponseEntity<>(programService.createProgram(request), HttpStatus.CREATED);
-    }
-
-    @GetMapping("/programs")
-    @Operation(summary = "Получить список learning programs")
-    public ResponseEntity<List<ProgramDto>> getPrograms() {
-        return ResponseEntity.ok(programService.getPrograms());
-    }
-
-    @GetMapping("/programs/{programId}")
-    @Operation(summary = "Получить learning program")
-    public ResponseEntity<ProgramDto> getProgram(@PathVariable Long programId) {
-        return ResponseEntity.ok(programService.getProgram(programId));
-    }
-
-    @PutMapping("/programs/{programId}")
-    @Operation(summary = "Обновить learning program")
-    public ResponseEntity<ProgramDto> updateProgram(@PathVariable Long programId,
-                                                    @RequestBody @Valid CreateLearningProgramRequest request) {
-        return ResponseEntity.ok(programService.updateProgram(programId, request));
-    }
-
-    @PostMapping("/programs/{programId}/assign")
-    @Operation(summary = "Назначить/снять пользователей для learning program")
-    public ResponseEntity<ApiResponse> assignUsersToProgram(@PathVariable Long programId,
-                                                            @RequestBody @Valid ProgramUserAssignRequest request) {
-        programService.updateProgramUsers(programId, request);
-        return ResponseEntity.ok(new ApiResponse("Program assignments updated"));
-    }
-
-    @PostMapping("/programs/{programId}/groups/assign")
-    @Operation(summary = "Назначить/снять группы для learning program")
-    public ResponseEntity<ApiResponse> assignGroupsToProgram(@PathVariable Long programId,
-                                                             @RequestBody @Valid ProgramGroupAssignRequest request) {
-        programService.updateProgramGroups(programId, request);
-        return ResponseEntity.ok(new ApiResponse("Program group assignments updated"));
-    }
-
-    @PostMapping("/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress")
-    @Operation(summary = "Сбросить прогресс пользователя по курсу внутри learning program")
-    public ResponseEntity<ApiResponse> resetProgramCourseProgress(@PathVariable Long programId,
-                                                                  @PathVariable Long userId,
-                                                                  @PathVariable Long courseId) {
-        programService.resetProgramCourseProgress(programId, userId, courseId);
-        return ResponseEntity.ok(new ApiResponse("Program course progress reset"));
-    }
-
 }

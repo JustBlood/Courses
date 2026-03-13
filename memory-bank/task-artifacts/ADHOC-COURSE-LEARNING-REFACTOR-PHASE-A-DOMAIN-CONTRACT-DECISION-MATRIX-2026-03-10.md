@@ -159,3 +159,45 @@ Implemented in codebase:
    - Result: **BUILD SUCCESS**, tests run: 33, failures: 0, errors: 0.
    - Additional compile check after dead-code deletion:
      - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**.
+
+---
+
+## 5) Implementation status update — Wave 3 execution (2026-03-12)
+
+Status: **EXECUTED (REF-CM-05 baseline completed)**.
+
+Implemented in codebase:
+
+1. Program integration contract alignment
+   - `ProgramService` keeps Program -> Course enrollment propagation via `CourseEnrollmentPort` (stable integration boundary).
+   - Program availability and propagation logic unified through shared resolver flow:
+     - added `resolveProgramCourseStatesForUser(...)`,
+     - reused by both `toProgramDto(...)` and `ensureProgramCourseEnrollmentsForUser(...)`.
+
+2. Program two-lists enrollment contract (parity with course assignments)
+   - Added service read-model method:
+     - `ProgramService.getProgramEnrollmentLists(programId)` -> `UserInNotInListsDto`.
+   - Added admin endpoint:
+     - `GET /api/v1/admin/courses/programs/{programId}/assign`.
+   - Contract now mirrors existing course two-lists assignment pattern (`in` / `notIn`).
+
+3. Idempotent propagation and assignment consistency hardening
+   - Added batch enrollment preload for program-course states:
+     - `EnrollmentRepository.findByUserIdAndCourseIdIn(...)`.
+   - Stabilized direct/group assignment interplay:
+     - direct unassign keeps `ProgramEnrollment` when user is still assigned through any program group;
+     - group unassign and membership-removal flows now also preserve enrollment when other assigned groups still exist;
+     - assign flows save `ProgramEnrollment` only when it is newly created.
+
+4. Repository read-model support for wave flows
+   - `ProgramEnrollmentRepository.findByUserId(...)` and `findByProgramId(...)` moved to `join fetch` user/program reads to avoid lazy/N+1 drift in wave path.
+
+5. Verification
+   - Compile gate:
+     - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**.
+   - Program integration regression gate:
+     - `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test` -> **BUILD SUCCESS**.
+   - `ProgramManagementIntegrationTest` expanded and passed with wave-3 scenarios:
+     - two-lists program enrollment API behavior,
+     - preserving enrollment on direct unassign while group assignment remains,
+     - cleanup after group assignment removal.

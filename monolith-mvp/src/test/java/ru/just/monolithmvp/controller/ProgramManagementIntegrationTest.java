@@ -142,6 +142,45 @@ class ProgramManagementIntegrationTest {
     }
 
     @Test
+    void should_delete_learning_program() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Program Delete Course A");
+        Long studentId = createUser(adminToken, "program.delete.student@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program To Delete",
+                                  "description": "Delete endpoint",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [%d]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isTrue();
+
+        mockMvc.perform(delete("/api/v1/admin/courses/programs/{programId}", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isFalse();
+    }
+
+    @Test
     void should_reset_program_course_progress_for_not_completed_course() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
@@ -592,6 +631,349 @@ class ProgramManagementIntegrationTest {
         mockMvc.perform(get("/api/v1/student/my/programs/{programId}", programId)
                         .header("Authorization", "Bearer " + directStudentToken))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void program_enrollment_two_lists_flow_should_work() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Program Lists Course A");
+        Long studentA = createUser(adminToken, "program.lists.a@example.com", "STUDENT");
+        Long studentB = createUser(adminToken, "program.lists.b@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Lists",
+                                  "description": "Two-lists contract",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [%d]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+
+        String initialListsResponse = mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode initialLists = objectMapper.readTree(initialListsResponse);
+
+        assertThat(containsUserId(initialLists.get("in"), studentA)).isFalse();
+        assertThat(containsUserId(initialLists.get("in"), studentB)).isFalse();
+        assertThat(containsUserId(initialLists.get("notIn"), studentA)).isTrue();
+        assertThat(containsUserId(initialLists.get("notIn"), studentB)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d],
+                                  "idsNotIn": []
+                                }
+                                """.formatted(studentA)))
+                .andExpect(status().isOk());
+
+        String afterAssignListsResponse = mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode afterAssignLists = objectMapper.readTree(afterAssignListsResponse);
+
+        assertThat(containsUserId(afterAssignLists.get("in"), studentA)).isTrue();
+        assertThat(containsUserId(afterAssignLists.get("notIn"), studentA)).isFalse();
+        assertThat(containsUserId(afterAssignLists.get("notIn"), studentB)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [],
+                                  "idsNotIn": [%d]
+                                }
+                                """.formatted(studentA)))
+                .andExpect(status().isOk());
+
+        String afterUnassignListsResponse = mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode afterUnassignLists = objectMapper.readTree(afterUnassignListsResponse);
+
+        assertThat(containsUserId(afterUnassignLists.get("in"), studentA)).isFalse();
+        assertThat(containsUserId(afterUnassignLists.get("notIn"), studentA)).isTrue();
+    }
+
+    @Test
+    void program_course_two_lists_flow_should_work() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Program Course Lists A");
+        Long courseB = createCourse(adminToken, "Program Course Lists B");
+        Long courseC = createCourse(adminToken, "Program Course Lists C");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Course Lists",
+                                  "description": "Two-lists contract for courses",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [%d]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+
+        String initialListsResponse = mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}/courses/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode initialLists = objectMapper.readTree(initialListsResponse);
+
+        assertThat(containsCourseId(initialLists.get("in"), courseA)).isTrue();
+        assertThat(containsCourseId(initialLists.get("in"), courseB)).isFalse();
+        assertThat(containsCourseId(initialLists.get("notIn"), courseB)).isTrue();
+        assertThat(containsCourseId(initialLists.get("notIn"), courseC)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/courses/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d, %d],
+                                  "idsNotIn": [%d]
+                                }
+                                """.formatted(courseA, courseB, courseC)))
+                .andExpect(status().isOk());
+
+        String afterAddCourseResponse = mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode afterAddCourseProgram = objectMapper.readTree(afterAddCourseResponse);
+
+        assertThat(afterAddCourseProgram.get("courses").size()).isEqualTo(2);
+        assertThat(afterAddCourseProgram.get("courses").get(0).get("courseId").asLong()).isEqualTo(courseA);
+        assertThat(afterAddCourseProgram.get("courses").get(1).get("courseId").asLong()).isEqualTo(courseB);
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/courses/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d],
+                                  "idsNotIn": [%d, %d]
+                                }
+                                """.formatted(courseB, courseA, courseC)))
+                .andExpect(status().isOk());
+
+        String afterRemoveCourseResponse = mockMvc.perform(get("/api/v1/admin/courses/programs/{programId}/courses/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode afterRemoveCourseLists = objectMapper.readTree(afterRemoveCourseResponse);
+
+        assertThat(containsCourseId(afterRemoveCourseLists.get("in"), courseA)).isFalse();
+        assertThat(containsCourseId(afterRemoveCourseLists.get("in"), courseB)).isTrue();
+        assertThat(containsCourseId(afterRemoveCourseLists.get("notIn"), courseA)).isTrue();
+        assertThat(containsCourseId(afterRemoveCourseLists.get("notIn"), courseC)).isTrue();
+    }
+
+    @Test
+    void should_propagate_course_enrollment_when_course_added_to_existing_program() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Program Propagation Course A");
+        Long courseB = createCourse(adminToken, "Program Propagation Course B");
+        Long studentId = createUser(adminToken, "program.propagation.student@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Propagation",
+                                  "description": "Enrollment propagation after course list change",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [%d]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d],
+                                  "idsNotIn": []
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseA)).isTrue();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseB)).isFalse();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/courses/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [%d, %d],
+                                  "idsNotIn": []
+                                }
+                                """.formatted(courseA, courseB)))
+                .andExpect(status().isOk());
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseB)).isTrue();
+    }
+
+    @Test
+    void should_keep_program_enrollment_when_user_is_unassigned_directly_but_still_in_assigned_group() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Program Sticky Enrollment Course A");
+        Long studentId = createUser(adminToken, "program.sticky@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Sticky Enrollment",
+                                  "description": "Keep enrollment if group assignment exists",
+                                  "accessCondition": "ALL_OPEN",
+                                  "blockAfterDeadline": false,
+                                  "courses": [%d]
+                                }
+                                """.formatted(courseA)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+
+        String createGroupResponse = mockMvc.perform(post("/api/v1/admin/groups")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Sticky Group",
+                                  "type": "GENERAL"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String groupId = objectMapper.readTree(createGroupResponse).get("id").asText();
+
+        mockMvc.perform(post("/api/v1/admin/groups/{groupId}/members", groupId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userIds": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": ["%s"],
+                                  "idsNotIn": []
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [],
+                                  "idsNotIn": [%d]
+                                }
+                                """.formatted(studentId)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isTrue();
+
+        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "idsIn": [],
+                                  "idsNotIn": ["%s"]
+                                }
+                                """.formatted(groupId)))
+                .andExpect(status().isOk());
+
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isFalse();
+    }
+
+    private boolean containsUserId(JsonNode usersArray, Long userId) {
+        if (usersArray == null || !usersArray.isArray()) {
+            return false;
+        }
+        for (JsonNode userNode : usersArray) {
+            if (userNode.has("id") && userNode.get("id").asLong() == userId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsCourseId(JsonNode coursesArray, Long courseId) {
+        if (coursesArray == null || !coursesArray.isArray()) {
+            return false;
+        }
+        for (JsonNode courseNode : coursesArray) {
+            if (courseNode.has("id") && courseNode.get("id").asLong() == courseId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Long createCourse(String adminToken, String title) throws Exception {

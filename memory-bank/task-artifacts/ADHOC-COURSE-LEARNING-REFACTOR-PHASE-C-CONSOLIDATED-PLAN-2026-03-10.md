@@ -256,3 +256,41 @@ Verification:
   - Result: **BUILD SUCCESS**, tests run: 33, failures: 0, errors: 0.
 
 Wave status after execution: **WAVE 2 DONE, READY FOR WAVE 3 (REF-CM-05) and cross-wave REF-CM-06 continuation**.
+
+## 8) Execution status update — Wave 3 (REF-CM-05) completed on 2026-03-12
+
+Wave 3 implementation has been completed in the current working tree.
+
+Completed scope:
+
+1. `REF-CM-05` Program integration alignment
+   - `ProgramService` integration path aligned for idempotent propagation:
+     - extracted unified availability resolution for program courses into shared flow (`resolveProgramCourseStatesForUser(...)`), reused by both `toProgramDto(...)` and enrollment propagation;
+     - replaced per-course enrollment lookup with batch preload via `EnrollmentRepository.findByUserIdAndCourseIdIn(...)`;
+     - propagation continues through `CourseEnrollmentPort` boundary (no direct coupling to course facade internals).
+
+2. Two-lists assignment parity for programs (aligned with course assignment pattern)
+   - Added program enrollment two-lists read method:
+     - `ProgramService.getProgramEnrollmentLists(programId)` returning `UserInNotInListsDto`.
+   - Added admin API endpoint:
+     - `GET /api/v1/admin/courses/programs/{programId}/assign`.
+   - Contract is now symmetric with course enrollments two-lists flow.
+
+3. Program enrollment lifecycle consistency and idempotency hardening
+   - Group/direct assignment interplay stabilized:
+     - direct unassign no longer removes `ProgramEnrollment` if user is still assigned via any group;
+     - group unassign/removal now also keeps enrollment when user remains assigned through another group;
+     - create-if-missing program enrollment writes are now conditional (save only for new records).
+   - Added fetch optimization for `ProgramEnrollmentRepository` (`join fetch` read methods for user/program lookups used in wave flows).
+
+4. Verification
+   - Compile gate:
+     - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**.
+   - Wave regression focus test:
+     - `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test` -> **BUILD SUCCESS**.
+   - `ProgramManagementIntegrationTest` expanded and passed, including new scenarios:
+     - program two-lists enrollment API flow (`in` / `notIn`),
+     - preserving program enrollment when direct unassign happens but group assignment still exists,
+     - final removal after group unassign.
+
+Wave status after execution: **WAVE 3 DONE (REF-CM-05), READY FOR REF-CM-06 continuation**.

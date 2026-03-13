@@ -294,3 +294,45 @@ Rollback point после каждого шага: старый `CourseService` 
 - результат: **BUILD SUCCESS**, 33 tests run, 0 failures/errors.
 
 Итог по B3 после реализации: целевая архитектура и performance-рекомендации применены, статистический контур переведён на агрегирующий query-layer без регрессий интеграционного gate.
+
+---
+
+## Execution status update — Wave 3 implementation feedback (2026-03-12)
+
+По результатам реализации Wave 3 (`REF-CM-05`) выводы B4 подтверждены и применены в коде.
+
+Что реализовано относительно рекомендаций B4:
+
+1. Integration boundary and idempotent propagation
+   - `ProgramService` продолжает использовать `CourseEnrollmentPort` как контрактную границу для Program -> Course propagation.
+   - Enrollment propagation переведена на единый availability-resolution path:
+     - добавлен общий расчет состояний `resolveProgramCourseStatesForUser(...)`;
+     - этот расчет теперь переиспользуется и для `toProgramDto(...)`, и для `ensureProgramCourseEnrollmentsForUser(...)`.
+   - Устранены per-course lookup roundtrips:
+     - добавлен batch preload enrollments через `EnrollmentRepository.findByUserIdAndCourseIdIn(...)`.
+
+2. Program assignment contract parity (two-lists flow)
+   - Добавлен отсутствовавший ранее метод получения двух списков назначений для программ:
+     - `ProgramService.getProgramEnrollmentLists(programId)` -> `UserInNotInListsDto`.
+   - Добавлена admin API точка:
+     - `GET /api/v1/admin/courses/programs/{programId}/assign`.
+   - Контракт выровнен с уже существующим course assignment паттерном (`in` / `notIn`).
+
+3. Enrollment lifecycle consistency for group/direct interplay
+   - Усилена идемпотентность и консистентность удаления назначений:
+     - direct unassign больше не удаляет `ProgramEnrollment`, если пользователь все еще назначен через любую группу;
+     - group unassign / group membership remove также учитывают оставшиеся group assignments перед удалением enrollment;
+     - сохранение `ProgramEnrollment` при assign делается только для новых записей (без лишних повторных save).
+
+4. Read-model fetch stabilization
+   - `ProgramEnrollmentRepository` read methods для `findByUserId(...)` и `findByProgramId(...)` переведены на `join fetch` user/program для снижения LAZY/N+1 и стабилизации wave paths.
+
+Верификация Wave 3:
+- `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+- `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test` -> **BUILD SUCCESS**;
+- `ProgramManagementIntegrationTest` расширен проверками wave-3 сценариев:
+  - two-lists program assignment API,
+  - сохранение enrollment при direct-unassign при действующем group-assignment,
+  - удаление enrollment после снятия group-assignment.
+
+Итог по B4 после реализации: integration boundary стабилизирована, idempotent propagation и assignment parity реализованы без регрессий integration gate.
