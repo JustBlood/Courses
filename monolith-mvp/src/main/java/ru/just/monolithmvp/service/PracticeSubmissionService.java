@@ -29,7 +29,7 @@ public class PracticeSubmissionService {
     @Transactional
     public SubmissionResultDto completeTheoryLesson(Long lessonId, Long userId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
-        lessonAccessPolicy.validateStudentEnrolled(userId, lesson.getCourse().getId());
+        courseAccessPolicy.assertStudentEnrolled(userId, lesson.getCourse().getId());
         lessonAccessPolicy.assertLessonAccessAllowed(userId, lesson);
         lessonAccessPolicy.assertStopLessonAccessAllowed(userId, lesson);
         courseAccessPolicy.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
@@ -50,7 +50,7 @@ public class PracticeSubmissionService {
     @Transactional
     public SubmissionResultDto submitPractice(Long lessonId, PracticeSubmissionRequest request, Long studentId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
-        lessonAccessPolicy.validateStudentEnrolled(studentId, lesson.getCourse().getId());
+        courseAccessPolicy.assertStudentEnrolled(studentId, lesson.getCourse().getId());
         lessonAccessPolicy.assertLessonAccessAllowed(studentId, lesson);
         lessonAccessPolicy.assertStopLessonAccessAllowed(studentId, lesson);
         courseAccessPolicy.assertCourseDeadlineNotExceededForStudent(studentId, lesson.getCourse().getId());
@@ -62,7 +62,7 @@ public class PracticeSubmissionService {
         }
 
         LessonSubmission existingSubmission = submissionRepository
-                .findWithLockingByStudentIdAndLessonId(studentId, lessonId)
+                .findByStudentIdAndLessonId(studentId, lessonId)
                 .orElse(null);
         if (existingSubmission != null && Boolean.TRUE.equals(existingSubmission.getCompleted())) {
             throw new BadRequestException("Submission is already finalized");
@@ -86,10 +86,6 @@ public class PracticeSubmissionService {
                                                    PracticeLesson practiceLesson,
                                                    LessonSubmission existingSubmission,
                                                    Map<Integer, List<String>> answersByQuestion) {
-        if (practiceLesson.getQuestions().stream().anyMatch(q -> q.getQuestionType() != QuestionType.OPEN_ANSWER)) {
-            throw new BadRequestException("PRACTICE_OPEN_ANSWER lesson must contain only OPEN_ANSWER questions");
-        }
-
         boolean isReworkSubmission = existingSubmission != null && existingSubmission.getStatus() == SubmissionStatus.REWORK;
         if (existingSubmission != null && !isReworkSubmission) {
             throw new BadRequestException("Open submission can be updated only from REWORK status");
@@ -116,9 +112,12 @@ public class PracticeSubmissionService {
         submission.setCompleted(false);
         submission.setPointsAwarded(0);
         submission.setAttemptCounter(Optional.ofNullable(submission.getAttemptCounter()).orElse(0) + 1);
-        submission.setSubmittedAt(LocalDateTime.now());
         submission.setReviewedByAdminId(null);
         submission.setReviewedAt(null);
+
+        if (submission.getFirstSubmittedAt() == null) {
+            submission.setFirstSubmittedAt(LocalDateTime.now());
+        }
 
         submission = submissionRepository.save(submission);
         return new SubmissionResultDto(
@@ -134,10 +133,6 @@ public class PracticeSubmissionService {
                                                    PracticeLesson practiceLesson,
                                                    LessonSubmission existingSubmission,
                                                    Map<Integer, List<String>> answersByQuestion) {
-        if (practiceLesson.getQuestions().stream().anyMatch(q -> q.getQuestionType() == QuestionType.OPEN_ANSWER)) {
-            throw new BadRequestException("PRACTICE_TEST lesson must contain only test questions");
-        }
-
         LessonSubmission submission;
         if (existingSubmission != null) {
             submission = existingSubmission;
@@ -145,7 +140,7 @@ public class PracticeSubmissionService {
             submission = new LessonSubmission();
             submission.setLesson(lesson);
             submission.setStudent(getStudent(studentId));
-            submission.setSubmittedAt(LocalDateTime.now());
+            submission.setFirstSubmittedAt(LocalDateTime.now());
         }
 
         int totalQuestionPoints = 0;
@@ -159,17 +154,23 @@ public class PracticeSubmissionService {
             totalQuestionPoints += practiceScoringPolicy.scoreQuestion(question, selectedAnswers, correctAnswers);
         }
 
+        // Если набранное кол-во баллов больше порога И лимит попыток не исчерпан - то урок пройден (status=COMPLETED) и completed=true
+        // Если набранное кол-во баллов больше порога, но лимит попыток исчерпан (больше нельзя слать результаты) - то status = INCOMPLETE и completed=true
+        // Если набранное кол-во баллов меньше порога - status INCOMPLETE, completed=false
+
+        // обновляем номер текущей попытки
+        submission.setAttemptCounter(Optional.ofNullable(submission.getAttemptCounter()).orElse(0) + 1);
+        boolean isLastAttempt = submission.getAttemptCounter() >= practiceLesson.getAttemptLimit();
         Integer maxPointsByAllQuestions = practiceLesson.getQuestions().stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).get();
-        boolean passed = totalQuestionPoints * 100 >= maxPointsByAllQuestions * practiceLesson.getPassingThresholdPercent();
-        int lessonPointsAwarded = passed ? practiceLesson.getFullPoints() : 0;
+        boolean passedByPoints = totalQuestionPoints * 100 >= maxPointsByAllQuestions * practiceLesson.getPassingThresholdPercent();
+        int lessonPointsAwarded = totalQuestionPoints;
 
         submission.setQuestionProgress(buildTestQuestionProgress(practiceLesson, answersByQuestion));
-        submission.setStatus(passed ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        submission.setCompleted(passed);
+        submission.setStatus(passedByPoints ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
+        submission.setCompleted(passedByPoints || isLastAttempt); // Если это последняя попытка - то урок считается завершенным
         submission.setPointsAwarded(lessonPointsAwarded);
-        submission.setAttemptCounter(Optional.ofNullable(submission.getAttemptCounter()).orElse(0) + 1);
         submission = submissionRepository.save(submission);
-        if (passed) {
+        if (submission.getCompleted()) {
             enrollmentProgressService.markEnrollmentCompletedIfDone(studentId, lesson.getCourse().getId());
         }
 
@@ -177,7 +178,7 @@ public class PracticeSubmissionService {
                 submission.getId(),
                 submission.getStatus(),
                 submission.getCompleted(),
-                passed ? "Practice completed" : "Practice is not completed"
+                submission.getCompleted() ? "Practice completed" : "Practice is not completed"
         );
     }
 
@@ -197,7 +198,7 @@ public class PracticeSubmissionService {
             return;
         }
 
-        LocalDateTime firstSubmittedAt = existingSubmission.getSubmittedAt();
+        LocalDateTime firstSubmittedAt = existingSubmission.getFirstSubmittedAt();
         if (firstSubmittedAt == null) {
             return;
         }
@@ -221,7 +222,7 @@ public class PracticeSubmissionService {
         submission.setStatus(SubmissionStatus.COMPLETE);
         submission.setCompleted(true);
         submission.setPointsAwarded(lesson.getFullPoints());
-        submission.setSubmittedAt(LocalDateTime.now());
+        submission.setFirstSubmittedAt(LocalDateTime.now());
 
         enrollmentProgressService.markEnrollmentStarted(studentId, lesson.getCourse().getId());
         submission = submissionRepository.save(submission);
@@ -245,10 +246,6 @@ public class PracticeSubmissionService {
             throw new BadRequestException("questionAnswers is required");
         }
 
-        if (lesson.getQuestions() == null || lesson.getQuestions().isEmpty()) {
-            throw new BadRequestException("Practice lesson has no questions");
-        }
-
         Set<Integer> lessonQuestionIndexes = lesson.getQuestions().stream()
                 .map(PracticeQuestion::getQuestionIndex)
                 .collect(Collectors.toSet());
@@ -265,20 +262,10 @@ public class PracticeSubmissionService {
         for (Integer questionIndex : lessonQuestionIndexes) {
             PracticeQuestion question = questionsByIndex.get(questionIndex);
             List<String> answers = normalizeList(incoming.get(questionIndex));
-            if (answers.isEmpty()) {
-                throw new BadRequestException("Each question must have a non-empty answer list");
-            }
 
-            if (question.getQuestionType() == QuestionType.OPEN_ANSWER) {
-                if (answers.size() != 1) {
-                    throw new BadRequestException("OPEN_ANSWER question must have exactly one answer");
-                }
-                normalized.put(questionIndex, answers);
+            if (question.getQuestionType() == QuestionType.OPEN_ANSWER || question.getQuestionType() == QuestionType.SINGLE_CHOICE) {
+                normalized.put(questionIndex, List.of(answers.getFirst()));
                 continue;
-            }
-
-            if (question.getQuestionType() == QuestionType.SINGLE_CHOICE && answers.size() != 1) {
-                throw new BadRequestException("SINGLE_CHOICE question must have exactly one selected answer");
             }
 
             normalized.put(questionIndex, answers);
@@ -294,7 +281,6 @@ public class PracticeSubmissionService {
         Map<Integer, QuestionProgress> existingProgressByQuestionIndex = Optional.ofNullable(existingProgress)
                 .orElse(List.of())
                 .stream()
-                .filter(q -> q.getQuestionIndex() != null)
                 .collect(Collectors.toMap(QuestionProgress::getQuestionIndex, q -> q, (left, right) -> right));
 
         return lesson.getQuestions().stream()
@@ -303,21 +289,10 @@ public class PracticeSubmissionService {
                     Integer questionIndex = question.getQuestionIndex();
                     QuestionProgress progress = existingProgressByQuestionIndex.getOrDefault(questionIndex, new QuestionProgress());
                     progress.setQuestionIndex(questionIndex);
-
-                    OpenReviewStatus currentReviewStatus = progress.getReviewStatus();
-                    boolean shouldResetToPending = !reworkSubmission
-                            || currentReviewStatus == null
-                            || currentReviewStatus == OpenReviewStatus.PENDING_REVIEW
-                            || currentReviewStatus == OpenReviewStatus.REWORK;
-
-                    if (shouldResetToPending) {
-                        progress.setAnswers(answersByQuestion.getOrDefault(questionIndex, List.of()));
-                        progress.setReviewStatus(OpenReviewStatus.PENDING_REVIEW);
-                        progress.setAwardedPoints(0);
-                        progress.setPointsType(QuestionPointsType.ZERO);
-                    } else if (progress.getAnswers() == null) {
-                        progress.setAnswers(answersByQuestion.getOrDefault(questionIndex, List.of()));
-                    }
+                    progress.setAnswers(answersByQuestion.getOrDefault(questionIndex, List.of()));
+                    progress.setReviewStatus(OpenReviewStatus.PENDING_REVIEW);
+                    progress.setAwardedPoints(0);
+                    progress.setPointsType(null);
 
                     return progress;
                 }).toList();
@@ -333,8 +308,8 @@ public class PracticeSubmissionService {
                     List<String> correctAnswers = normalizeList(question.getCorrectAnswers());
                     QuestionPointsType pointsType = practiceScoringPolicy.resolveTestQuestionPointsType(question, selectedAnswers, correctAnswers);
                     int awardedPoints = switch (pointsType) {
-                        case FULL -> question.getFullPoints() == null ? 0 : question.getFullPoints();
-                        case PARTIAL -> question.getPartialPoints() == null ? 0 : question.getPartialPoints();
+                        case FULL -> question.getFullPoints();
+                        case PARTIAL -> question.getPartialPoints();
                         case ZERO -> 0;
                     };
 

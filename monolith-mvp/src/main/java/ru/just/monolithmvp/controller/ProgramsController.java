@@ -107,12 +107,4 @@ public class ProgramsController {
         return ResponseEntity.ok(new ApiResponse("Program group assignments updated"));
     }
 
-    @PostMapping("/{programId}/users/{userId}/courses/{courseId}/reset-progress")
-    @Operation(summary = "Сбросить прогресс пользователя по курсу внутри learning program")
-    public ResponseEntity<ApiResponse> resetProgramCourseProgress(@PathVariable Long programId,
-                                                                  @PathVariable Long userId,
-                                                                  @PathVariable Long courseId) {
-        programService.resetProgramCourseProgress(programId, userId, courseId);
-        return ResponseEntity.ok(new ApiResponse("Program course progress reset"));
-    }
 }

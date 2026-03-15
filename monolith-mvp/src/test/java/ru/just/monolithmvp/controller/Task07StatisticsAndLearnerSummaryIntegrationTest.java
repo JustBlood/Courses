@@ -105,7 +105,7 @@ class Task07StatisticsAndLearnerSummaryIntegrationTest {
 
         JsonNode learnerCourse = objectMapper.readTree(learnerCourseResponse);
         JsonNode lessonSummary = learnerCourse.get("lessons").get(0);
-        assertThat(lessonSummary.get("passed").asBoolean()).isTrue();
+        assertThat(lessonSummary.get("completed").asBoolean()).isTrue();
         assertThat(lessonSummary.get("pointsAwarded").asInt()).isEqualTo(2);
 
         String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")

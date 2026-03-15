@@ -1,7 +1,9 @@
 package ru.just.monolithmvp.dto.course;
 
 import ru.just.monolithmvp.dto.lesson.LearnerLessonSummaryDto;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record CourseLearnerDto(
@@ -10,11 +12,8 @@ public record CourseLearnerDto(
         String description,
         String coverFilePath,
         Integer deadlineDays,
-        Integer completionPercent,
-        Integer completedLessons,
-        Integer remainingLessons,
         Integer totalLessons,
-        Boolean courseCompleted,
+        CourseProgressDto progress,
         List<LearnerLessonSummaryDto> lessons
 ) {
 }

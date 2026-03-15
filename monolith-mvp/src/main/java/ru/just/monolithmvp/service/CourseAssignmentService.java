@@ -31,16 +31,17 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
     private final LearningGroupRepository learningGroupRepository;
     private final AppUserRepository userRepository;
+    private final CourseLearnerReadService courseReadService;
+    private final CourseEnrollmentLifecycleService courseEnrollmentLifecycleService;
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
 
     @Transactional
     public void enrollUnenrollStudents(Long courseId, Set<Long> idsToEnroll, Set<Long> idsToUnEnroll) {
-        String actor = resolveCurrentActor();
 
-        idsToEnroll.forEach(id -> enrollStudentToCourse(courseId, id, actor));
-        idsToUnEnroll.forEach(id -> unenrollStudentFromCourse(courseId, id, actor));
+        idsToEnroll.forEach(id -> courseEnrollmentLifecycleService.assignToCourse(id, courseId));
+        idsToUnEnroll.forEach(id -> courseEnrollmentLifecycleService.unassignFromCourse(id, courseId));
     }
 
     @Transactional
@@ -52,51 +53,16 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     @Transactional
     @Override
     public void enrollStudentToCourse(Long courseId, Long userId) {
-        String actor = resolveCurrentActor();
-        Course course = getCourseEntity(courseId);
+        Course course = courseReadService.getCourseEntity(courseId);
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        enrollStudentToCourse(course.getId(), user.getId(), actor);
-    }
-
-    private void enrollStudentToCourse(Long courseId, Long userId, String actor) {
-        if (enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            log.warn("Student is already enrolled in this course");
-            businessEventLogger.log("course.enrollment.assign", "noop",
-                    "actor", actor,
-                    "courseId", courseId,
-                    "userId", userId,
-                    "reason", "already_enrolled");
-            return;
-        }
-
-        Enrollment enrollment = new Enrollment();
-        final Course course = new Course();
-        course.setId(courseId);
-        enrollment.setCourse(course);
-        final AppUser user = new AppUser();
-        user.setId(userId);
-        enrollment.setUser(user);
-        enrollment.setEnrolledAt(LocalDateTime.now());
-        enrollmentRepository.save(enrollment);
-        businessEventLogger.log("course.enrollment.assign", "success",
-                "actor", actor,
-                "courseId", courseId,
-                "userId", userId);
-    }
-
-    public void unenrollStudentFromCourse(Long courseId, Long userId, String actor) {
-        enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
-        businessEventLogger.log("course.enrollment.unassign", "success",
-                "actor", actor,
-                "courseId", courseId,
-                "userId", userId);
+        courseEnrollmentLifecycleService.assignToCourse(userId, courseId);
     }
 
     @Transactional(readOnly = true)
     public UserInNotInListsDto getEnrollmentLists(Long courseId) {
-        getCourseEntity(courseId);
+        courseReadService.getCourseEntity(courseId);
 
         List<AppUser> enrolledStudents = enrollmentRepository.findByCourseId(courseId).stream()
                 .map(Enrollment::getUser)
@@ -119,7 +85,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     @Transactional
     public void assignReviewerToCourse(Long courseId, Long reviewerId) {
         String actor = resolveCurrentActor();
-        Course course = getCourseEntity(courseId);
+        Course course = courseReadService.getCourseEntity(courseId);
         AppUser reviewer = userRepository.findById(reviewerId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + reviewerId));
         if (reviewer.getRole() != Role.ADMIN) {
@@ -156,8 +122,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
 
     @Transactional
     public void assignGroupToCourse(Long courseId, UUID groupId) {
-        Course course = getCourseEntity(courseId);
-        String actor = resolveCurrentActor();
+        Course course = courseReadService.getCourseEntity(courseId);
         LearningGroup group = learningGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
 
@@ -170,12 +135,8 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
         }
 
         groupMembershipRepository.findByGroupId(groupId)
-                .forEach(m -> {
-                    if ((m.getUser().getRole() == Role.STUDENT || m.getUser().getRole() == Role.ADMIN)
-                            && !enrollmentRepository.existsByUserIdAndCourseId(m.getUser().getId(), courseId)) {
-                        enrollStudentToCourse(course.getId(), m.getUser().getId(), actor);
-                    }
-                });
+                .forEach(m ->
+                        courseEnrollmentLifecycleService.assignToCourse(m.getUser().getId(), courseId));
     }
 
     @Transactional(readOnly = true)
@@ -198,7 +159,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     public void unassignGroupFromCourse(Long courseId, UUID groupId) {
         groupCourseAssignmentRepository.deleteByGroupIdAndCourseId(groupId, courseId);
         groupMembershipRepository.findByGroupId(groupId)
-                .forEach(m -> enrollmentRepository.deleteByUserIdAndCourseId(m.getUser().getId(), courseId));
+                .forEach(m -> courseEnrollmentLifecycleService.unassignFromCourse(m.getUser().getId(), courseId));
     }
 
     @Transactional(readOnly = true)
@@ -234,14 +195,8 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     }
 
     @Transactional
-    public void deleteByCourseId(Long courseId) {
+    public void deleteCourseReviewersByCourseId(Long courseId) {
         courseReviewerRepository.deleteByCourseId(courseId);
-    }
-
-    @Transactional(readOnly = true)
-    public Course getCourseEntity(Long courseId) {
-        return courseRepository.findById(courseId)
-                .orElseThrow(() -> new NotFoundException("Course not found: " + courseId));
     }
 
     private String resolveCurrentActor() {

@@ -147,7 +147,7 @@ class Task06ReviewFlowIntegrationTest {
                 .getContentAsString();
         JsonNode reworkReview = objectMapper.readTree(reworkReviewResponse);
         assertThat(reworkReview.get("status").asText()).isEqualTo("REWORK");
-        assertThat(reworkReview.get("passed").asBoolean()).isFalse();
+        assertThat(reworkReview.get("completed").asBoolean()).isFalse();
 
         LessonSubmission afterRework = lessonSubmissionRepository.findById(submissionId).orElseThrow();
         assertThat(afterRework.getStatus()).isEqualTo(SubmissionStatus.REWORK);
@@ -191,7 +191,7 @@ class Task06ReviewFlowIntegrationTest {
                 .getContentAsString();
         JsonNode finalizeReview = objectMapper.readTree(finalizeReviewResponse);
         assertThat(finalizeReview.get("status").asText()).isEqualTo("COMPLETE");
-        assertThat(finalizeReview.get("passed").asBoolean()).isTrue();
+        assertThat(finalizeReview.get("completed").asBoolean()).isTrue();
 
         LessonSubmission finalizedSubmission = lessonSubmissionRepository.findById(submissionId).orElseThrow();
         assertThat(finalizedSubmission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);

@@ -11,11 +11,8 @@ public record CreateCourseRequest(
         String description,
         String authorFullName,
         String coverFilePath,
-        @Min(0) @Max(100) Integer passingThresholdPercent,
         @Min(1) Integer deadlineDays,
         Boolean lessonsFreeOrder,
-        Boolean blockAfterDeadline,
-        Boolean includeInOverallStats,
         Long sectionId,
         Map<Long, Integer> lessonIdToPosition
 ) {

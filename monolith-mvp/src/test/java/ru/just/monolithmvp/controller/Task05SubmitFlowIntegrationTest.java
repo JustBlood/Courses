@@ -103,7 +103,7 @@ class Task05SubmitFlowIntegrationTest {
         JsonNode firstAttempt = objectMapper.readTree(firstAttemptResponse);
         Long firstSubmissionId = firstAttempt.get("submissionId").asLong();
         assertThat(firstAttempt.get("status").asText()).isEqualTo("INCOMPLETE");
-        assertThat(firstAttempt.get("passed").asBoolean()).isFalse();
+        assertThat(firstAttempt.get("completed").asBoolean()).isFalse();
         assertThat(lessonSubmissionRepository.countByStudentIdAndLessonId(studentId, lessonId)).isEqualTo(1);
 
         String secondAttemptResponse = mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", lessonId)
@@ -125,7 +125,7 @@ class Task05SubmitFlowIntegrationTest {
         Long secondSubmissionId = secondAttempt.get("submissionId").asLong();
         assertThat(secondSubmissionId).isEqualTo(firstSubmissionId);
         assertThat(secondAttempt.get("status").asText()).isEqualTo("COMPLETE");
-        assertThat(secondAttempt.get("passed").asBoolean()).isTrue();
+        assertThat(secondAttempt.get("completed").asBoolean()).isTrue();
         assertThat(lessonSubmissionRepository.countByStudentIdAndLessonId(studentId, lessonId)).isEqualTo(1);
 
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", lessonId)
@@ -190,7 +190,7 @@ class Task05SubmitFlowIntegrationTest {
 
         JsonNode partialAttempt = objectMapper.readTree(partialAttemptResponse);
         assertThat(partialAttempt.get("status").asText()).isEqualTo("COMPLETE");
-        assertThat(partialAttempt.get("passed").asBoolean()).isTrue();
+        assertThat(partialAttempt.get("completed").asBoolean()).isTrue();
 
         Long zeroLessonId = createPracticeTestLesson(adminToken, courseId, "Task05 Zero Practice", """
                 {
@@ -230,7 +230,7 @@ class Task05SubmitFlowIntegrationTest {
 
         JsonNode zeroAttempt = objectMapper.readTree(zeroAttemptResponse);
         assertThat(zeroAttempt.get("status").asText()).isEqualTo("INCOMPLETE");
-        assertThat(zeroAttempt.get("passed").asBoolean()).isFalse();
+        assertThat(zeroAttempt.get("completed").asBoolean()).isFalse();
     }
 
     private String login(String email, String password) throws Exception {

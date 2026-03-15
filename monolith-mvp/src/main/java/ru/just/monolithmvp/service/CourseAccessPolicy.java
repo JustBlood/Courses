@@ -29,9 +29,9 @@ public class CourseAccessPolicy {
     @Transactional(readOnly = true)
     public void assertCourseDeadlineNotExceededForStudent(Long userId, Long courseId) {
         Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
-                .orElseThrow(() -> new BadRequestException("Student is not enrolled in this course"));
+                .orElseThrow(() -> new BadRequestException("Student is not enrolled on this course"));
         Integer deadlineDays = enrollment.getCourse().getDeadlineDays();
-        if (deadlineDays == null || deadlineDays <= 0) {
+        if (deadlineDays == null) {
             return;
         }
 

@@ -17,7 +17,6 @@ public record LessonDto(
         String theoryContent,
         Integer fullPoints,
         Integer passingThresholdPercent,
-        Boolean evaluateByCorrectCount,
         Boolean shuffleOnEveryAttempt,
         Boolean showCorrectAnswersAfterCompletion,
         List<PracticeQuestionDto> questions

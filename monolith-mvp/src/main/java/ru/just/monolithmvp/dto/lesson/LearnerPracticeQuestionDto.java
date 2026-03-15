@@ -13,6 +13,7 @@ public record LearnerPracticeQuestionDto(
         List<String> userAnswers,
         List<String> correctAnswers,
         OpenReviewStatus status,
+        String reviewComment,
         Integer awardedPoints,
         Integer fullPoints,
         Integer partialPoints

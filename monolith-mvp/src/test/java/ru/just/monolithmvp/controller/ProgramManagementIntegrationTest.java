@@ -10,8 +10,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.just.monolithmvp.model.Enrollment;
+import ru.just.monolithmvp.model.CourseProgress;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
+import ru.just.monolithmvp.repository.CourseProgressRepository;
 import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
 import ru.just.monolithmvp.service.ProgramService;
 
@@ -46,6 +48,9 @@ class ProgramManagementIntegrationTest {
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private CourseProgressRepository courseProgressRepository;
 
     @Autowired
     private ProgramEnrollmentRepository programEnrollmentRepository;
@@ -178,162 +183,6 @@ class ProgramManagementIntegrationTest {
                 .andExpect(status().isNotFound());
 
         assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isFalse();
-    }
-
-    @Test
-    void should_reset_program_course_progress_for_not_completed_course() throws Exception {
-        String adminToken = login("admin@local", "admin123");
-
-        Long courseA = createCourse(adminToken, "Reset Progress Course A");
-        Long studentId = createUser(adminToken, "program.reset.ok@example.com", "STUDENT");
-
-        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "title": "Program Reset OK",
-                                  "description": "Reset endpoint",
-                                  "accessCondition": "ALL_OPEN",
-                                  "blockAfterDeadline": false,
-                                  "courses": [
-                                    %d
-                                  ]
-                                }
-                                """.formatted(courseA)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
-        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
-
-        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
-        enrollment.setStartedAt(LocalDateTime.now());
-        enrollment.setCompletedAt(null);
-        enrollmentRepository.save(enrollment);
-
-        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
-                        programId, studentId, courseA)
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk());
-
-        Enrollment afterReset = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
-        assertThat(afterReset.getStartedAt()).isNull();
-        assertThat(afterReset.getCompletedAt()).isNull();
-    }
-
-    @Test
-    void should_return_400_when_resetting_completed_course_progress() throws Exception {
-        String adminToken = login("admin@local", "admin123");
-
-        Long courseA = createCourse(adminToken, "Reset Completed Course A");
-        Long studentId = createUser(adminToken, "program.reset.completed@example.com", "STUDENT");
-
-        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "title": "Program Reset Completed",
-                                  "description": "Reset endpoint",
-                                  "accessCondition": "ALL_OPEN",
-                                  "blockAfterDeadline": false,
-                                  "courses": [
-                                    %d
-                                  ]
-                                }
-                                """.formatted(courseA)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
-        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
-
-        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
-        enrollment.setCompletedAt(LocalDateTime.now());
-        enrollmentRepository.save(enrollment);
-
-        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
-                        programId, studentId, courseA)
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void should_return_400_when_resetting_course_not_in_program() throws Exception {
-        String adminToken = login("admin@local", "admin123");
-
-        Long courseA = createCourse(adminToken, "Reset Program Course A");
-        Long otherCourse = createCourse(adminToken, "Reset Program Other Course");
-        Long studentId = createUser(adminToken, "program.reset.not-in-program@example.com", "STUDENT");
-
-        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "title": "Program Reset Not In Program",
-                                  "description": "Reset endpoint",
-                                  "accessCondition": "ALL_OPEN",
-                                  "blockAfterDeadline": false,
-                                  "courses": [
-                                    %d
-                                  ]
-                                }
-                                """.formatted(courseA)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
-        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
-
-        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
-                        programId, studentId, otherCourse)
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void should_return_404_when_resetting_without_enrollment() throws Exception {
-        String adminToken = login("admin@local", "admin123");
-
-        Long courseA = createCourse(adminToken, "Reset Missing Enrollment Course A");
-        Long courseB = createCourse(adminToken, "Reset Missing Enrollment Course B");
-        Long studentId = createUser(adminToken, "program.reset.missing-enrollment@example.com", "STUDENT");
-
-        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "title": "Program Reset Missing Enrollment",
-                                  "description": "Reset endpoint",
-                                  "accessCondition": "PREVIOUS_COURSES_COMPLETED",
-                                  "blockAfterDeadline": false,
-                                  "courses": [
-                                    %d,
-                                    %d
-                                  ]
-                                }
-                                """.formatted(courseA, courseB)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
-        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
-
-        mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/users/{userId}/courses/{courseId}/reset-progress",
-                        programId, studentId, courseB)
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -500,9 +349,10 @@ class ProgramManagementIntegrationTest {
         assertThat(initialProgram.get("courses").get(0).get("available").asBoolean()).isTrue();
         assertThat(initialProgram.get("courses").get(1).get("available").asBoolean()).isFalse();
 
-        Enrollment firstEnrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
-        firstEnrollment.setCompletedAt(LocalDateTime.now());
-        enrollmentRepository.save(firstEnrollment);
+        CourseProgress firstProgress = courseProgressRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
+        firstProgress.setCompletedAt(LocalDateTime.now());
+        firstProgress.setStatus(CourseProgressStatus.COMPLETED);
+        courseProgressRepository.save(firstProgress);
 
         JsonNode afterCompletionProgram = objectMapper.valueToTree(programService.getMyProgram(studentId, programId));
         assertThat(afterCompletionProgram.get("courses").get(1).get("available").asBoolean()).isTrue();
@@ -528,6 +378,63 @@ class ProgramManagementIntegrationTest {
         JsonNode afterDeadlineProgram = objectMapper.valueToTree(programService.getMyProgram(studentId, programId));
         assertThat(afterDeadlineProgram.get("courses").get(0).get("available").asBoolean()).isTrue();
         assertThat(afterDeadlineProgram.get("courses").get(1).get("available").asBoolean()).isFalse();
+    }
+
+    @Test
+    void previous_courses_completed_should_require_all_previous_courses_completed() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long courseA = createCourse(adminToken, "Rule All Previous Course A");
+        Long courseB = createCourse(adminToken, "Rule All Previous Course B");
+        Long courseC = createCourse(adminToken, "Rule All Previous Course C");
+        Long studentId = createUser(adminToken, "program.rules.all.previous@example.com", "STUDENT");
+
+        String createProgramResponse = mockMvc.perform(post("/api/v1/admin/courses/programs")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Program Rules All Previous",
+                                  "description": "All previous must be completed",
+                                  "accessCondition": "PREVIOUS_COURSES_COMPLETED",
+                                  "blockAfterDeadline": false,
+                                  "courses": [
+                                    %d,
+                                    %d,
+                                    %d
+                                  ]
+                                }
+                                """.formatted(courseA, courseB, courseC)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long programId = objectMapper.readTree(createProgramResponse).get("id").asLong();
+        programService.assignUsersToProgram(programId, java.util.List.of(studentId));
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseA)).isTrue();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseB)).isFalse();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseC)).isFalse();
+
+        CourseProgress progressA = courseProgressRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
+        progressA.setStatus(CourseProgressStatus.COMPLETED);
+        progressA.setCompletedAt(LocalDateTime.now());
+        courseProgressRepository.save(progressA);
+
+        programService.onCourseProgressChanged(studentId, courseA);
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseB)).isTrue();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseC)).isFalse();
+
+        CourseProgress progressB = courseProgressRepository.findByUserIdAndCourseId(studentId, courseB).orElseThrow();
+        progressB.setStatus(CourseProgressStatus.COMPLETED);
+        progressB.setCompletedAt(LocalDateTime.now());
+        courseProgressRepository.save(progressB);
+
+        programService.onCourseProgressChanged(studentId, courseB);
+
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseC)).isTrue();
     }
 
     @Test
@@ -862,7 +769,7 @@ class ProgramManagementIntegrationTest {
     }
 
     @Test
-    void should_keep_program_enrollment_when_user_is_unassigned_directly_but_still_in_assigned_group() throws Exception {
+    void should_unassign_program_even_if_user_still_in_assigned_group() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
         Long courseA = createCourse(adminToken, "Program Sticky Enrollment Course A");
@@ -873,8 +780,8 @@ class ProgramManagementIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "title": "Program Sticky Enrollment",
-                                  "description": "Keep enrollment if group assignment exists",
+                                  "title": "Program Source Agnostic Unassign",
+                                  "description": "Unassign regardless of previous assignment path",
                                   "accessCondition": "ALL_OPEN",
                                   "blockAfterDeadline": false,
                                   "courses": [%d]
@@ -924,6 +831,7 @@ class ProgramManagementIntegrationTest {
                 .andExpect(status().isOk());
 
         assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isTrue();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseA)).isTrue();
 
         mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/assign", programId)
                         .header("Authorization", "Bearer " + adminToken)
@@ -936,7 +844,8 @@ class ProgramManagementIntegrationTest {
                                 """.formatted(studentId)))
                 .andExpect(status().isOk());
 
-        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isTrue();
+        assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isFalse();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseA)).isFalse();
 
         mockMvc.perform(post("/api/v1/admin/courses/programs/{programId}/groups/assign", programId)
                         .header("Authorization", "Bearer " + adminToken)
@@ -950,6 +859,7 @@ class ProgramManagementIntegrationTest {
                 .andExpect(status().isOk());
 
         assertThat(programEnrollmentRepository.existsByUserIdAndProgramId(studentId, programId)).isFalse();
+        assertThat(enrollmentRepository.existsByUserIdAndCourseId(studentId, courseA)).isFalse();
     }
 
     private boolean containsUserId(JsonNode usersArray, Long userId) {

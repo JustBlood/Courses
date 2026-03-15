@@ -39,6 +39,7 @@ public class CourseService {
 
     private final CourseLearnerReadService courseLearnerReadService;
     private final CourseAssignmentService courseAssignmentService;
+    private final CourseEnrollmentLifecycleService courseEnrollmentLifecycleService;
 
     @Transactional
     public CourseDto createCourse(CreateCourseRequest request) {
@@ -91,7 +92,7 @@ public class CourseService {
         Course course = courseLearnerReadService.getCourseEntity(courseId);
         submissionRepository.deleteByLesson_Course_Id(courseId);
         enrollmentRepository.deleteByCourseId(courseId);
-        courseAssignmentService.deleteByCourseId(courseId);
+        courseAssignmentService.deleteCourseReviewersByCourseId(courseId);
         fileStorageService.deleteIfExists(course.getCoverFilePath());
         courseRepository.delete(course);
     }
@@ -107,13 +108,10 @@ public class CourseService {
 
     @Transactional
     public void resetStudentCourseProgress(Long userId, Long courseId) {
-        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
-                .orElseThrow(() -> new ru.just.monolithmvp.exception.NotFoundException("Enrollment not found for user/course"));
-
-        submissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
-        enrollment.setStartedAt(null);
-        enrollment.setCompletedAt(null);
-        enrollmentRepository.save(enrollment);
+        if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new ru.just.monolithmvp.exception.NotFoundException("Enrollment not found for user/course");
+        }
+        courseEnrollmentLifecycleService.resetCourseProgress(userId, courseId);
     }
 
     private void setLessonsToNewPositionsIfNeeded(Long courseId, CreateCourseRequest request) {
@@ -148,11 +146,8 @@ public class CourseService {
             throw new BadRequestException("New avatar path is not valid or file does not exists.");
         }
         course.setCoverFilePath(newCoverFilePath);
-        course.setPassingThresholdPercent(request.passingThresholdPercent() == null ? 100 : request.passingThresholdPercent());
         course.setDeadlineDays(request.deadlineDays());
         course.setLessonsFreeOrder(Boolean.TRUE.equals(request.lessonsFreeOrder()));
-        course.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
-        course.setIncludeInOverallStats(request.includeInOverallStats() == null || request.includeInOverallStats());
         course.setSection(request.sectionId() == null ? sectionService.getDefaultSection() : sectionService.getSectionEntity(request.sectionId()));
     }
 

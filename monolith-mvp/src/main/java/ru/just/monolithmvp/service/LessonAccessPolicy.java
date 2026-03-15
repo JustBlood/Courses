@@ -5,45 +5,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.model.Lesson;
+import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.repository.LessonRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 
-import java.util.Optional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class LessonAccessPolicy {
-    private final CourseAccessPolicy courseAccessPolicy;
     private final LessonRepository lessonRepository;
     private final LessonSubmissionRepository submissionRepository;
 
     @Transactional(readOnly = true)
-    public void validateStudentEnrolled(Long userId, Long courseId) {
-        courseAccessPolicy.assertStudentEnrolled(userId, courseId);
-    }
-
-    @Transactional(readOnly = true)
     public void assertLessonAccessAllowed(Long studentId, Lesson lesson) {
-        if (Boolean.TRUE.equals(lesson.getCourse().getLessonsFreeOrder())) {
+        if (lesson.getPosition() <= 1 || Boolean.TRUE.equals(lesson.getCourse().getLessonsFreeOrder())) {
             return;
         }
 
-        if (lesson.getPosition() == null || lesson.getPosition() <= 1) {
+        final List<LessonSubmission> alreadyCompletedLessons = submissionRepository.findAllCompletedByStudentIdAndLessonPositionLessThan(studentId, lesson.getPosition());
+
+        if (alreadyCompletedLessons.size() == lesson.getPosition() - 1) {
             return;
         }
 
-        Optional<Lesson> previousLesson = lessonRepository
-                .findFirstByCourse_IdAndPositionLessThanOrderByPositionDesc(lesson.getCourse().getId(), lesson.getPosition());
-        if (previousLesson.isEmpty()) {
-            return;
-        }
-
-        boolean previousPassed = submissionRepository
-                .findFirstByStudentIdAndLessonIdAndCompletedTrueOrderBySubmittedAtDesc(studentId, previousLesson.get().getId())
-                .isPresent();
-        if (!previousPassed) {
-            throw new BadRequestException("Previous lesson is not passed");
-        }
+        throw new BadRequestException("Previous lessons is not completed");
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +44,7 @@ public class LessonAccessPolicy {
                 lesson.getPosition()
         );
         if (hasBlockingStopLesson) {
-            throw new BadRequestException("Previous stop lesson is not passed");
+            throw new BadRequestException("Previous stop lesson is not completed");
         }
     }
 }

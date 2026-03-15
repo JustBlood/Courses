@@ -55,7 +55,7 @@ public class CourseLessonAdminService {
         lesson.setPosition(lessonPosition);
         applyPracticeLessonFields(lesson, request);
 
-        applyQuestionPool(lesson, request.questions(), Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount()));
+        applyQuestionPool(lesson, request.questions());
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
     }
@@ -103,7 +103,7 @@ public class CourseLessonAdminService {
         applyPracticeLessonFields(lesson, patchRequest);
 
         if (!CollectionUtils.isEmpty(patchRequest.questions())) {
-            applyQuestionPool(lesson, patchRequest.questions(), Boolean.TRUE.equals(lesson.getEvaluateByCorrectCount()));
+            applyQuestionPool(lesson, patchRequest.questions());
         }
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
@@ -179,13 +179,19 @@ public class CourseLessonAdminService {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
                 request.attemptLimit(), request.timeLimitMinutes());
         lesson.setPassingThresholdPercent(patchValue(request.passingThresholdPercent(), lesson.getPassingThresholdPercent()));
-        lesson.setEvaluateByCorrectCount(patchValue(request.evaluateByCorrectCount(), lesson.getEvaluateByCorrectCount()));
         lesson.setShuffleOnEveryAttempt(patchValue(request.shuffleOptions(), lesson.getShuffleOnEveryAttempt()));
         lesson.setShowQuestionStatus(patchValue(request.showQuestionStatus(), lesson.getShowQuestionStatus()));
         lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswers(), lesson.getShowCorrectAnswersAfterCompletion()));
         lesson.setLessonType(patchValue(request.lessonType(), lesson.getLessonType()));
 
-        lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
+        if (request.lessonType().isPractice()) {
+            final Integer fullTestLessonPoints = request.questions().stream()
+                    .map(PracticeQuestionRequest::fullPoints)
+                    .reduce(Integer::sum).orElse(null);
+            lesson.setFullPoints(patchValue(fullTestLessonPoints, lesson.getFullPoints()));
+        } else {
+            lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
+        }
     }
 
     private <T> T patchValue(T requestedValue, T currentValue) {
@@ -198,8 +204,7 @@ public class CourseLessonAdminService {
     }
 
     private void applyQuestionPool(PracticeLesson lesson,
-                                   List<PracticeQuestionRequest> questions,
-                                   boolean evaluateByCorrectCount) {
+                                   List<PracticeQuestionRequest> questions) {
         List<PracticeQuestion> mapped = new ArrayList<>();
         for (PracticeQuestionRequest q : questions) {
             PracticeQuestion entity = new PracticeQuestion();
@@ -210,21 +215,12 @@ public class CourseLessonAdminService {
             entity.setTrainerHint(q.trainerHint());
             entity.setOptions(q.options() == null ? null : new ArrayList<>(q.options()));
             entity.setCorrectAnswers(q.correctAnswers() == null ? null : new ArrayList<>(q.correctAnswers()));
-            int resolvedQuestionFullPoints = resolveQuestionFullPoints(q, evaluateByCorrectCount);
-            entity.setFullPoints(resolvedQuestionFullPoints);
-            int resolvedQuestionPartialPoints = q.partialPoints() == null ? 0 : q.partialPoints();
-            entity.setPartialPoints(Math.min(resolvedQuestionPartialPoints, resolvedQuestionFullPoints));
+            entity.setFullPoints(q.fullPoints());
+            entity.setPartialPoints(q.partialPoints() == null ? 0 : q.partialPoints());
             mapped.add(entity);
         }
         lesson.getQuestions().clear();
         lesson.getQuestions().addAll(mapped);
-    }
-
-    private int resolveQuestionFullPoints(PracticeQuestionRequest question, boolean evaluateByCorrectCount) {
-        if (evaluateByCorrectCount) {
-            return 1;
-        }
-        return Optional.ofNullable(question.fullPoints()).orElse(1);
     }
 
     private CreateTheoryLessonRequest toCreateTheoryLessonRequest(UpdateTheoryLessonRequest request) {
@@ -257,7 +253,6 @@ public class CourseLessonAdminService {
                 request.lessonType(),
                 request.fullPoints(),
                 request.passingThresholdPercent(),
-                request.evaluateByCorrectCount(),
                 request.shuffleOptions(),
                 request.showQuestionStatus(),
                 request.showCorrectAnswers(),

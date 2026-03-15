@@ -36,7 +36,7 @@ public class LearningService {
     @Transactional
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
-        lessonAccessPolicy.validateStudentEnrolled(userId, lesson.getCourse().getId());
+        courseAccessPolicy.assertStudentEnrolled(userId, lesson.getCourse().getId());
 
         boolean lessonAlreadyPassed = isLessonPassedByStudent(userId, lessonId);
         if (!lessonAlreadyPassed) {
@@ -83,6 +83,7 @@ public class LearningService {
                         showQuestionStatus
                                 ? Optional.ofNullable(questionProgress).map(QuestionProgress::getReviewStatus).orElse(null)
                                 : null,
+                        questionProgress != null ? questionProgress.getReviewComment() : null,
                         showQuestionStatus
                                 ? Optional.ofNullable(questionProgress).map(QuestionProgress::getAwardedPoints).orElse(null)
                                 : null,

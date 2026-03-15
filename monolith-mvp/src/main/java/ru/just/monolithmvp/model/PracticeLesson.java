@@ -18,9 +18,6 @@ public class PracticeLesson extends Lesson {
     private Integer passingThresholdPercent = 100;
 
     @Column(nullable = false)
-    private Boolean evaluateByCorrectCount = false;
-
-    @Column(nullable = false)
     private Boolean shuffleOnEveryAttempt = false;
 
     @Column(nullable = false)

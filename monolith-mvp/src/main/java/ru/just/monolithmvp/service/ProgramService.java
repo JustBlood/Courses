@@ -34,8 +34,8 @@ public class ProgramService {
     private final AppUserRepository userRepository;
     private final GroupMembershipRepository groupMembershipRepository;
     private final LearningGroupRepository learningGroupRepository;
-    private final EnrollmentRepository enrollmentRepository;
-    private final LessonSubmissionRepository lessonSubmissionRepository;
+    private final CourseProgressRepository courseProgressRepository;
+    private final CourseEnrollmentLifecycleService courseEnrollmentLifecycleService;
     private final CourseEnrollmentPort courseEnrollmentPort;
     private final CourseMapper courseMapper;
     private final UserMapper userMapper;
@@ -93,10 +93,7 @@ public class ProgramService {
 
         for (Long userId : idsNotIn) {
             programEnrollmentRepository.findByUserIdAndProgramId(userId, programId)
-                    .ifPresent(enrollment -> cleanupProgramEnrollment(
-                            enrollment,
-                            !isUserAssignedThroughAnyGroup(programId, userId)
-                    ));
+                    .ifPresent(pe -> courseEnrollmentLifecycleService.unassignFromProgram(programId, userId));
         }
 
         for (Long userId : idsIn) {
@@ -153,11 +150,8 @@ public class ProgramService {
             groupMembershipRepository.findByGroupId(groupId).stream()
                     .map(GroupMembership::getUser)
                     .map(AppUser::getId)
-                    .forEach(userId -> {
-                        boolean assignedThroughAnyGroup = isUserAssignedThroughAnyGroup(programId, userId);
-                        programEnrollmentRepository.findByUserIdAndProgramId(userId, programId)
-                                .ifPresent(enrollment -> cleanupProgramEnrollment(enrollment, !assignedThroughAnyGroup));
-                    });
+                    .forEach(userId -> programEnrollmentRepository.findByUserIdAndProgramId(userId, programId)
+                            .ifPresent(pe -> courseEnrollmentLifecycleService.unassignFromProgram(programId, userId)));
         }
     }
 
@@ -302,44 +296,9 @@ public class ProgramService {
                 .map(gpa -> gpa.getProgram().getId())
                 .toList();
         for (Long programId : programIds) {
-            boolean assignedThroughAnyGroup = isUserAssignedThroughAnyGroup(programId, userId);
             programEnrollmentRepository.findByUserIdAndProgramId(userId, programId)
-                    .ifPresent(enrollment -> cleanupProgramEnrollment(enrollment, !assignedThroughAnyGroup));
+                    .ifPresent(pe -> courseEnrollmentLifecycleService.unassignFromProgram(programId, userId));
         }
-    }
-
-    @Transactional
-    public void resetProgramCourseProgress(Long programId, Long userId, Long courseId) {
-        getProgramEntity(programId);
-        if (!programEnrollmentRepository.existsByUserIdAndProgramId(userId, programId)) {
-            throw new NotFoundException("Program enrollment not found for user: " + userId);
-        }
-
-        boolean courseInProgram = programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId).stream()
-                .anyMatch(pc -> Objects.equals(pc.getCourse().getId(), courseId));
-        if (!courseInProgram) {
-            throw new BadRequestException("Course is not part of this program");
-        }
-
-        Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
-                .orElseThrow(() -> new NotFoundException("Enrollment not found for user/course"));
-
-        if (enrollment.getCompletedAt() != null) {
-            throw new BadRequestException("Cannot reset completed course progress");
-        }
-
-        lessonSubmissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
-        enrollment.setStartedAt(null);
-        enrollment.setCompletedAt(null);
-        enrollmentRepository.save(enrollment);
-        onCourseProgressChanged(userId, courseId);
-    }
-
-    private boolean isUserAssignedThroughAnyGroup(Long programId, Long userId) {
-        return groupMembershipRepository.findByUserId(userId).stream()
-                .map(GroupMembership::getGroup)
-                .map(LearningGroup::getId)
-                .anyMatch(groupId -> groupProgramAssignmentRepository.existsByGroupIdAndProgramId(groupId, programId));
     }
 
     private ProgramEnrollment getOrCreateProgramEnrollment(LearningProgram program, Long userId) {
@@ -353,14 +312,6 @@ public class ProgramService {
                     enrollment.setEnrolledAt(LocalDateTime.now());
                     return enrollment;
                 });
-    }
-
-    private void cleanupProgramEnrollment(ProgramEnrollment enrollment, boolean toDelete) {
-        if (toDelete) {
-            programEnrollmentRepository.delete(enrollment);
-            return;
-        }
-        programEnrollmentRepository.save(enrollment);
     }
 
     private void ensureProgramCourseEnrollmentsForUser(LearningProgram program, Long userId) {
@@ -497,24 +448,24 @@ public class ProgramService {
             return List.of();
         }
 
-        Map<Long, Enrollment> enrollmentsByCourseId = loadEnrollmentsByCourseId(userId, orderedCourses);
+        Map<Long, CourseProgress> progressByCourseId = loadProgressByCourseId(userId, orderedCourses);
         List<ResolvedProgramCourseState> states = new ArrayList<>();
 
-        boolean previousCompleted = false;
+        boolean allPreviousCompleted = true;
         boolean previousViewed = false;
 
         for (int i = 0; i < orderedCourses.size(); i++) {
             ProgramCourse pc = orderedCourses.get(i);
-            Enrollment enrollment = enrollmentsByCourseId.get(pc.getCourse().getId());
+            CourseProgress progress = progressByCourseId.get(pc.getCourse().getId());
 
-            boolean viewed = enrollment != null && enrollment.getStartedAt() != null;
-            boolean completed = enrollment != null && enrollment.getCompletedAt() != null;
+            boolean viewed = progress != null && progress.getStatus() != CourseProgressStatus.NEW;
+            boolean completed = progress != null && progress.getStatus() == CourseProgressStatus.COMPLETED;
 
             boolean unlockedByRule;
             if (i == 0 || program.getAccessCondition() == ProgramAccessCondition.ALL_OPEN) {
                 unlockedByRule = true;
             } else if (program.getAccessCondition() == ProgramAccessCondition.PREVIOUS_COURSES_COMPLETED) {
-                unlockedByRule = previousCompleted;
+                unlockedByRule = allPreviousCompleted;
             } else {
                 unlockedByRule = previousViewed;
             }
@@ -533,22 +484,22 @@ public class ProgramService {
                     completed
             ));
 
-            previousCompleted = completed;
+            allPreviousCompleted = allPreviousCompleted && completed;
             previousViewed = viewed;
         }
 
         return states;
     }
 
-    private Map<Long, Enrollment> loadEnrollmentsByCourseId(Long userId, List<ProgramCourse> orderedCourses) {
+    private Map<Long, CourseProgress> loadProgressByCourseId(Long userId, List<ProgramCourse> orderedCourses) {
         List<Long> courseIds = orderedCourses.stream()
                 .map(pc -> pc.getCourse().getId())
                 .toList();
 
-        return enrollmentRepository.findByUserIdAndCourseIdIn(userId, courseIds).stream()
+        return courseProgressRepository.findByUserIdAndCourseIdIn(userId, courseIds).stream()
                 .collect(Collectors.toMap(
-                        enrollment -> enrollment.getCourse().getId(),
-                        enrollment -> enrollment,
+                        progress -> progress.getCourse().getId(),
+                        progress -> progress,
                         (left, right) -> left
                 ));
     }

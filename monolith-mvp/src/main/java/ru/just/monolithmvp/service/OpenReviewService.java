@@ -45,7 +45,7 @@ public class OpenReviewService {
                         s.getLesson().getCourse().getTitle(),
                         s.getStudent().getId(),
                         s.getStudent().getFullName(),
-                        s.getSubmittedAt(),
+                        s.getFirstSubmittedAt(),
                         Math.max(Optional.ofNullable(s.getAttemptCounter()).orElse(0), 1)
                 )).toList();
     }
@@ -163,7 +163,7 @@ public class OpenReviewService {
         SubmissionStatus finalStatus = hasRework
                 ? SubmissionStatus.REWORK
                 : (finalPassed ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        int pointsAwarded = hasRework ? 0 : (finalPassed ? practiceLesson.getFullPoints() : 0);
+        int pointsAwarded = hasRework ? 0 : (finalPassed ? totalAwardedPoints : 0);
 
         submission.setCompleted(!hasRework);
         submission.setStatus(finalStatus);
@@ -185,7 +185,7 @@ public class OpenReviewService {
                 "reviewerId", reviewerId,
                 "fromStatus", previousStatus,
                 "toStatus", finalStatus,
-                "passed", finalPassed,
+                "completed", finalPassed,
                 "points", pointsAwarded);
 
         return new SubmissionResultDto(
@@ -203,7 +203,7 @@ public class OpenReviewService {
         if (Boolean.TRUE.equals(submission.getCompleted())) {
             throw new BadRequestException("Submission is already finalized");
         }
-        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW && submission.getStatus() != SubmissionStatus.REWORK) {
+        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW) {
             throw new BadRequestException("Submission is not in reviewable status");
         }
 
@@ -215,7 +215,7 @@ public class OpenReviewService {
         if (Boolean.TRUE.equals(submission.getCompleted())) {
             throw new BadRequestException("Submission is already finalized");
         }
-        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW && submission.getStatus() != SubmissionStatus.REWORK) {
+        if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW) {
             throw new BadRequestException("Submission is not in reviewable status");
         }
 

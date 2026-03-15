@@ -4,15 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.course.CourseLearnerDto;
+import ru.just.monolithmvp.dto.course.CourseProgressDto;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonSummaryDto;
+import ru.just.monolithmvp.dto.lesson.LessonProgressDto;
 import ru.just.monolithmvp.exception.NotFoundException;
-import ru.just.monolithmvp.model.Course;
-import ru.just.monolithmvp.model.Lesson;
-import ru.just.monolithmvp.model.LessonSubmission;
-import ru.just.monolithmvp.repository.CourseRepository;
-import ru.just.monolithmvp.repository.LessonRepository;
-import ru.just.monolithmvp.repository.LessonSubmissionRepository;
+import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.repository.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +19,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CourseLearnerReadService {
     private final CourseRepository courseRepository;
+    private final CourseProgressRepository courseProgressRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final LessonRepository lessonRepository;
     private final LessonSubmissionRepository submissionRepository;
     private final CourseAccessPolicy courseAccessPolicy;
@@ -32,10 +33,37 @@ public class CourseLearnerReadService {
         Course course = getCourseEntity(courseId);
         List<Lesson> courseLessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId);
         Map<Long, LessonSubmission> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
-        Set<Long> passedLessonIds = resolvePassedLessonIds(submissionsByLessonId);
-        List<LearnerLessonSummaryDto> lessons = buildLearnerLessonSummaries(course, courseLessons, submissionsByLessonId, passedLessonIds);
+        List<LearnerLessonSummaryDto> lessons = buildLearnerLessonSummaries(course, courseLessons, submissionsByLessonId);
 
-        return toCourseLearnerDto(course, lessons);
+        final Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId).orElse(null);
+        final CourseProgress courseProgress = courseProgressRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElse(null);
+        int totalLessons = lessons.size();
+        int completedLessons = (int) lessons.stream().filter(summary -> summary.lessonProgress().completed()).count();
+        int remainingLessons = Math.max(totalLessons - completedLessons, 0);
+        int completionPercent = totalLessons == 0 ? 100 : (completedLessons * 100) / totalLessons;
+
+        CourseProgressDto progress = null;
+        if (enrollment != null) {
+            progress = new CourseProgressDto(
+                    enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()),
+                    completionPercent,
+                    completedLessons,
+                    remainingLessons,
+                    courseProgress != null ? courseProgress.getStatus() : null
+            );
+        }
+
+        return new CourseLearnerDto(
+                course.getId(),
+                course.getTitle(),
+                course.getDescription(),
+                fileStorageService.normalizeStoredPath(course.getCoverFilePath()),
+                course.getDeadlineDays(),
+                totalLessons,
+                progress,
+                lessons
+        );
     }
 
     @Transactional(readOnly = true)
@@ -95,83 +123,53 @@ public class CourseLearnerReadService {
 
     private List<LearnerLessonSummaryDto> buildLearnerLessonSummaries(Course course,
                                                                        List<Lesson> courseLessons,
-                                                                       Map<Long, LessonSubmission> submissionsByLessonId,
-                                                                       Set<Long> passedLessonIds) {
+                                                                       Map<Long, LessonSubmission> submissionsByLessonId) {
         List<LearnerLessonSummaryDto> lessons = new ArrayList<>(courseLessons.size());
         boolean hasUnpassedStopBefore = false;
+        boolean allPreviousLessonsPassed = true;
 
         for (int index = 0; index < courseLessons.size(); index++) {
             Lesson lesson = courseLessons.get(index);
-            boolean passed = passedLessonIds.contains(lesson.getId());
 
-            String blockReason = resolveLessonBlockReason(course, courseLessons, index, passedLessonIds, hasUnpassedStopBefore);
-            boolean blocked = blockReason != null;
-            Integer pointsAwarded = Optional.ofNullable(submissionsByLessonId.get(lesson.getId()))
+            final LessonSubmission submission = submissionsByLessonId.get(lesson.getId());
+            Integer pointsAwarded = Optional.ofNullable(submission)
                     .map(LessonSubmission::getPointsAwarded)
                     .orElse(0);
+            final SubmissionStatus submissionStatus = Optional.ofNullable(submission)
+                    .map(LessonSubmission::getStatus)
+                    .orElse(null);
+            Boolean completed = Optional.ofNullable(submission)
+                    .map(LessonSubmission::getCompleted)
+                    .orElse(false);
+            allPreviousLessonsPassed = allPreviousLessonsPassed && completed;
+
+            String blockReason = null;
+            if (!course.getLessonsFreeOrder() && index > 0 && !allPreviousLessonsPassed) {
+                blockReason = "PREVIOUS_LESSONS_NOT_PASSED";
+            }
+            if (hasUnpassedStopBefore) {
+                blockReason = "STOP_LESSON_BLOCK";
+            }
+
+            boolean blocked = blockReason != null;
 
             lessons.add(new LearnerLessonSummaryDto(
                     lesson.getId(),
                     lesson.getPosition(),
                     lesson.getTitle(),
                     lesson.getLessonType(),
-                    passed,
-                    pointsAwarded,
                     blocked,
-                    blockReason
+                    blockReason,
+                    new LessonProgressDto(
+                        completed,
+                        submissionStatus,
+                        pointsAwarded
+                    )
             ));
 
-            if (Boolean.TRUE.equals(lesson.getStopLesson()) && !passed) {
-                hasUnpassedStopBefore = true;
-            }
+            hasUnpassedStopBefore = hasUnpassedStopBefore || lesson.getStopLesson() && !completed;
         }
 
         return lessons;
-    }
-
-    private CourseLearnerDto toCourseLearnerDto(Course course, List<LearnerLessonSummaryDto> lessons) {
-        int totalLessons = lessons.size();
-        int completedLessons = (int) lessons.stream().filter(LearnerLessonSummaryDto::passed).count();
-        int remainingLessons = Math.max(totalLessons - completedLessons, 0);
-        int completionPercent = totalLessons == 0 ? 100 : (completedLessons * 100) / totalLessons;
-        boolean courseCompleted = completedLessons >= totalLessons;
-
-        return new CourseLearnerDto(
-                course.getId(),
-                course.getTitle(),
-                course.getDescription(),
-                fileStorageService.normalizeStoredPath(course.getCoverFilePath()),
-                course.getDeadlineDays(),
-                completionPercent,
-                completedLessons,
-                remainingLessons,
-                totalLessons,
-                courseCompleted,
-                lessons
-        );
-    }
-
-    private String resolveLessonBlockReason(Course course,
-                                            List<Lesson> courseLessons,
-                                            int lessonIndex,
-                                            Set<Long> passedLessonIds,
-                                            boolean hasUnpassedStopBefore) {
-        Lesson lesson = courseLessons.get(lessonIndex);
-        if (passedLessonIds.contains(lesson.getId())) {
-            return null;
-        }
-
-        if (Boolean.FALSE.equals(course.getLessonsFreeOrder()) && lessonIndex > 0) {
-            Lesson previousLesson = courseLessons.get(lessonIndex - 1);
-            if (!passedLessonIds.contains(previousLesson.getId())) {
-                return "PREVIOUS_LESSON_NOT_PASSED";
-            }
-        }
-
-        if (hasUnpassedStopBefore) {
-            return "STOP_LESSON_BLOCK";
-        }
-
-        return null;
     }
 }

@@ -14,7 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.model.SubmissionStatus;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
+import ru.just.monolithmvp.repository.CourseProgressRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
@@ -52,6 +54,9 @@ class CourseLessonCrudIntegrationTest {
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private CourseProgressRepository courseProgressRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -94,7 +99,7 @@ class CourseLessonCrudIntegrationTest {
                         .content("""
                                 {
                                   "title": "Blocking Theory",
-                                  "description": "Must be passed first",
+                                  "description": "Must be completed first",
                                   "lessonType": "THEORY_TEXT",
                                   "content": "Blocking content",
                                   "fullPoints": 5,
@@ -113,7 +118,7 @@ class CourseLessonCrudIntegrationTest {
                         .content("""
                                 {
                                   "title": "Next Theory",
-                                  "description": "Should be blocked until first passed",
+                                  "description": "Should be blocked until first completed",
                                   "lessonType": "THEORY_TEXT",
                                   "content": "Next content",
                                   "fullPoints": 4
@@ -131,7 +136,7 @@ class CourseLessonCrudIntegrationTest {
                         .content("""
                                 {
                                   "title": "Next Practice",
-                                  "description": "Should be blocked until first passed",
+                                  "description": "Should be blocked until first completed",
                                   "lessonType": "PRACTICE_TEST",
                                   "fullPoints": 2,
                                   "partialPoints": 0,
@@ -926,12 +931,12 @@ class CourseLessonCrudIntegrationTest {
         JsonNode lessonsBefore = learnerCourseBeforeNode.get("lessons");
         assertThat(lessonsBefore.size()).isEqualTo(2);
         assertThat(lessonsBefore.get(0).get("id").asLong()).isEqualTo(firstTheoryId);
-        assertThat(lessonsBefore.get(0).get("passed").asBoolean()).isFalse();
+        assertThat(lessonsBefore.get(0).get("completed").asBoolean()).isFalse();
         assertThat(lessonsBefore.get(0).get("blocked").asBoolean()).isFalse();
         assertThat(lessonsBefore.get(0).get("pointsAwarded").asInt()).isEqualTo(0);
 
         assertThat(lessonsBefore.get(1).get("id").asLong()).isEqualTo(secondTheoryId);
-        assertThat(lessonsBefore.get(1).get("passed").asBoolean()).isFalse();
+        assertThat(lessonsBefore.get(1).get("completed").asBoolean()).isFalse();
         assertThat(lessonsBefore.get(1).get("blocked").asBoolean()).isTrue();
         assertThat(lessonsBefore.get(1).get("blockReason").asText()).isEqualTo("PREVIOUS_LESSON_NOT_PASSED");
 
@@ -961,7 +966,7 @@ class CourseLessonCrudIntegrationTest {
         assertThat(learnerCourseMidNode.get("courseCompleted").asBoolean()).isFalse();
 
         JsonNode lessonsMid = learnerCourseMidNode.get("lessons");
-        assertThat(lessonsMid.get(0).get("passed").asBoolean()).isTrue();
+        assertThat(lessonsMid.get(0).get("completed").asBoolean()).isTrue();
         assertThat(lessonsMid.get(0).get("pointsAwarded").asInt()).isEqualTo(5);
         assertThat(lessonsMid.get(0).get("blocked").asBoolean()).isFalse();
         assertThat(lessonsMid.get(1).get("blocked").asBoolean()).isFalse();
@@ -1087,7 +1092,7 @@ class CourseLessonCrudIntegrationTest {
 
         JsonNode submitPracticeResult = objectMapper.readTree(submitPracticeResponse);
         assertThat(submitPracticeResult.get("status").asText()).isEqualTo("COMPLETE");
-        assertThat(submitPracticeResult.get("passed").asBoolean()).isTrue();
+        assertThat(submitPracticeResult.get("completed").asBoolean()).isTrue();
 
         LessonSubmission submission = lessonSubmissionRepository.findAll().stream()
                 .filter(s -> s.getLesson().getId().equals(practiceLessonId) && s.getStudent().getId().equals(studentId))
@@ -1377,9 +1382,9 @@ class CourseLessonCrudIntegrationTest {
         JsonNode firstAttempt = objectMapper.readTree(firstAttemptResponse);
         JsonNode secondAttempt = objectMapper.readTree(secondAttemptResponse);
         assertThat(firstAttempt.get("status").asText()).isEqualTo("INCOMPLETE");
-        assertThat(firstAttempt.get("passed").asBoolean()).isFalse();
+        assertThat(firstAttempt.get("completed").asBoolean()).isFalse();
         assertThat(secondAttempt.get("status").asText()).isEqualTo("INCOMPLETE");
-        assertThat(secondAttempt.get("passed").asBoolean()).isFalse();
+        assertThat(secondAttempt.get("completed").asBoolean()).isFalse();
 
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
                         .header("Authorization", "Bearer " + studentToken)
@@ -1526,7 +1531,7 @@ class CourseLessonCrudIntegrationTest {
                 .filter(s -> s.getLesson().getId().equals(practiceLessonId) && s.getStudent().getId().equals(studentId))
                 .findFirst()
                 .orElseThrow();
-        firstAttempt.setSubmittedAt(LocalDateTime.now().minusMinutes(2));
+        firstAttempt.setFirstSubmittedAt(LocalDateTime.now().minusMinutes(2));
         lessonSubmissionRepository.save(firstAttempt);
 
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
@@ -1540,7 +1545,7 @@ class CourseLessonCrudIntegrationTest {
     void learner_should_be_able_to_view_already_passed_lesson_after_deadline() throws Exception {
         String adminToken = login("admin@local", "admin123");
 
-        String studentEmail = uniqueEmail("view-passed-after-deadline");
+        String studentEmail = uniqueEmail("view-completed-after-deadline");
         Long studentId = createUser(adminToken, "View Passed Student", studentEmail, "STUDENT");
         String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
 
@@ -1956,7 +1961,7 @@ class CourseLessonCrudIntegrationTest {
 
         JsonNode reReview = objectMapper.readTree(reReviewResponse);
         assertThat(reReview.get("status").asText()).isEqualTo("REWORK");
-        assertThat(reReview.get("passed").asBoolean()).isFalse();
+        assertThat(reReview.get("completed").asBoolean()).isFalse();
 
         String learnerCourseResponse = mockMvc.perform(get("/api/v1/student/courses/{courseId}", courseId)
                         .header("Authorization", "Bearer " + studentToken))
@@ -2650,7 +2655,7 @@ class CourseLessonCrudIntegrationTest {
 
         JsonNode review = objectMapper.readTree(reviewResponse);
         assertThat(review.get("status").asText()).isEqualTo("COMPLETE");
-        assertThat(review.get("passed").asBoolean()).isTrue();
+        assertThat(review.get("completed").asBoolean()).isTrue();
     }
 
     @Test
@@ -2730,7 +2735,6 @@ class CourseLessonCrudIntegrationTest {
                                   "description": "Practice Description",
                                   "lessonType": "PRACTICE_TEST",
                                   "passingThresholdPercent": 80,
-                                  "evaluateByCorrectCount": true,
                                   "shuffleOptions": true,
                                   "showQuestionStatus": false,
                                   "showCorrectAnswers": true,
@@ -2786,7 +2790,6 @@ class CourseLessonCrudIntegrationTest {
         assertThat(practiceAfterUpdate.get("title").asText()).isEqualTo("Practice Updated");
         assertThat(practiceAfterUpdate.get("description").asText()).isEqualTo(createdPractice.get("description").asText());
         assertThat(practiceAfterUpdate.get("passingThresholdPercent").asInt()).isEqualTo(createdPractice.get("passingThresholdPercent").asInt());
-        assertThat(practiceAfterUpdate.get("evaluateByCorrectCount").asBoolean()).isEqualTo(createdPractice.get("evaluateByCorrectCount").asBoolean());
         assertThat(practiceAfterUpdate.get("randomQuestionCount")).isNull();
         assertThat(practiceAfterUpdate.get("shuffleOnEveryAttempt").asBoolean()).isEqualTo(createdPractice.get("shuffleOnEveryAttempt").asBoolean());
         assertThat(practiceAfterUpdate.get("showCorrectAnswersAfterCompletion").asBoolean())
@@ -2860,10 +2863,11 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
-        var enrollmentBeforeReset = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
-        enrollmentBeforeReset.setStartedAt(LocalDateTime.now().minusDays(1));
-        enrollmentBeforeReset.setCompletedAt(LocalDateTime.now());
-        enrollmentRepository.save(enrollmentBeforeReset);
+        var progressBeforeReset = courseProgressRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
+        progressBeforeReset.setStartedAt(LocalDateTime.now().minusDays(1));
+        progressBeforeReset.setCompletedAt(LocalDateTime.now());
+        progressBeforeReset.setStatus(CourseProgressStatus.COMPLETED);
+        courseProgressRepository.save(progressBeforeReset);
 
         assertThat(lessonSubmissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId)).isNotEmpty();
 
@@ -2886,9 +2890,10 @@ class CourseLessonCrudIntegrationTest {
 
         assertThat(lessonSubmissionRepository.findByStudentIdAndLessonCourseId(studentId, courseId)).isEmpty();
 
-        var enrollmentAfterReset = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
-        assertThat(enrollmentAfterReset.getStartedAt()).isNull();
-        assertThat(enrollmentAfterReset.getCompletedAt()).isNull();
+        var progressAfterReset = courseProgressRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
+        assertThat(progressAfterReset.getStartedAt()).isNull();
+        assertThat(progressAfterReset.getCompletedAt()).isNull();
+        assertThat(progressAfterReset.getStatus()).isEqualTo(CourseProgressStatus.NEW);
     }
 
     private String login(String email, String password) throws Exception {

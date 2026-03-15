@@ -46,8 +46,8 @@ public class LessonSubmission {
     @Column(nullable = false)
     private Integer attemptCounter = 0;
 
-    @Column(nullable = false)
-    private LocalDateTime submittedAt;
+    @Column(name = "submitted_at", nullable = false)
+    private LocalDateTime firstSubmittedAt;
 
     private Long reviewedByAdminId;
     private LocalDateTime reviewedAt;

@@ -8,10 +8,13 @@ import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.AppUser;
 import ru.just.monolithmvp.model.Course;
+import ru.just.monolithmvp.model.CourseProgress;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.model.Enrollment;
 import ru.just.monolithmvp.model.GroupMembership;
 import ru.just.monolithmvp.model.GroupType;
 import ru.just.monolithmvp.repository.CourseRepository;
+import ru.just.monolithmvp.repository.CourseProgressRepository;
 import ru.just.monolithmvp.repository.GroupMembershipRepository;
 import ru.just.monolithmvp.service.StatisticsQueryService.UserCourseKey;
 
@@ -30,12 +33,14 @@ public class StatisticsReportService {
     private final StatisticsQueryService statisticsQueryService;
     private final GroupMembershipRepository groupMembershipRepository;
     private final CourseRepository courseRepository;
+    private final CourseProgressRepository courseProgressRepository;
     private final CsvReportRenderer csvReportRenderer;
 
     @Transactional(readOnly = true)
     public List<StudentCourseStatDto> userCourseStats(Long userId) {
         List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByUser(userId);
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
+        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(List.of(userId), courseIds);
 
         Map<Long, Integer> maxPointsByCourse = statisticsQueryService.sumMaxPointsByCourseIds(courseIds);
         Map<Long, Long> totalLessonsByCourse = statisticsQueryService.countLessonsByCourseIds(courseIds);
@@ -46,6 +51,7 @@ public class StatisticsReportService {
 
         return enrollments.stream()
                 .map(enrollment -> toStudentCourseStat(enrollment,
+                        progressByUserCourse.get(new UserCourseKey(enrollment.getUser().getId(), enrollment.getCourse().getId())),
                         maxPointsByCourse,
                         totalLessonsByCourse,
                         earnedByUserCourse,
@@ -62,6 +68,7 @@ public class StatisticsReportService {
         List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByCourse(courseId);
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = List.of(courseId);
+        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
 
         int maxPoints = statisticsQueryService.sumMaxPointsByCourseIds(courseIds).getOrDefault(courseId, 0);
         long totalLessons = statisticsQueryService.countLessonsByCourseIds(courseIds).getOrDefault(courseId, 0L);
@@ -74,6 +81,7 @@ public class StatisticsReportService {
                 .map(enrollment -> {
                     AppUser user = enrollment.getUser();
                     UserCourseKey key = new UserCourseKey(user.getId(), courseId);
+                    CourseProgress progressModel = progressByUserCourse.get(key);
                     int earned = earnedByUserCourse.getOrDefault(key, 0);
                     long completed = completedByUserCourse.getOrDefault(key, 0L);
                     double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
@@ -90,8 +98,8 @@ public class StatisticsReportService {
                             completed,
                             totalLessons,
                             fmt(enrollment.getEnrolledAt()),
-                            fmt(enrollment.getStartedAt()),
-                            fmt(enrollment.getCompletedAt())
+                            fmt(startedAt(progressModel)),
+                            fmt(completedAt(progressModel))
                     );
                 })
                 .toList();
@@ -102,6 +110,7 @@ public class StatisticsReportService {
         List<Enrollment> enrollments = statisticsQueryService.findAllEnrollments();
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
+        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
 
         Map<Long, List<GroupMembership>> membershipsByUser = loadMembershipsByUser(userIds);
         Map<Long, Integer> maxPointsByCourse = statisticsQueryService.sumMaxPointsByCourseIds(courseIds);
@@ -112,6 +121,7 @@ public class StatisticsReportService {
                 .map(enrollment -> {
                     Long userId = enrollment.getUser().getId();
                     Long courseId = enrollment.getCourse().getId();
+                    CourseProgress progress = progressByUserCourse.get(new UserCourseKey(userId, courseId));
                     int maxPoints = maxPointsByCourse.getOrDefault(courseId, 0);
                     int earned = earnedByUserCourse.getOrDefault(new UserCourseKey(userId, courseId), 0);
                     double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
@@ -131,14 +141,14 @@ public class StatisticsReportService {
                             "",
                             datePart(enrollment.getEnrolledAt()),
                             timePart(enrollment.getEnrolledAt()),
-                            datePart(enrollment.getStartedAt()),
-                            timePart(enrollment.getStartedAt()),
-                            datePart(enrollment.getCompletedAt()),
-                            timePart(enrollment.getCompletedAt()),
+                            datePart(startedAt(progress)),
+                            timePart(startedAt(progress)),
+                            datePart(completedAt(progress)),
+                            timePart(completedAt(progress)),
                             String.valueOf(earned),
                             String.format(Locale.US, "%.2f", efficiency),
                             "",
-                            formatSpentTime(enrollment.getStartedAt(), enrollment.getCompletedAt()),
+                            formatSpentTime(startedAt(progress), completedAt(progress)),
                             "",
                             ""
                     );
@@ -176,6 +186,7 @@ public class StatisticsReportService {
         List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByCourse(courseId);
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = List.of(courseId);
+        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
 
         int maxPoints = statisticsQueryService.sumMaxPointsByCourseIds(courseIds).getOrDefault(courseId, 0);
         long totalLessons = statisticsQueryService.countLessonsByCourseIds(courseIds).getOrDefault(courseId, 0L);
@@ -191,6 +202,7 @@ public class StatisticsReportService {
                 .map(enrollment -> {
                     Long userId = enrollment.getUser().getId();
                     UserCourseKey key = new UserCourseKey(userId, courseId);
+                    CourseProgress progressModel = progressByUserCourse.get(key);
                     int earned = earnedByUserCourse.getOrDefault(key, 0);
                     long completed = completedByUserCourse.getOrDefault(key, 0L);
                     double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
@@ -211,7 +223,7 @@ public class StatisticsReportService {
                     String deactivated = (!user.isActivation() || user.getDeactivatedAt() != null) ? "Да" : "Нет";
 
                     return List.of(
-                            enrollmentStatus(enrollment),
+                            enrollmentStatus(progressModel),
                             "",
                             safe(user.getFullName()),
                             safe(user.getEmail()),
@@ -227,10 +239,10 @@ public class StatisticsReportService {
                             "",
                             String.valueOf(retakes),
                             fmt(enrollment.getEnrolledAt()),
-                            fmt(enrollment.getStartedAt()),
-                            fmt(enrollment.getCompletedAt()),
+                            fmt(startedAt(progressModel)),
+                            fmt(completedAt(progressModel)),
                             calcDeadline(enrollment.getEnrolledAt(), course.getDeadlineDays()),
-                            formatSpentTime(enrollment.getStartedAt(), enrollment.getCompletedAt()),
+                            formatSpentTime(startedAt(progressModel), completedAt(progressModel)),
                             String.format(Locale.US, "%.2f%%", progress),
                             completed + "/" + totalLessons,
                             "",
@@ -270,6 +282,7 @@ public class StatisticsReportService {
     }
 
     private StudentCourseStatDto toStudentCourseStat(Enrollment enrollment,
+                                                     CourseProgress progressModel,
                                                      Map<Long, Integer> maxPointsByCourse,
                                                      Map<Long, Long> totalLessonsByCourse,
                                                      Map<UserCourseKey, Integer> earnedByUserCourse,
@@ -296,9 +309,25 @@ public class StatisticsReportService {
                 completed,
                 totalLessons,
                 fmt(enrollment.getEnrolledAt()),
-                fmt(enrollment.getStartedAt()),
-                fmt(enrollment.getCompletedAt())
+                fmt(startedAt(progressModel)),
+                fmt(completedAt(progressModel))
         );
+    }
+
+    private Map<UserCourseKey, CourseProgress> loadProgressByUserCourse(Collection<Long> userIds,
+                                                                        Collection<Long> courseIds) {
+        List<Long> normalizedUserIds = distinctIds(userIds);
+        List<Long> normalizedCourseIds = distinctIds(courseIds);
+        if (normalizedUserIds.isEmpty() || normalizedCourseIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return courseProgressRepository.findByUserIdInAndCourseIdIn(normalizedUserIds, normalizedCourseIds).stream()
+                .collect(Collectors.toMap(
+                        cp -> new UserCourseKey(cp.getUser().getId(), cp.getCourse().getId()),
+                        cp -> cp,
+                        (left, right) -> left
+                ));
     }
 
     private Map<Long, List<GroupMembership>> loadMembershipsByUser(Collection<Long> userIds) {
@@ -326,14 +355,22 @@ public class StatisticsReportService {
         return value == null ? "" : value;
     }
 
-    private String enrollmentStatus(Enrollment enrollment) {
-        if (enrollment.getCompletedAt() != null) {
+    private String enrollmentStatus(CourseProgress progress) {
+        if (progress != null && progress.getStatus() == CourseProgressStatus.COMPLETED) {
             return "Завершен";
         }
-        if (enrollment.getStartedAt() != null) {
+        if (progress != null && (progress.getStartedAt() != null || progress.getStatus() == CourseProgressStatus.IN_PROGRESS)) {
             return "В процессе";
         }
         return "Назначен";
+    }
+
+    private LocalDateTime startedAt(CourseProgress progress) {
+        return progress == null ? null : progress.getStartedAt();
+    }
+
+    private LocalDateTime completedAt(CourseProgress progress) {
+        return progress == null ? null : progress.getCompletedAt();
     }
 
     private String groupTitleByType(List<GroupMembership> memberships, GroupType type) {

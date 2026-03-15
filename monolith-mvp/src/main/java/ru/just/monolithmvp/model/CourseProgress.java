@@ -8,12 +8,12 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "enrollments",
-        uniqueConstraints = @UniqueConstraint(name = "uk_enrollment_user_course", columnNames = {"user_id", "course_id"}))
+@Table(name = "course_progress",
+        uniqueConstraints = @UniqueConstraint(name = "uk_course_progress_user_course", columnNames = {"user_id", "course_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
-public class Enrollment {
+public class CourseProgress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,6 +26,11 @@ public class Enrollment {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
+    private LocalDateTime startedAt;
+
+    private LocalDateTime completedAt;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LocalDateTime enrolledAt;
+    private CourseProgressStatus status;
 }

@@ -17,7 +17,6 @@ public record UpdatePracticeLessonRequest(
         LessonType lessonType,
         @Min(0) Integer fullPoints,
         @Min(0) @Max(100) Integer passingThresholdPercent,
-        Boolean evaluateByCorrectCount,
         Boolean shuffleOptions,
         Boolean showQuestionStatus,
         Boolean showCorrectAnswers,

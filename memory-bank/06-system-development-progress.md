@@ -655,3 +655,103 @@
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
   - `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test` -> **BUILD SUCCESS**, `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-13 — ADHOC validation: groups in monolith vs Unicraft
+
+- Completed targeted validation of current groups implementation in `monolith-mvp` against reconstructed Unicraft group model:
+  - source artifact: `memory-bank/task-artifacts/ADHOC-UNICRAFT-GROUPS-MONOLITH-VALIDATION-2026-03-13.md`.
+
+- Fixed current-state architecture conclusions:
+  - platform currently uses 2 roles (`ADMIN`, `STUDENT`) and already supports "admin works as learner" via learner endpoints;
+  - groups currently implement: membership + group->course assignment + group->program assignment + auto-apply for newly added members;
+  - typed-group invariant (single `COMPANY`/`DEPARTMENT`/`POSITION` per user) is enforced in service logic.
+
+- Main gap cluster documented for future refactor planning:
+  - no manager/trainer/self-registration/lifecycle/audit capabilities in groups;
+  - reviewer scope is course-based (`course_reviewers`) and not group-scoped;
+  - critical consistency gap: no assignment-source model (direct/group/program), causing unstable behavior on unassign/remove/delete flows.
+
+- Architectural simplification decisions (for Unicraft-clone target) documented:
+  - keep simplified role model (admin + user/student), no manager/trainer roles for now;
+  - focus group subsystem on bulk assignment to courses/programs and progress tracking;
+  - prioritize P0 refactor scope around assignment source-of-truth and consistent enrollment recalculation.
+
+## 2026-03-13 — ADHOC: technical specification for source-aware group/course/program assignment refactor
+
+- Prepared detailed implementation-ready technical specification for backend refactor:
+  - `memory-bank/task-artifacts/ADHOC-GROUP-ASSIGNMENT-SOURCE-REFORM-TZ-2026-03-13.md`.
+
+- Specification fixes target domain contract for assignment consistency:
+  - source-aware model (`DIRECT` / `GROUP` / `PROGRAM`) as single source of truth for access;
+  - deterministic unassign/reconcile rules for group/course/program operations;
+  - explicit progress fate policy for full unassign (including Unicraft-aligned program unassign rule).
+
+- Specification includes implementation boundaries and rollout details:
+  - DB changes (new source tables, constraints, indexes, migration/backfill strategy),
+  - service-layer orchestration (`EnrollmentSourceService`) and transactional guarantees,
+  - non-breaking API strategy,
+  - state-machine and mandatory decision-matrix edge cases,
+  - integration/regression test requirements and acceptance criteria.
+
+## 2026-03-13 - ADHOC correction: source model canceled, separate course progress model
+
+- Replaced previous source-aware direction with source-agnostic contract.
+- Added updated technical specification:
+  - memory-bank/task-artifacts/ADHOC-GROUP-ASSIGNMENT-SOURCE-REFORM-TZ-2026-03-13.md
+- Fixed mandatory rules in spec:
+  - unassign from course always removes Enrollment;
+  - incomplete progress is deleted;
+  - completed progress is retained permanently;
+  - unassign from program removes ProgramEnrollment and cascades unassign to all program courses.
+- Fixed architectural decision:
+  - split assignment and progress by introducing dedicated course_progress entity;
+  - move started completed status from Enrollment to course_progress in target design.
+
+## 2026-03-13 - ADHOC implementation: group/program/course unassign refactor without assignment source
+
+- Implemented target persistence split `Enrollment` vs `CourseProgress`:
+  - added Flyway migration `V5__course_progress_split_from_enrollment.sql`;
+  - created `course_progress` table with unique `(user_id, course_id)` and index;
+  - performed backfill from `enrollments.started_at/completed_at` with status derivation (`NEW`, `IN_PROGRESS`, `COMPLETED`);
+  - removed `started_at/completed_at` from `enrollments`.
+
+- Added domain/repository layer for course progress:
+  - `CourseProgress`, `CourseProgressStatus`, `CourseProgressRepository`.
+
+- Introduced unified orchestration service for enrollment lifecycle:
+  - `CourseEnrollmentLifecycleService` (assign, unassign, reset progress, program cascade);
+  - `CourseAssignmentService`, `ProgramService`, `GroupService` switched to source-agnostic lifecycle behavior.
+
+- Implemented required unassign semantics in services:
+  - course unassign always removes `Enrollment`;
+  - incomplete progress -> delete `CourseProgress` + `LessonSubmission` for course;
+  - completed progress -> retain `CourseProgress` and `LessonSubmission`;
+  - program unassign -> remove `ProgramEnrollment` + cascade through unified course unassign;
+  - repeated unassign is idempotent.
+
+- Updated read/statistics path to new progress source:
+  - learner/statistics/reporting now read started/completed/status from `course_progress`.
+
+- Added/updated integration coverage for mandatory matrix and regressions:
+  - `CourseLessonCrudIntegrationTest`,
+  - `GroupManagementIntegrationTest`,
+  - `ProgramManagementIntegrationTest`,
+  - `Task07StatisticsAndLearnerSummaryIntegrationTest`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,GroupManagementIntegrationTest,ProgramManagementIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest test -DfailIfNoTests=false`;
+  - all targeted suites passed (0 failures / 0 errors).
+
+## 2026-03-13 - Program access rule fix: PREVIOUS_COURSES_COMPLETED requires full prefix completion
+
+- Fixed `ProgramService.resolveProgramCourseStatesForUser(...)`:
+  - for `PREVIOUS_COURSES_COMPLETED`, course availability now depends on completion of **all previous courses** in program order, not only the immediate previous course.
+  - implemented via cumulative prefix flag `allPreviousCompleted`.
+
+- Added integration regression test:
+  - `ProgramManagementIntegrationTest.previous_courses_completed_should_require_all_previous_courses_completed`;
+  - verifies 3-course chain behavior: C opens only after A and B are completed.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml clean -Dtest=ProgramManagementIntegrationTest#previous_courses_completed_should_require_all_previous_courses_completed test`;
+  - result: **BUILD SUCCESS**, `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`.
