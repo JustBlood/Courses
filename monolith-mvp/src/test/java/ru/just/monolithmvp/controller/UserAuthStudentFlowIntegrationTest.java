@@ -23,6 +23,7 @@ import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
@@ -270,7 +271,7 @@ class UserAuthStudentFlowIntegrationTest {
                 .reduce((a, b) -> b)
                 .orElseThrow();
 
-        recoverToken.setCreatedAt(LocalDateTime.now().minusDays(2));
+        recoverToken.setCreatedAt(LocalDateTime.now(Clock.systemUTC()).minusDays(2));
         passwordSetupTokenRepository.save(recoverToken);
 
         mockMvc.perform(post("/api/v1/auth/set-password?token=" + recoverToken.getToken())

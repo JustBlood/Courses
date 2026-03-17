@@ -7,11 +7,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.just.monolithmvp.config.properties.PasswordResetProperties;
 import ru.just.monolithmvp.dto.auth.ChangePasswordRequest;
 import ru.just.monolithmvp.dto.auth.LoginRequest;
 import ru.just.monolithmvp.dto.auth.LoginResponse;
 import ru.just.monolithmvp.dto.auth.SetPasswordRequest;
-import ru.just.monolithmvp.config.properties.PasswordResetProperties;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.AppUser;
@@ -24,6 +24,7 @@ import ru.just.monolithmvp.security.AuthenticatedUser;
 import ru.just.monolithmvp.security.JwtService;
 import ru.just.monolithmvp.security.SecurityUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
@@ -70,14 +71,14 @@ public class AuthService {
             }
 
             LocalDateTime expiresAt = setupToken.getCreatedAt().plus(passwordResetProperties.tokenTtl());
-            if (LocalDateTime.now().isAfter(expiresAt)) {
+            if (LocalDateTime.now(Clock.systemUTC()).isAfter(expiresAt)) {
                 throw new BadRequestException("Invalid token");
             }
 
             setupToken.getUser().setPasswordHash(passwordEncoder.encode(request.password()));
             setupToken.getUser().setActivation(true);
             setupToken.getUser().setEnabled(true);
-            setupToken.setUsedAt(java.time.LocalDateTime.now());
+            setupToken.setUsedAt(java.time.LocalDateTime.now(Clock.systemUTC()));
             passwordSetupTokenRepository.save(setupToken);
 
             metricsService.incrementAuth("set_password", "success");

@@ -29,7 +29,9 @@ import ru.just.monolithmvp.security.SecurityUtils;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -76,14 +78,14 @@ public class UserService {
             user.setEnabled(!sendInvite);
             user.setPhone(request.phone());
             user.setComment(request.comment());
-            user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
+            user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now(Clock.systemUTC()) : LocalDateTime.ofEpochSecond(request.createdAt(), 0, ZoneOffset.UTC));
             user.setCreatedBy(
                     request.createdBy() == null || request.createdBy().isBlank()
                             ? actor
                             : request.createdBy()
             );
-            user.setLastVisit(request.lastVisit());
-            user.setDeactivatedAt(request.deactivatedAt());
+            user.setLastVisit(request.lastVisit() == null ? null : LocalDateTime.ofEpochSecond(request.lastVisit(), 0, ZoneOffset.UTC));
+            user.setDeactivatedAt(request.deactivatedAt() == null ? null : LocalDateTime.ofEpochSecond(request.deactivatedAt(), 0, ZoneOffset.UTC));
             user.setDeactivatedBy(request.deactivatedBy());
             user = userRepository.save(user);
 
@@ -253,7 +255,7 @@ public class UserService {
                 user.setDeactivatedAt(null);
                 user.setDeactivatedBy(null);
             } else {
-                user.setDeactivatedAt(LocalDateTime.now());
+                user.setDeactivatedAt(LocalDateTime.now(Clock.systemUTC()));
                 user.setDeactivatedBy(resolveCurrentActor());
             }
         }
@@ -307,7 +309,7 @@ public class UserService {
     public UserDto updateLastVisit(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        user.setLastVisit(LocalDateTime.now());
+        user.setLastVisit(LocalDateTime.now(Clock.systemUTC()));
         return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
     }
 
@@ -351,10 +353,10 @@ public class UserService {
                             null,
                             val(r, 6),
                             val(r, 14),
-                            parseDateTime(val(r, 19)),
+                            parseDateTime(val(r, 19)).toEpochSecond(ZoneOffset.UTC),
                             val(r, 20),
-                            parseDateTime(val(r, 21)),
-                            parseDateTime(val(r, 22)),
+                            parseDateTime(val(r, 21)).toEpochSecond(ZoneOffset.UTC),
+                            parseDateTime(val(r, 22)).toEpochSecond(ZoneOffset.UTC),
                             val(r, 23),
                             null,
                             null,
@@ -425,7 +427,7 @@ public class UserService {
         PasswordSetupToken invite = new PasswordSetupToken();
         invite.setToken(UUID.randomUUID().toString());
         invite.setUser(user);
-        invite.setCreatedAt(LocalDateTime.now());
+        invite.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
         passwordSetupTokenRepository.save(invite);
 
         String inviteLink = mailProperties.inviteBaseUrl() + "/set-password?token=" + invite.getToken();
@@ -572,7 +574,7 @@ public class UserService {
             Enrollment enrollment = new Enrollment();
             enrollment.setUser(user);
             enrollment.setCourse(course);
-            enrollment.setEnrolledAt(LocalDateTime.now());
+            enrollment.setEnrolledAt(LocalDateTime.now(Clock.systemUTC()));
             enrollmentRepository.save(enrollment);
         }
     }

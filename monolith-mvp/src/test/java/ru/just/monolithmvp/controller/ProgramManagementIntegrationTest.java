@@ -12,11 +12,12 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.just.monolithmvp.model.CourseProgress;
 import ru.just.monolithmvp.model.CourseProgressStatus;
-import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.CourseProgressRepository;
+import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
 import ru.just.monolithmvp.service.ProgramService;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -336,7 +337,7 @@ class ProgramManagementIntegrationTest {
                                     %d
                                   ]
                                 }
-                                """.formatted(LocalDateTime.now().plusDays(1), courseA, courseB)))
+                                """.formatted(LocalDateTime.now(Clock.systemUTC()).plusDays(1), courseA, courseB)))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -350,7 +351,7 @@ class ProgramManagementIntegrationTest {
         assertThat(initialProgram.get("courses").get(1).get("available").asBoolean()).isFalse();
 
         CourseProgress firstProgress = courseProgressRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
-        firstProgress.setCompletedAt(LocalDateTime.now());
+        firstProgress.setCompletedAt(LocalDateTime.now(Clock.systemUTC()));
         firstProgress.setStatus(CourseProgressStatus.COMPLETED);
         courseProgressRepository.save(firstProgress);
 
@@ -372,7 +373,7 @@ class ProgramManagementIntegrationTest {
                                     %d
                                   ]
                                 }
-                                """.formatted(LocalDateTime.now().minusDays(1), courseA, courseB)))
+                                """.formatted(LocalDateTime.now(Clock.systemUTC()).minusDays(1), courseA, courseB)))
                 .andExpect(status().isOk());
 
         JsonNode afterDeadlineProgram = objectMapper.valueToTree(programService.getMyProgram(studentId, programId));
@@ -419,7 +420,7 @@ class ProgramManagementIntegrationTest {
 
         CourseProgress progressA = courseProgressRepository.findByUserIdAndCourseId(studentId, courseA).orElseThrow();
         progressA.setStatus(CourseProgressStatus.COMPLETED);
-        progressA.setCompletedAt(LocalDateTime.now());
+        progressA.setCompletedAt(LocalDateTime.now(Clock.systemUTC()));
         courseProgressRepository.save(progressA);
 
         programService.onCourseProgressChanged(studentId, courseA);
@@ -429,7 +430,7 @@ class ProgramManagementIntegrationTest {
 
         CourseProgress progressB = courseProgressRepository.findByUserIdAndCourseId(studentId, courseB).orElseThrow();
         progressB.setStatus(CourseProgressStatus.COMPLETED);
-        progressB.setCompletedAt(LocalDateTime.now());
+        progressB.setCompletedAt(LocalDateTime.now(Clock.systemUTC()));
         courseProgressRepository.save(progressB);
 
         programService.onCourseProgressChanged(studentId, courseB);

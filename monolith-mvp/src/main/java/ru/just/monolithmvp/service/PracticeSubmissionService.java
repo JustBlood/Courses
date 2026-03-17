@@ -10,7 +10,9 @@ import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -63,7 +65,7 @@ public class PracticeSubmissionService {
         }
 
         validatePracticeAttemptLimit(existingSubmission, practiceLesson.getAttemptLimit());
-        validatePracticeTimeLimit(existingSubmission, practiceLesson.getTimeLimitMinutes());
+        validatePracticeTimeLimit(existingSubmission, practiceLesson.getTimeLimitMinutes(), request.submittedAt());
 
         Map<Long, List<String>> answersByQuestion = validateAndNormalizeAnswersByQuestion(practiceLesson, request);
 
@@ -91,7 +93,7 @@ public class PracticeSubmissionService {
             if (existingSubmission.getStatus() != SubmissionStatus.REWORKING) {
                 throw new BadRequestException("Lesson already started");
             }
-            existingSubmission.setStartedAt(LocalDateTime.now());
+            existingSubmission.setStartedAt(LocalDateTime.now(Clock.systemUTC()));
             submissionRepository.save(existingSubmission);
             return new SubmissionResultDto(existingSubmission.getId(), existingSubmission.getStatus());
         }
@@ -103,7 +105,7 @@ public class PracticeSubmissionService {
         AppUser student = new AppUser();
         student.setId(studentId);
         submission.setStudent(student);
-        submission.setStartedAt(LocalDateTime.now());
+        submission.setStartedAt(LocalDateTime.now(Clock.systemUTC()));
         submission.setStatus(SubmissionStatus.STARTED);
 
         submission = submissionRepository.save(submission);
@@ -130,7 +132,7 @@ public class PracticeSubmissionService {
         existingSubmission.setAttemptCounter(Optional.ofNullable(existingSubmission.getAttemptCounter()).orElse(0) + 1);
         existingSubmission.setReviewedByAdminId(null);
         existingSubmission.setReviewedAt(null);
-        existingSubmission.setSubmittedAt(LocalDateTime.now());
+        existingSubmission.setSubmittedAt(LocalDateTime.now(Clock.systemUTC()));
 
         existingSubmission = submissionRepository.saveAndFlush(existingSubmission);
         return new SubmissionResultDto(
@@ -142,7 +144,7 @@ public class PracticeSubmissionService {
     private SubmissionResultDto submitTestPractice(PracticeLesson practiceLesson,
                                                    LessonSubmission existingSubmission,
                                                    Map<Long, List<String>> answersByQuestion) {
-        existingSubmission.setSubmittedAt(LocalDateTime.now());
+        existingSubmission.setSubmittedAt(LocalDateTime.now(Clock.systemUTC()));
 
         int totalAwardedQuestionPoints = 0;
         for (PracticeQuestion question : practiceLesson.getQuestions()) {
@@ -185,7 +187,7 @@ public class PracticeSubmissionService {
         }
     }
 
-    private void validatePracticeTimeLimit(LessonSubmission existingSubmission, Integer timeLimitMinutes) {
+    private void validatePracticeTimeLimit(LessonSubmission existingSubmission, Integer timeLimitMinutes, Long submittedAtEpochSeconds) {
         if (timeLimitMinutes == null || timeLimitMinutes <= 0 || existingSubmission == null) {
             return;
         }
@@ -195,8 +197,11 @@ public class PracticeSubmissionService {
             return;
         }
 
+        final LocalDateTime submittedAtPlusBuffer = LocalDateTime.ofEpochSecond(submittedAtEpochSeconds, 0, ZoneOffset.UTC)
+                .plusSeconds(15);
+
         LocalDateTime deadlineAt = startedAt.plusMinutes(timeLimitMinutes);
-        if (LocalDateTime.now().isAfter(deadlineAt)) {
+        if (submittedAtPlusBuffer.isAfter(deadlineAt)) {
             throw new BadRequestException("Time limit exceeded for this lesson");
         }
     }
@@ -205,7 +210,7 @@ public class PracticeSubmissionService {
         Optional<LessonSubmission> existingSubmission = submissionRepository
                 .findByStudentIdAndLessonId(studentId, lesson.getId());
         if (existingSubmission.isEmpty()) {
-            throw new BadRequestException("Сначала необходимо начать выполнение теоретического урока");
+            throw new BadRequestException("Theory lesson not started.");
         }
 
         if (SubmissionStatus.COMPLETED == existingSubmission.get().getStatus()) {
@@ -214,7 +219,7 @@ public class PracticeSubmissionService {
 
         LessonSubmission submission = existingSubmission.get();
         submission.setStatus(SubmissionStatus.COMPLETED);
-        submission.setSubmittedAt(LocalDateTime.now());
+        submission.setSubmittedAt(LocalDateTime.now(Clock.systemUTC()));
 
         submission = submissionRepository.saveAndFlush(submission);
         courseProgressService.recalcCourseProgressByUser(studentId, lesson.getCourse().getId());

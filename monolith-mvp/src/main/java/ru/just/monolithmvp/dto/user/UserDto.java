@@ -2,8 +2,6 @@ package ru.just.monolithmvp.dto.user;
 
 import ru.just.monolithmvp.model.Role;
 
-import java.time.LocalDateTime;
-
 public record UserDto(
         Long id,
         String fullName,
@@ -14,10 +12,10 @@ public record UserDto(
         String phone,
         String comment,
         String avatarFilePath,
-        LocalDateTime createdAt,
+        Long createdAt,
         String createdBy,
-        LocalDateTime lastVisit,
-        LocalDateTime deactivatedAt,
+        Long lastVisit,
+        Long deactivatedAt,
         String deactivatedBy
 ) {
 }

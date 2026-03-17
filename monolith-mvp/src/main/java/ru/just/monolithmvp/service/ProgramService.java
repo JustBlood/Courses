@@ -14,7 +14,9 @@ import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -123,7 +125,7 @@ public class ProgramService {
                 GroupProgramAssignment assignment = new GroupProgramAssignment();
                 assignment.setGroup(group);
                 assignment.setProgram(program);
-                assignment.setCreatedAt(LocalDateTime.now());
+                assignment.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
                 groupProgramAssignmentRepository.save(assignment);
             }
 
@@ -304,7 +306,7 @@ public class ProgramService {
                     AppUser user = new AppUser();
                     user.setId(userId);
                     enrollment.setUser(user);
-                    enrollment.setEnrolledAt(LocalDateTime.now());
+                    enrollment.setEnrolledAt(LocalDateTime.now(Clock.systemUTC()));
                     return enrollment;
                 });
     }
@@ -346,7 +348,7 @@ public class ProgramService {
                 program.getTitle(),
                 program.getDescription(),
                 program.getAccessCondition(),
-                program.getDeadlineAt(),
+                program.getDeadlineAt().toEpochSecond(ZoneOffset.UTC),
                 program.getBlockAfterDeadline(),
                 completedProgram,
                 courseDtos
@@ -364,7 +366,7 @@ public class ProgramService {
         program.setAccessCondition(request.accessCondition() == null
                 ? ProgramAccessCondition.ALL_OPEN
                 : request.accessCondition());
-        program.setDeadlineAt(request.deadlineAt());
+        program.setDeadlineAt(LocalDateTime.ofEpochSecond(request.deadlineAt(), 0, ZoneOffset.UTC));
         program.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
     }
 
@@ -467,7 +469,7 @@ public class ProgramService {
 
             boolean blockedByDeadline = Boolean.TRUE.equals(program.getBlockAfterDeadline())
                     && program.getDeadlineAt() != null
-                    && LocalDateTime.now().isAfter(program.getDeadlineAt())
+                    && LocalDateTime.now(Clock.systemUTC()).isAfter(program.getDeadlineAt())
                     && !completed;
 
             boolean available = unlockedByRule && !blockedByDeadline;

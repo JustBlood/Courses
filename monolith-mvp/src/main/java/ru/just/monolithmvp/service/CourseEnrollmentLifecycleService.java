@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
@@ -28,7 +29,7 @@ public class CourseEnrollmentLifecycleService {
             AppUser user = new AppUser();
             user.setId(userId);
             enrollment.setUser(user);
-            enrollment.setEnrolledAt(LocalDateTime.now());
+            enrollment.setEnrolledAt(LocalDateTime.now(Clock.systemUTC()));
             enrollmentRepository.save(enrollment);
         }
 

@@ -13,7 +13,9 @@ import ru.just.monolithmvp.repository.LessonRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.security.SecurityUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,7 +47,7 @@ public class OpenReviewService {
                         s.getLesson().getCourse().getTitle(),
                         s.getStudent().getId(),
                         s.getStudent().getFullName(),
-                        s.getSubmittedAt(),
+                        s.getSubmittedAt().toEpochSecond(ZoneOffset.UTC),
                         Math.max(Optional.ofNullable(s.getAttemptCounter()).orElse(0), 1)
                 )).toList();
     }
@@ -153,7 +155,7 @@ public class OpenReviewService {
         submission.setStatus(finalStatus);
         submission.setQuestionProgress(nextProgress);
         submission.setReviewedByAdminId(reviewerId);
-        submission.setReviewedAt(LocalDateTime.now());
+        submission.setReviewedAt(LocalDateTime.now(Clock.systemUTC()));
 
         submission = submissionRepository.save(submission);
         courseProgressService.recalcCourseProgressByUser(submission.getStudent().getId(), submission.getLesson().getCourse().getId());

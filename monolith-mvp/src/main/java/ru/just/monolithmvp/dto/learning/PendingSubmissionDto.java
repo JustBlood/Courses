@@ -2,8 +2,6 @@ package ru.just.monolithmvp.dto.learning;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.time.LocalDateTime;
-
 @Schema(description = "Submission урока, доступный ревьюверу в списке pending")
 public record PendingSubmissionDto(
         @Schema(description = "ID submission", example = "1")
@@ -20,8 +18,8 @@ public record PendingSubmissionDto(
         Long studentId,
         @Schema(description = "ФИО студента", example = "Зубенко Михаил Петрович")
         String studentFullname,
-        @Schema(description = "Дата отправки submission", example = "2026-03-08T21:30:00")
-        LocalDateTime submittedAt,
+        @Schema(description = "Дата отправки submission", example = "1095292800")
+        Long submittedAt,
         @Schema(description = "Номер попытки", example = "1")
         Integer attempt
 ) {

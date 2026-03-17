@@ -9,6 +9,7 @@ import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,14 @@ public class LearningService {
             PracticeLesson practiceLesson = (PracticeLesson) lesson;
             LessonSubmission submission = submissionRepository.findByStudentIdAndLessonId(userId, lessonId)
                     .orElse(null);
+
+            if (submission != null && submission.getStartedAt() != null && practiceLesson.getTimeLimitMinutes() != null) {
+                // есть дедлайн и он запущен
+                final long deadlineAtEpochSeconds = submission.getStartedAt().atOffset(ZoneOffset.UTC)
+                        .plusMinutes(practiceLesson.getTimeLimitMinutes())
+                        .toEpochSecond();
+                learnerLessonDtoBuilder.deadlineAt(deadlineAtEpochSeconds);
+            }
 
             Map<Long, QuestionProgress> questionProgressById = Optional.ofNullable(submission)
                     .map(LessonSubmission::getQuestionProgress)

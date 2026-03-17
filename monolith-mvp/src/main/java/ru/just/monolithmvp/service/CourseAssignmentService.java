@@ -16,6 +16,7 @@ import ru.just.monolithmvp.observability.BusinessEventLogger;
 import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.security.SecurityUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -133,7 +134,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
             GroupCourseAssignment assignment = new GroupCourseAssignment();
             assignment.setGroup(group);
             assignment.setCourse(course);
-            assignment.setCreatedAt(LocalDateTime.now());
+            assignment.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
             groupCourseAssignmentRepository.save(assignment);
         }
 

@@ -7,6 +7,7 @@ import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.model.Enrollment;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
@@ -45,6 +46,6 @@ public class CourseAccessPolicy {
         }
 
         LocalDateTime deadlineAt = enrollment.getEnrolledAt().plusDays(deadlineDays);
-        return LocalDateTime.now().isAfter(deadlineAt);
+        return LocalDateTime.now(Clock.systemUTC()).isAfter(deadlineAt);
     }
 }

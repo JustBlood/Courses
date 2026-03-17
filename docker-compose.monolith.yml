@@ -26,6 +26,7 @@ services:
       monolith-postgres:
         condition: service_healthy
     environment:
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-pg,mail-smtp}
       SPRING_DATASOURCE_URL: jdbc:postgresql://monolith-postgres:5432/${POSTGRES_DB:-courses}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}

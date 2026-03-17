@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -55,10 +56,10 @@ public class CourseProgressService {
         } else if (totalLessons <= 0 || completedLessons >= totalLessons) {
             // курс пройден
             if (progress.getCompletedAt() == null) {
-                progress.setCompletedAt(LocalDateTime.now());
+                progress.setCompletedAt(LocalDateTime.now(Clock.systemUTC()));
                 progress.setStatus(CourseProgressStatus.COMPLETED);
             }
-        } else if (incompletedLessons > 0 || course.getDeadlineDays() != null && LocalDateTime.now().isAfter(enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()))) {
+        } else if (incompletedLessons > 0 || course.getDeadlineDays() != null && LocalDateTime.now(Clock.systemUTC()).isAfter(enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()))) {
             // курс содержит проваленные уроки или истек дедлайн
             progress.setCompletedAt(null);
             progress.setStatus(CourseProgressStatus.INCOMPLETED);

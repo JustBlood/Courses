@@ -20,6 +20,7 @@ import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -1446,7 +1447,7 @@ class CourseLessonCrudIntegrationTest {
                 .andExpect(status().isOk());
 
         var enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, deadlineCourseId).orElseThrow();
-        enrollment.setEnrolledAt(LocalDateTime.now().minusDays(2));
+        enrollment.setEnrolledAt(LocalDateTime.now(Clock.systemUTC()).minusDays(2));
         enrollmentRepository.save(enrollment);
 
         mockMvc.perform(get("/api/v1/student/courses/{courseId}", deadlineCourseId)
@@ -1529,7 +1530,7 @@ class CourseLessonCrudIntegrationTest {
                 .filter(s -> s.getLesson().getId().equals(practiceLessonId) && s.getStudent().getId().equals(studentId))
                 .findFirst()
                 .orElseThrow();
-        firstAttempt.setFirstSubmittedAt(LocalDateTime.now().minusMinutes(2));
+        firstAttempt.setSubmittedAt(LocalDateTime.now(Clock.systemUTC()).minusMinutes(2));
         lessonSubmissionRepository.save(firstAttempt);
 
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", practiceLessonId)
@@ -1616,7 +1617,7 @@ class CourseLessonCrudIntegrationTest {
                 .andExpect(status().isOk());
 
         var enrollment = enrollmentRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
-        enrollment.setEnrolledAt(LocalDateTime.now().minusDays(2));
+        enrollment.setEnrolledAt(LocalDateTime.now(Clock.systemUTC()).minusDays(2));
         enrollmentRepository.save(enrollment);
 
         mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", firstTheoryId)
@@ -2862,8 +2863,8 @@ class CourseLessonCrudIntegrationTest {
                 .andExpect(status().isOk());
 
         var progressBeforeReset = courseProgressRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
-        progressBeforeReset.setStartedAt(LocalDateTime.now().minusDays(1));
-        progressBeforeReset.setCompletedAt(LocalDateTime.now());
+        progressBeforeReset.setStartedAt(LocalDateTime.now(Clock.systemUTC()).minusDays(1));
+        progressBeforeReset.setCompletedAt(LocalDateTime.now(Clock.systemUTC()));
         progressBeforeReset.setStatus(CourseProgressStatus.COMPLETED);
         courseProgressRepository.save(progressBeforeReset);
 

@@ -13,6 +13,7 @@ public record LearnerLessonDto (
     String description,
     LessonType lessonType,
     String theoryContent,
+    Long deadlineAt,
     List<LearnerPracticeQuestionDto> questions
 ) {
 

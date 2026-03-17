@@ -1,9 +1,7 @@
 package ru.just.monolithmvp.dto.course;
 
 import ru.just.monolithmvp.dto.lesson.LearnerLessonSummaryDto;
-import ru.just.monolithmvp.model.CourseProgressStatus;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public record CourseLearnerDto(

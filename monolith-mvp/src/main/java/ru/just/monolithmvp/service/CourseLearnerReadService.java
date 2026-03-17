@@ -11,6 +11,7 @@ import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,7 +51,7 @@ public class CourseLearnerReadService {
         CourseProgressDto progress = null;
         if (enrollment != null) {
             progress = new CourseProgressDto(
-                    enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()),
+                    enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()).toEpochSecond(ZoneOffset.UTC),
                     completionPercent,
                     completedLessons,
                     remainingLessons,

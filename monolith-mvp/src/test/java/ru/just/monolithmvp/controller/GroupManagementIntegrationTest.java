@@ -11,13 +11,13 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.just.monolithmvp.model.CourseProgressStatus;
-import ru.just.monolithmvp.repository.LessonSubmissionRepository;
-import ru.just.monolithmvp.repository.EnrollmentRepository;
-import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
 import ru.just.monolithmvp.repository.CourseProgressRepository;
+import ru.just.monolithmvp.repository.EnrollmentRepository;
+import ru.just.monolithmvp.repository.LessonSubmissionRepository;
+import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
-
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -264,7 +264,7 @@ class GroupManagementIntegrationTest {
         assertThat(courseProgressRepository.existsByUserIdAndCourseId(studentId, courseId)).isTrue();
 
         var progress = courseProgressRepository.findByUserIdAndCourseId(studentId, courseId).orElseThrow();
-        progress.setStartedAt(LocalDateTime.now());
+        progress.setStartedAt(LocalDateTime.now(Clock.systemUTC()));
         progress.setStatus(CourseProgressStatus.IN_PROGRESS);
         courseProgressRepository.save(progress);
 
