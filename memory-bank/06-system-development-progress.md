@@ -755,3 +755,31 @@
 - Verification:
   - `mvn -f monolith-mvp/pom.xml clean -Dtest=ProgramManagementIntegrationTest#previous_courses_completed_should_require_all_previous_courses_completed test`;
   - result: **BUILD SUCCESS**, `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-17 — Swagger/OpenAPI contract validation across all controllers
+
+- Performed full swagger-annotation validation for all REST controllers in `monolith-mvp`:
+  - `AuthController`,
+  - `CoursesController`,
+  - `FilesController`,
+  - `ProgramsController`,
+  - `ProgressController`,
+  - `SectionsController`,
+  - `StudentController`,
+  - `UsersController`.
+
+- Contract alignment decisions and changes:
+  - standardized operation descriptions for every endpoint (`@Operation(summary, description)`),
+  - aligned response DTO schemas to actual method return types,
+  - fixed list endpoint schemas to use array contracts (`@ArraySchema`) instead of single-object schemas,
+  - clarified business-level `400/404` responses where service behavior indicates validation/domain-not-found scenarios,
+  - refined CSV export response content declarations to explicit text payload schemas.
+
+- OpenAPI global configuration update:
+  - removed global OpenAPI security requirement from `OpenAPIConfig` (`addSecurityItem(...)`),
+  - kept only `bearerAuth` scheme registration in components,
+  - security is now declared explicitly at controller level through `@SecurityRequirement`, preventing accidental auth requirement exposure on public endpoints (e.g., `/api/v1/auth/**`).
+
+- Verification:
+  - module compilation passed: `mvn -q -f monolith-mvp/pom.xml -DskipTests compile`;
+  - full selected integration test run was attempted, but blocked by pre-existing unrelated test compilation issue in `CourseLessonCrudIntegrationTest` (`LessonSubmission#setFirstSubmittedAt(...)` missing), not by swagger changes.

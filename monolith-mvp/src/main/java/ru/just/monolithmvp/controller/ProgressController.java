@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,18 +45,18 @@ public class ProgressController {
     private final StatisticsService statisticsService;
 
     @GetMapping("/reviews/pending")
-    @Operation(summary = "Получить pending submissions по open-урокам для ручной проверки")
+    @Operation(summary = "Получить pending submissions по open-урокам для ручной проверки", description = "Возвращает список отправленных open-решений, ожидающих проверки")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список submissions для проверки по урокам", content = @Content(schema = @Schema(implementation = PendingSubmissionDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список submissions для проверки по урокам", content = @Content(array = @ArraySchema(schema = @Schema(implementation = PendingSubmissionDto.class))))
     })
     public ResponseEntity<List<PendingSubmissionDto>> pendingReviews() {
         return ResponseEntity.ok(openReviewService.getPendingReviews());
     }
 
     @GetMapping("/reviews/pending/{submissionId}")
-    @Operation(summary = "Получить вопросы open-урока для детального ревью")
+    @Operation(summary = "Получить вопросы open-урока для детального ревью", description = "Возвращает вопросы и ответы конкретной отправки для ручной проверки")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список вопросов submission для ревью", content = @Content(schema = @Schema(implementation = PendingSubmissionQuestionDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список вопросов submission для ревью", content = @Content(array = @ArraySchema(schema = @Schema(implementation = PendingSubmissionQuestionDto.class)))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Submission уже финализирован или не является open-уроком", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Submission не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
@@ -64,16 +65,16 @@ public class ProgressController {
     }
 
     @GetMapping("/reviews/courses")
-    @Operation(summary = "Получить курсы, назначенные текущему reviewer")
+    @Operation(summary = "Получить курсы, назначенные текущему reviewer", description = "Возвращает курсы, по которым текущий reviewer может проверять open-решения")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список курсов reviewer", content = @Content(schema = @Schema(implementation = CourseSummaryDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список курсов reviewer", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseSummaryDto.class))))
     })
     public ResponseEntity<List<CourseSummaryDto>> reviewCourses() {
         return ResponseEntity.ok(courseService.getMyReviewerCourseSummaries());
     }
 
     @PostMapping("/reviews/{submissionId}")
-    @Operation(summary = "Сохранить решения ревью по всем вопросам open-урока")
+    @Operation(summary = "Сохранить решения ревью по всем вопросам open-урока", description = "Фиксирует решение ревьюера по всем вопросам отправки")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Результат проверки сохранён", content = @Content(schema = @Schema(implementation = SubmissionResultDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Некорректный статус или payload", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
@@ -85,9 +86,9 @@ public class ProgressController {
     }
 
     @GetMapping("/courses/{courseId}/stats")
-    @Operation(summary = "Получить статистику студентов по курсу")
+    @Operation(summary = "Получить статистику студентов по курсу", description = "Возвращает агрегированную статистику прохождения по студентам курса")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Статистика по курсу", content = @Content(schema = @Schema(implementation = CourseStudentStatDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Статистика по курсу", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseStudentStatDto.class)))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<List<CourseStudentStatDto>> courseStats(@PathVariable Long courseId) {
@@ -95,7 +96,7 @@ public class ProgressController {
     }
 
     @PostMapping("/courses/user/reset")
-    @Operation(summary = "Сбросить прогресс пользователя по курсу")
+    @Operation(summary = "Сбросить прогресс пользователя по курсу", description = "Удаляет прогресс и отправки выбранного пользователя в выбранном курсе")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс пользователя по курсу сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
              @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не записан на курс/курс не существует/пользователь не существует", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -106,7 +107,7 @@ public class ProgressController {
     }
 
     @PostMapping("/lessons/user/reset")
-    @Operation(summary = "Сбросить прогресс пользователя по уроку")
+    @Operation(summary = "Сбросить прогресс пользователя по уроку", description = "Удаляет прогресс выбранного пользователя по конкретному уроку")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс пользователя по уроку сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не записан на курс/курс не существует/пользователь не существует", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -117,7 +118,7 @@ public class ProgressController {
     }
 
     @PostMapping("/lessons/{lessonId}/reset")
-    @Operation(summary = "Сбросить прогресс всех пользователей по уроку")
+    @Operation(summary = "Сбросить прогресс всех пользователей по уроку", description = "Удаляет отправки всех пользователей по конкретному уроку")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс всех пользователей по уроку сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не записан на курс/курс не существует/пользователь не существует", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
@@ -128,7 +129,7 @@ public class ProgressController {
     }
 
     @GetMapping(value = "/reports/summary.csv", produces = MediaType.TEXT_PLAIN_VALUE)
-    @Operation(summary = "Скачать общий сводный CSV-отчет по всем курсам")
+    @Operation(summary = "Скачать общий сводный CSV-отчет по всем курсам", description = "Возвращает CSV-отчет по всем назначениям курсов")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV отчёт", content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE, schema = @Schema(type = "string")))
     })
@@ -137,7 +138,7 @@ public class ProgressController {
     }
 
     @GetMapping(value = "/courses/{courseId}/summary-report.csv", produces = MediaType.TEXT_PLAIN_VALUE)
-    @Operation(summary = "Скачать сводный CSV-отчет по конкретному курсу")
+    @Operation(summary = "Скачать сводный CSV-отчет по конкретному курсу", description = "Возвращает CSV-отчет по выбранному курсу")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV отчёт по курсу", content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE, schema = @Schema(type = "string"))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))

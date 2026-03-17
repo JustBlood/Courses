@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -35,7 +36,7 @@ public class SectionsController {
     private final SectionService sectionService;
 
     @PostMapping
-    @Operation(summary = "Создать раздел")
+    @Operation(summary = "Создать раздел", description = "Создает новый раздел каталога курсов")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Раздел создан", content = @Content(schema = @Schema(implementation = SectionDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
@@ -45,16 +46,16 @@ public class SectionsController {
     }
 
     @GetMapping
-    @Operation(summary = "Получить список разделов")
+    @Operation(summary = "Получить список разделов", description = "Возвращает все разделы, отсортированные по приоритету")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список разделов", content = @Content(schema = @Schema(implementation = SectionDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список разделов", content = @Content(array = @ArraySchema(schema = @Schema(implementation = SectionDto.class))))
     })
     public ResponseEntity<List<SectionDto>> getAll() {
         return ResponseEntity.ok(sectionService.getAll());
     }
 
     @GetMapping("/{sectionId}")
-    @Operation(summary = "Получить раздел по ID")
+    @Operation(summary = "Получить раздел по ID", description = "Возвращает раздел каталога по идентификатору")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Раздел найден", content = @Content(schema = @Schema(implementation = SectionDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Раздел не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
@@ -64,7 +65,7 @@ public class SectionsController {
     }
 
     @PutMapping("/{sectionId}")
-    @Operation(summary = "Обновить раздел")
+    @Operation(summary = "Обновить раздел", description = "Обновляет название, описание и приоритет раздела")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Раздел обновлен", content = @Content(schema = @Schema(implementation = SectionDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
@@ -76,7 +77,7 @@ public class SectionsController {
     }
 
     @DeleteMapping("/{sectionId}")
-    @Operation(summary = "Удалить раздел")
+    @Operation(summary = "Удалить раздел", description = "Удаляет раздел и переносит его курсы в раздел по умолчанию")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Раздел удален", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Раздел не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))

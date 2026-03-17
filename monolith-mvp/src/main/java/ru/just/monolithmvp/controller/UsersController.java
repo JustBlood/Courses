@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -43,28 +44,27 @@ public class UsersController {
     private final StatisticsService statisticsService;
 
     @PostMapping("/users")
-    @Operation(summary = "Создать пользователя")
+    @Operation(summary = "Создать пользователя", description = "Создает пользователя и при необходимости отправляет ссылку для установки пароля")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Пользователь создан", content = @Content(schema = @Schema(implementation = UserDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Не аутентифицирован", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Нет прав ADMIN", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт email", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Одна или несколько групп/курсов для назначения не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest request) {
         return new ResponseEntity<>(userService.createUser(request), HttpStatus.CREATED);
     }
 
     @GetMapping("/users")
-    @Operation(summary = "Получить список пользователей")
+    @Operation(summary = "Получить список пользователей", description = "Возвращает список всех пользователей системы")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список пользователей", content = @Content(schema = @Schema(implementation = UserDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список пользователей", content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserDto.class))))
     })
     public ResponseEntity<List<UserDto>> getUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/users/{userId}")
-    @Operation(summary = "Получить пользователя по ID")
+    @Operation(summary = "Получить пользователя по ID", description = "Возвращает пользователя по идентификатору")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователь найден", content = @Content(schema = @Schema(implementation = UserDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
@@ -74,9 +74,9 @@ public class UsersController {
     }
 
     @GetMapping("/users/{userId}/stats")
-    @Operation(summary = "Получить статистику пользователя")
+    @Operation(summary = "Получить статистику пользователя", description = "Возвращает статистику прохождения выбранного пользователя по курсам")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Статистика пользователя", content = @Content(schema = @Schema(implementation = StudentCourseStatDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Статистика пользователя", content = @Content(array = @ArraySchema(schema = @Schema(implementation = StudentCourseStatDto.class)))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<List<StudentCourseStatDto>> getUserStats(@PathVariable Long userId) {
@@ -85,10 +85,10 @@ public class UsersController {
     }
 
     @PutMapping("/users/{userId}")
-    @Operation(summary = "Обновить пользователя")
+    @Operation(summary = "Обновить пользователя", description = "Обновляет профиль и учетные данные пользователя")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователь обновлен", content = @Content(schema = @Schema(implementation = UserDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт email", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<UserDto> updateUser(@PathVariable Long userId,
@@ -97,10 +97,10 @@ public class UsersController {
     }
 
     @PostMapping("/users/activation")
-    @Operation(summary = "Массово активировать/деактивировать пользователей")
+    @Operation(summary = "Массово активировать/деактивировать пользователей", description = "Изменяет статус активации для выбранных пользователей")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Статусы активации обновлены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или попытка деактивации текущего администратора", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> setUsersActivation(@RequestBody @Valid ActivationRequest request) {
         userService.setUsersActivation(request.userIds(), request.activate());
@@ -108,9 +108,10 @@ public class UsersController {
     }
 
     @DeleteMapping("/users/{userId}")
-    @Operation(summary = "Удалить пользователя")
+    @Operation(summary = "Удалить пользователя", description = "Удаляет пользователя и связанные данные прохождения")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователь удален", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Нельзя удалить текущего администратора", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> deleteUser(@PathVariable Long userId) {
@@ -119,10 +120,11 @@ public class UsersController {
     }
 
     @DeleteMapping("/users")
-    @Operation(summary = "Массово удалить пользователей")
+    @Operation(summary = "Массово удалить пользователей", description = "Удаляет выбранных пользователей и связанные данные")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи удалены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или попытка удалить текущего администратора", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Один или несколько пользователей не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> deleteUsers(@RequestBody @Valid IdsRequest request) {
         userService.deleteUsers(request.ids());
@@ -130,7 +132,7 @@ public class UsersController {
     }
 
     @PostMapping(value = "/users/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Импорт пользователей из CSV")
+    @Operation(summary = "Импорт пользователей из CSV", description = "Импортирует пользователей из CSV-файла и создает отсутствующие записи")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Импорт выполнен", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Некорректный CSV или ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
@@ -141,9 +143,9 @@ public class UsersController {
     }
 
     @GetMapping(value = "/users/export", produces = MediaType.TEXT_PLAIN_VALUE)
-    @Operation(summary = "Экспорт пользователей в CSV")
+    @Operation(summary = "Экспорт пользователей в CSV", description = "Возвращает CSV-файл со списком пользователей")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV экспортирован", content = @Content(mediaType = "text/plain"))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV экспортирован", content = @Content(mediaType = "text/plain", schema = @Schema(type = "string")))
     })
     public ResponseEntity<String> exportUsersCsv() {
         return ResponseEntity.ok(userService.exportUsersToCsv());
@@ -151,20 +153,20 @@ public class UsersController {
 
 
     @PostMapping("/groups")
-    @Operation(summary = "Создать группу")
+    @Operation(summary = "Создать группу", description = "Создает новую учебную группу")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Группа создана", content = @Content(schema = @Schema(implementation = GroupDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или группа уже существует", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<GroupDto> createGroup(@Valid @RequestBody CreateGroupRequest request) {
         return new ResponseEntity<>(groupService.createGroup(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/groups/{groupId}")
-    @Operation(summary = "Обновить группу")
+    @Operation(summary = "Обновить группу", description = "Обновляет параметры учебной группы")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Группа обновлена", content = @Content(schema = @Schema(implementation = GroupDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт состава группы", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<GroupDto> updateGroup(@PathVariable UUID groupId,
@@ -173,16 +175,16 @@ public class UsersController {
     }
 
     @GetMapping("/groups")
-    @Operation(summary = "Получить список групп")
+    @Operation(summary = "Получить список групп", description = "Возвращает список всех учебных групп")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список групп", content = @Content(schema = @Schema(implementation = GroupDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список групп", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupDto.class))))
     })
     public ResponseEntity<List<GroupDto>> groups() {
         return ResponseEntity.ok(groupService.getGroups());
     }
 
     @GetMapping("/groups/{groupId}/users")
-    @Operation(summary = "Получить участников группы")
+    @Operation(summary = "Получить участников группы", description = "Возвращает группу и ее участников")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Участники группы", content = @Content(schema = @Schema(implementation = GroupUsersDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
@@ -192,20 +194,20 @@ public class UsersController {
     }
 
     @GetMapping("/groups/users")
-    @Operation(summary = "Поиск групп по title с участниками")
+    @Operation(summary = "Поиск групп по title с участниками", description = "Ищет группы по title и возвращает их вместе с участниками")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Результаты поиска", content = @Content(schema = @Schema(implementation = GroupUsersDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Результаты поиска", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupUsersDto.class))))
     })
     public ResponseEntity<List<GroupUsersDto>> groupUsersByTitle(@RequestParam(required = false) String title) {
         return ResponseEntity.ok(groupService.getGroupUsersByTitle(title));
     }
 
     @PostMapping("/groups/{groupId}/members")
-    @Operation(summary = "Добавить участников в группу")
+    @Operation(summary = "Добавить участников в группу", description = "Добавляет выбранных пользователей в группу")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи добавлены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт типов групп", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа или пользователи не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> addUserToGroup(@PathVariable UUID groupId,
                                                       @RequestBody @Valid GroupUsersRequest request) {
@@ -214,7 +216,7 @@ public class UsersController {
     }
 
     @DeleteMapping("/groups/{groupId}/members")
-    @Operation(summary = "Удалить участников из группы")
+    @Operation(summary = "Удалить участников из группы", description = "Удаляет выбранных пользователей из группы")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи удалены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
@@ -227,7 +229,7 @@ public class UsersController {
     }
 
     @DeleteMapping("/groups/{groupId}")
-    @Operation(summary = "Удалить группу")
+    @Operation(summary = "Удалить группу", description = "Удаляет учебную группу")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Группа удалена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
