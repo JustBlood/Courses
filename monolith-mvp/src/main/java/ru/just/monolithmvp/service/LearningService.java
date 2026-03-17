@@ -5,23 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
 import ru.just.monolithmvp.dto.lesson.LearnerPracticeQuestionDto;
-import ru.just.monolithmvp.exception.BadRequestException;
-import ru.just.monolithmvp.model.Lesson;
-import ru.just.monolithmvp.model.LessonSubmission;
-import ru.just.monolithmvp.model.LessonType;
-import ru.just.monolithmvp.model.PracticeLesson;
-import ru.just.monolithmvp.model.PracticeQuestion;
-import ru.just.monolithmvp.model.QuestionProgress;
-import ru.just.monolithmvp.model.TheoryLesson;
+import ru.just.monolithmvp.exception.NotFoundException;
+import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,18 +17,19 @@ import java.util.stream.Collectors;
 public class LearningService {
     private final CourseLessonAdminService courseLessonAdminService;
     private final CourseLearnerReadService courseLearnerReadService;
+    private final PracticeScoringPolicy practiceScoringPolicy;
     private final LessonSubmissionRepository submissionRepository;
     private final LessonAccessPolicy lessonAccessPolicy;
     private final CourseAccessPolicy courseAccessPolicy;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
         courseAccessPolicy.assertStudentEnrolled(userId, lesson.getCourse().getId());
 
-        boolean lessonAlreadyPassed = isLessonPassedByStudent(userId, lessonId);
-        if (!lessonAlreadyPassed) {
-            lessonAccessPolicy.assertLessonAccessAllowed(userId, lesson);
+        boolean lessonFinalized = isLessonFinalizedByStudent(userId, lessonId);
+        if (!lessonFinalized) {
+            lessonAccessPolicy.assertLessonAccessAllowed(userId, lessonId);
             lessonAccessPolicy.assertStopLessonAccessAllowed(userId, lesson);
             courseAccessPolicy.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
         }
@@ -57,21 +46,22 @@ public class LearningService {
             LessonSubmission submission = submissionRepository.findByStudentIdAndLessonId(userId, lessonId)
                     .orElse(null);
 
-            Map<Integer, QuestionProgress> questionProgressByIndex = Optional.ofNullable(submission)
+            Map<Long, QuestionProgress> questionProgressById = Optional.ofNullable(submission)
                     .map(LessonSubmission::getQuestionProgress)
                     .stream()
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toMap(QuestionProgress::getQuestionIndex, q -> q, (left, right) -> right));
+                    .collect(Collectors.toMap(QuestionProgress::getQuestionId, q -> q, (left, right) -> right));
 
             boolean showQuestionStatus = Boolean.TRUE.equals(practiceLesson.getShowQuestionStatus());
             boolean showCorrectAnswers = Boolean.TRUE.equals(practiceLesson.getShowCorrectAnswersAfterCompletion())
                     && submission != null
-                    && Boolean.TRUE.equals(submission.getCompleted());
+                    && SubmissionStatus.COMPLETED == submission.getStatus();
 
             List<PracticeQuestion> practiceQuestions = selectPracticeQuestionsForAttempt(practiceLesson);
             List<LearnerPracticeQuestionDto> questions = practiceQuestions.stream().map(question -> {
-                QuestionProgress questionProgress = questionProgressByIndex.get(question.getQuestionIndex());
+                QuestionProgress questionProgress = questionProgressById.get(question.getId());
                 return new LearnerPracticeQuestionDto(
+                        question.getId(),
                         question.getQuestionIndex(),
                         question.getQuestionType(),
                         question.getQuestionText(),
@@ -85,7 +75,9 @@ public class LearningService {
                                 : null,
                         questionProgress != null ? questionProgress.getReviewComment() : null,
                         showQuestionStatus
-                                ? Optional.ofNullable(questionProgress).map(QuestionProgress::getAwardedPoints).orElse(null)
+                                ? Optional.ofNullable(questionProgress)
+                                    .filter(progress -> progress.getPointsType() != null)
+                                    .map(progress -> practiceScoringPolicy.scoreQuestion(progress.getPointsType(), question)).orElse(null)
                                 : null,
                         question.getFullPoints(),
                         question.getPartialPoints()
@@ -101,18 +93,18 @@ public class LearningService {
         return learnerLessonDtoBuilder.build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LearnerLessonDto getNextLessonForLearner(Long courseId, Long userId) {
         Long nextLessonId = courseLearnerReadService.findNextLessonIdForLearner(userId, courseId);
         if (nextLessonId == null) {
-            throw new BadRequestException("No next lesson available");
+            throw new NotFoundException("No next lesson available");
         }
         return getLessonForLearner(nextLessonId, userId);
     }
 
-    private boolean isLessonPassedByStudent(Long studentId, Long lessonId) {
+    private boolean isLessonFinalizedByStudent(Long studentId, Long lessonId) {
         return submissionRepository
-                .findFirstByStudentIdAndLessonIdAndCompletedTrueOrderBySubmittedAtDesc(studentId, lessonId)
+                .findFirstByStudentIdAndLessonIdAndStatusInOrderBySubmittedAtDesc(studentId, lessonId, SubmissionStatus.FINAL_STATUSES)
                 .isPresent();
     }
 

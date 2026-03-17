@@ -61,3 +61,53 @@ alter table enrollments
 
 alter table enrollments
     drop column if exists completed_at;
+
+-- Remove DB columns that no longer exist in current JPA models.
+
+-- AppUser
+alter table users
+    drop column if exists lang;
+
+-- Course
+alter table courses
+    drop column if exists passing_threshold_percent;
+
+alter table courses
+    drop column if exists block_after_deadline;
+
+alter table courses
+    drop column if exists include_in_overall_stats;
+
+-- Lesson / PracticeLesson single-table columns
+alter table lessons
+    drop column if exists evaluate_by_correct_count;
+
+-- ProgramCourse
+alter table program_courses
+    drop column if exists deadline_at;
+
+alter table program_courses
+    drop column if exists block_after_deadline;
+
+alter table lesson_submissions
+    add column if not exists started_at timestamp not null default now()::timestamp;
+
+alter table lesson_submissions alter column submitted_at drop not null;
+
+alter table lesson_submissions
+    drop column if exists points_awarded;
+
+alter table lesson_submissions
+    drop column if exists completed;
+
+update lesson_submissions
+set status = 'COMPLETED'
+where status = 'COMPLETE';
+
+update lesson_submissions
+set status = 'INCOMPLETED'
+where status = 'INCOMPLETE';
+
+update lesson_submissions
+set status = 'REWORKING'
+where status = 'REWORK';

@@ -52,7 +52,7 @@ public class StudentController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список назначенных курсов", content = @Content(schema = @Schema(implementation = CourseDto.class)))
     })
-    public ResponseEntity<List<CourseDto>> myCourses() {
+    public ResponseEntity<List<CourseLearnerDto>> myCourses() {
         return ResponseEntity.ok(courseService.getMyCourses());
     }
 
@@ -96,7 +96,7 @@ public class StudentController {
         return ResponseEntity.ok(userService.updateCurrentUserLastVisit());
     }
 
-    @GetMapping("/courses/{courseId}")
+    @GetMapping("/courses/{courseId}") // todo: возможно, стоит удалить этот рест совсем
     @Operation(summary = "Получить детали курса для прохождения")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Детали курса", content = @Content(schema = @Schema(implementation = CourseLearnerDto.class))),
@@ -148,6 +148,16 @@ public class StudentController {
     public ResponseEntity<SubmissionResultDto> submitPractice(@PathVariable Long lessonId,
                                                               @RequestBody PracticeSubmissionRequest request) {
         return ResponseEntity.ok(practiceSubmissionService.submitPractice(lessonId, request, securityUtils.currentUserId()));
+    }
+
+    @PostMapping("/lessons/{lessonId}/start")
+    @Operation(summary = "Начать прохождение урока")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Урок начат", content = @Content(schema = @Schema(implementation = SubmissionResultDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Урок нельзя начать", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<SubmissionResultDto> submitPractice(@PathVariable Long lessonId) {
+        return ResponseEntity.ok(practiceSubmissionService.startLesson(lessonId, securityUtils.currentUserId()));
     }
 
     @GetMapping("/my/stats")

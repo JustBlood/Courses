@@ -3,16 +3,8 @@ package ru.just.monolithmvp.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.just.monolithmvp.model.AppUser;
-import ru.just.monolithmvp.model.Course;
-import ru.just.monolithmvp.model.CourseProgress;
-import ru.just.monolithmvp.model.CourseProgressStatus;
-import ru.just.monolithmvp.model.Enrollment;
-import ru.just.monolithmvp.repository.CourseProgressRepository;
-import ru.just.monolithmvp.repository.EnrollmentRepository;
-import ru.just.monolithmvp.repository.LessonSubmissionRepository;
-import ru.just.monolithmvp.repository.ProgramCourseRepository;
-import ru.just.monolithmvp.repository.ProgramEnrollmentRepository;
+import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.repository.*;
 
 import java.time.LocalDateTime;
 
@@ -57,15 +49,9 @@ public class CourseEnrollmentLifecycleService {
 
     @Transactional
     public void unassignFromCourse(Long userId, Long courseId) {
-        CourseProgress progress = courseProgressRepository.findByUserIdAndCourseId(userId, courseId).orElse(null);
-
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
-
-        boolean completed = progress != null && progress.getStatus() == CourseProgressStatus.COMPLETED;
-        if (!completed) {
-            courseProgressRepository.deleteByUserIdAndCourseId(userId, courseId);
-            lessonSubmissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
-        }
+        courseProgressRepository.deleteByUserIdAndCourseId(userId, courseId);
+        lessonSubmissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
     }
 
     @Transactional

@@ -29,4 +29,12 @@ public class PracticeLesson extends Lesson {
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionIndex ASC")
     private List<PracticeQuestion> questions = new ArrayList<>();
+
+    public Integer getMaxPointsByAllQuestions() {
+        return questions.stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).orElse(0);
+    }
+
+    public boolean passedByPoints(Integer awardedPoints) {
+        return awardedPoints * 100 >= getMaxPointsByAllQuestions() * passingThresholdPercent;
+    }
 }

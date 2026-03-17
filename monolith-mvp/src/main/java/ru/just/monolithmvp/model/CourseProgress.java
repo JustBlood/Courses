@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(name = "uk_course_progress_user_course", columnNames = {"user_id", "course_id"}))
 @Getter
 @Setter
+@ToString
 @NoArgsConstructor
 public class CourseProgress {
     @Id
@@ -32,5 +34,5 @@ public class CourseProgress {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CourseProgressStatus status;
+    private CourseProgressStatus status; // todo: пересчитывать только при удалении и добавлении урока, при сбросе прогресса по уроку, при сбросе прогресса по курсу
 }

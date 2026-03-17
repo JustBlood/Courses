@@ -11,7 +11,6 @@ import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +18,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CourseLearnerReadService {
     private final CourseRepository courseRepository;
+    private final PracticeScoringPolicy practiceScoringPolicy;
+    private final CourseProgressService courseProgressService;
     private final CourseProgressRepository courseProgressRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final LessonRepository lessonRepository;
@@ -26,22 +27,25 @@ public class CourseLearnerReadService {
     private final CourseAccessPolicy courseAccessPolicy;
     private final FileStorageService fileStorageService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CourseLearnerDto getCourseForLearner(Long userId, Long courseId) {
         courseAccessPolicy.assertStudentEnrolled(userId, courseId);
-        courseAccessPolicy.assertCourseDeadlineNotExceededForStudent(userId, courseId);
+
+        if (courseAccessPolicy.isCourseDeadlineExceeded(userId, courseId)) {
+            courseProgressService.recalcCourseProgressByUser(userId, courseId);
+        }
+
         Course course = getCourseEntity(courseId);
         List<Lesson> courseLessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId);
         Map<Long, LessonSubmission> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
         List<LearnerLessonSummaryDto> lessons = buildLearnerLessonSummaries(course, courseLessons, submissionsByLessonId);
 
         final Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId).orElse(null);
-        final CourseProgress courseProgress = courseProgressRepository.findByUserIdAndCourseId(userId, courseId)
-                .orElse(null);
+        final Optional<CourseProgress> courseProgress = courseProgressRepository.findByUserIdAndCourseId(userId, courseId);
         int totalLessons = lessons.size();
-        int completedLessons = (int) lessons.stream().filter(summary -> summary.lessonProgress().completed()).count();
+        int completedLessons = (int) submissionsByLessonId.values().stream().map(LessonSubmission::getStatus).filter(SubmissionStatus.COMPLETED::equals).count();
         int remainingLessons = Math.max(totalLessons - completedLessons, 0);
-        int completionPercent = totalLessons == 0 ? 100 : (completedLessons * 100) / totalLessons;
+        int completionPercent = totalLessons == 0 ? 0 : (completedLessons * 100) / totalLessons;
 
         CourseProgressDto progress = null;
         if (enrollment != null) {
@@ -50,7 +54,7 @@ public class CourseLearnerReadService {
                     completionPercent,
                     completedLessons,
                     remainingLessons,
-                    courseProgress != null ? courseProgress.getStatus() : null
+                    courseProgress.map(CourseProgress::getStatus).orElse(null)
             );
         }
 
@@ -66,6 +70,18 @@ public class CourseLearnerReadService {
         );
     }
 
+    @Transactional
+    public List<CourseLearnerDto> getCoursesForLearner(Long userId) {
+        final List<Enrollment> enrollments = enrollmentRepository.findByUserId(userId);
+
+        List<CourseLearnerDto> coursesForLearner = new ArrayList<>();
+        for (Enrollment enrollment : enrollments) {
+            Course course = enrollment.getCourse();
+            coursesForLearner.add(getCourseForLearner(userId, course.getId()));
+        }
+        return coursesForLearner;
+    }
+
     @Transactional(readOnly = true)
     public Long findNextLessonIdForLearner(Long userId, Long courseId) {
         courseAccessPolicy.assertStudentEnrolled(userId, courseId);
@@ -73,25 +89,27 @@ public class CourseLearnerReadService {
 
         Course course = getCourseEntity(courseId);
         List<Lesson> courseLessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId);
-        Set<Long> passedLessonIds = resolvePassedLessonIds(loadSubmissionsByLessonId(userId, courseId));
+        final Map<Long, LessonSubmission> submissionsByLessonId = loadSubmissionsByLessonId(userId, courseId);
+        Set<Long> completedLessonIds = resolveCompletedLessonIds(submissionsByLessonId);
+        Set<Long> answeredLessonIds = resolveAnsweredLessonIds(submissionsByLessonId);
 
         boolean hasUnpassedStopBefore = false;
         for (int index = 0; index < courseLessons.size(); index++) {
             Lesson lesson = courseLessons.get(index);
-            boolean passed = passedLessonIds.contains(lesson.getId());
-            if (passed) {
+            boolean completed = completedLessonIds.contains(lesson.getId());
+            if (completed) {
                 continue;
             }
 
             boolean blockedByPreviousLesson = Boolean.FALSE.equals(course.getLessonsFreeOrder())
                     && index > 0
-                    && !passedLessonIds.contains(courseLessons.get(index - 1).getId());
-            boolean blockedByStopLesson = hasUnpassedStopBefore;
-            if (!blockedByPreviousLesson && !blockedByStopLesson) {
+                    && !answeredLessonIds.contains(courseLessons.get(index - 1).getId());
+
+            if (!blockedByPreviousLesson && !hasUnpassedStopBefore && !answeredLessonIds.contains(lesson.getId())) {
                 return lesson.getId();
             }
 
-            if (Boolean.TRUE.equals(lesson.getStopLesson())) {
+            if (Boolean.TRUE.equals(lesson.getStopLesson()) && answeredLessonIds.contains(lesson.getId())) {
                 hasUnpassedStopBefore = true;
             }
         }
@@ -114,9 +132,16 @@ public class CourseLearnerReadService {
                 ));
     }
 
-    private Set<Long> resolvePassedLessonIds(Map<Long, LessonSubmission> submissionsByLessonId) {
+    private Set<Long> resolveCompletedLessonIds(Map<Long, LessonSubmission> submissionsByLessonId) {
         return submissionsByLessonId.entrySet().stream()
-                .filter(entry -> Boolean.TRUE.equals(entry.getValue().getCompleted()))
+                .filter(entry -> SubmissionStatus.COMPLETED == entry.getValue().getStatus())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<Long> resolveAnsweredLessonIds(Map<Long, LessonSubmission> submissionsByLessonId) {
+        return submissionsByLessonId.entrySet().stream()
+                .filter(entry -> SubmissionStatus.ALLOW_GET_NEXT_LESSON_STATUSES.contains(entry.getValue().getStatus()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
@@ -132,16 +157,28 @@ public class CourseLearnerReadService {
             Lesson lesson = courseLessons.get(index);
 
             final LessonSubmission submission = submissionsByLessonId.get(lesson.getId());
-            Integer pointsAwarded = Optional.ofNullable(submission)
-                    .map(LessonSubmission::getPointsAwarded)
-                    .orElse(0);
+
+            int pointsAwarded;
+            int fullPoints;
+            if (lesson instanceof PracticeLesson practiceLesson) {
+                final Map<Long, PracticeQuestion> questionsById = practiceLesson.getQuestions().stream()
+                        .collect(Collectors.toMap(PracticeQuestion::getId, q -> q));
+            pointsAwarded = submission != null
+                        ? submission.getQuestionProgress().stream()
+                            .filter(progress -> progress.getPointsType()  != null)
+                            .map(progress -> practiceScoringPolicy.scoreQuestion(progress.getPointsType(), questionsById.get(progress.getQuestionId())))
+                            .reduce(Integer::sum).orElse(0)
+                        : 0;
+            fullPoints = practiceLesson.getMaxPointsByAllQuestions();
+            } else {
+                pointsAwarded = submission != null ? lesson.getFullPoints() : 0;
+                fullPoints = lesson.getFullPoints();
+            }
+
+
             final SubmissionStatus submissionStatus = Optional.ofNullable(submission)
                     .map(LessonSubmission::getStatus)
                     .orElse(null);
-            Boolean completed = Optional.ofNullable(submission)
-                    .map(LessonSubmission::getCompleted)
-                    .orElse(false);
-            allPreviousLessonsPassed = allPreviousLessonsPassed && completed;
 
             String blockReason = null;
             if (!course.getLessonsFreeOrder() && index > 0 && !allPreviousLessonsPassed) {
@@ -160,14 +197,18 @@ public class CourseLearnerReadService {
                     lesson.getLessonType(),
                     blocked,
                     blockReason,
+                    fullPoints,
                     new LessonProgressDto(
-                        completed,
                         submissionStatus,
                         pointsAwarded
                     )
             ));
 
-            hasUnpassedStopBefore = hasUnpassedStopBefore || lesson.getStopLesson() && !completed;
+            allPreviousLessonsPassed = allPreviousLessonsPassed && submissionStatus != null
+                    && SubmissionStatus.ALLOW_GET_NEXT_LESSON_STATUSES.contains(submissionStatus);
+
+            hasUnpassedStopBefore = hasUnpassedStopBefore || lesson.getStopLesson() && submissionStatus != null
+                    && submissionStatus != SubmissionStatus.COMPLETED;
         }
 
         return lessons;

@@ -1,5 +1,6 @@
 package ru.just.monolithmvp.service;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,7 @@ import ru.just.monolithmvp.repository.LessonRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.PracticeQuestionRepository;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -29,26 +27,29 @@ public class CourseLessonAdminService {
     private final LessonMapper lessonMapper;
     private final FileStorageService fileStorageService;
     private final CourseLearnerReadService courseLearnerReadService;
+    private final CourseProgressService courseProgressService;
 
     @Transactional
     public LessonDto createTheoryLesson(Long courseId, CreateTheoryLessonRequest request) {
         Course course = courseLearnerReadService.getCourseEntity(courseId);
-        final int position = resolveCreateLessonPosition(courseId, request.position());
         validateCreateTheoryRequest(request);
+        final int position = nextLessonPosition(courseId);
 
         TheoryLesson lesson = new TheoryLesson();
         lesson.setCourse(course);
         lesson.setPosition(position);
         applyTheoryLessonFields(lesson, request);
 
-        return lessonMapper.toDto(lessonRepository.save(lesson));
+        final LessonDto dto = lessonMapper.toDto(lessonRepository.saveAndFlush(lesson));
+        courseProgressService.recalcCourseProgress(courseId);
+        return dto;
     }
 
     @Transactional
     public LessonDto createPracticeLesson(Long courseId, CreatePracticeLessonRequest request) {
         Course course = courseLearnerReadService.getCourseEntity(courseId);
         validateCreatePracticeRequest(request);
-        final Integer lessonPosition = resolveCreateLessonPosition(courseId, request.position());
+        final Integer lessonPosition = nextLessonPosition(courseId);
 
         PracticeLesson lesson = new PracticeLesson();
         lesson.setCourse(course);
@@ -57,7 +58,9 @@ public class CourseLessonAdminService {
 
         applyQuestionPool(lesson, request.questions());
 
-        return lessonMapper.toDto(lessonRepository.save(lesson));
+        final LessonDto dto = lessonMapper.toDto(lessonRepository.saveAndFlush(lesson));
+        courseProgressService.recalcCourseProgress(courseId);
+        return dto;
     }
 
     @Transactional(readOnly = true)
@@ -123,14 +126,7 @@ public class CourseLessonAdminService {
         lessonRepository.flush();
         lessonsToUpdatePosition.forEach(nextLesson -> nextLesson.setPosition(nextLesson.getPosition() - 1));
         lessonRepository.saveAll(lessonsToUpdatePosition);
-    }
-
-    @Transactional(readOnly = true)
-    public List<LessonDto> getCourseLessons(Long courseId) {
-        courseLearnerReadService.getCourseEntity(courseId);
-        return lessonRepository.findByCourseIdOrderByPositionAsc(courseId).stream()
-                .map(lessonMapper::toDto)
-                .toList();
+        courseProgressService.recalcCourseProgress(courseId);
     }
 
     @Transactional(readOnly = true)
@@ -142,6 +138,18 @@ public class CourseLessonAdminService {
     @Transactional(readOnly = true)
     public List<PracticeQuestion> getPracticeQuestionForLesson(Long lessonId) {
         return practiceQuestionRepository.findByLessonIdOrderByQuestionIndexAsc(lessonId);
+    }
+
+    @Transactional
+    public void resetLessonProgress(Long userId, Long courseId, Long lessonId) {
+        submissionRepository.deleteByStudentIdAndLessonId(userId, lessonId);
+        courseProgressService.recalcCourseProgressByUser(userId, courseId);
+    }
+
+    @Transactional
+    public void resetLessonProgressForAll(@NotNull Long courseId, @NotNull Long lessonId) {
+        submissionRepository.deleteAllByLessonId(lessonId);
+        courseProgressService.recalcCourseProgress(courseId);
     }
 
     private void applyCommonLessonFields(Lesson lesson,
@@ -158,8 +166,8 @@ public class CourseLessonAdminService {
     }
 
     private void applyTheoryLessonFields(TheoryLesson lesson, CreateTheoryLessonRequest request) {
-        applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson(),
-                request.attemptLimit(), request.timeLimitMinutes());
+        applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson() != null && request.stopLesson(),
+                1, request.timeLimitMinutes());
         LessonType nextLessonType = patchValue(request.lessonType(), lesson.getLessonType());
         boolean wasPdfLesson = LessonType.THEORY_PDF.equals(lesson.getLessonType());
         if (LessonType.THEORY_PDF.equals(nextLessonType)) {
@@ -181,17 +189,13 @@ public class CourseLessonAdminService {
         lesson.setPassingThresholdPercent(patchValue(request.passingThresholdPercent(), lesson.getPassingThresholdPercent()));
         lesson.setShuffleOnEveryAttempt(patchValue(request.shuffleOptions(), lesson.getShuffleOnEveryAttempt()));
         lesson.setShowQuestionStatus(patchValue(request.showQuestionStatus(), lesson.getShowQuestionStatus()));
-        lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswers(), lesson.getShowCorrectAnswersAfterCompletion()));
+        lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswersAfterCompletion(), lesson.getShowCorrectAnswersAfterCompletion()));
         lesson.setLessonType(patchValue(request.lessonType(), lesson.getLessonType()));
 
-        if (request.lessonType().isPractice()) {
-            final Integer fullTestLessonPoints = request.questions().stream()
-                    .map(PracticeQuestionRequest::fullPoints)
-                    .reduce(Integer::sum).orElse(null);
-            lesson.setFullPoints(patchValue(fullTestLessonPoints, lesson.getFullPoints()));
-        } else {
-            lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
-        }
+        final Integer fullTestLessonPoints = request.questions().stream()
+                .map(PracticeQuestionRequest::fullPoints)
+                .reduce(Integer::sum).orElse(null);
+        lesson.setFullPoints(patchValue(fullTestLessonPoints, lesson.getFullPoints()));
     }
 
     private <T> T patchValue(T requestedValue, T currentValue) {
@@ -205,11 +209,31 @@ public class CourseLessonAdminService {
 
     private void applyQuestionPool(PracticeLesson lesson,
                                    List<PracticeQuestionRequest> questions) {
-        List<PracticeQuestion> mapped = new ArrayList<>();
+        final Map<Long, PracticeQuestion> existedQuestionById = lesson.getQuestions().stream()
+                .collect(Collectors.toMap(PracticeQuestion::getId, q -> q));
+        final Map<Long, PracticeQuestionRequest> questionsToUpdate = questions.stream()
+                .filter(q -> q.id() != null)
+                .collect(Collectors.toMap(PracticeQuestionRequest::id, q -> q));
+
+        // Если в question нет чего-то, что есть в existedQuestions - то эти уроки надо удалить
+        if (!existedQuestionById.isEmpty() && !existedQuestionById.keySet().containsAll(questionsToUpdate.keySet())) {
+            final List<Long> questionIdsToDelete = existedQuestionById.keySet().stream()
+                    .filter(questionToDelete -> !questionsToUpdate.containsKey(questionToDelete))
+                    .toList();
+            final List<PracticeQuestion> lessonQuestionsWithoutDeleted = lesson.getQuestions().stream()
+                    .filter(q -> !questionIdsToDelete.contains(q.getId()))
+                    .toList();
+            // Удаляем вопросы из урока
+            lesson.setQuestions(lessonQuestionsWithoutDeleted);
+            // Удаляем вопросы из submissions
+            onQuestionsChanged(questionIdsToDelete, lesson);
+        }
+
         for (PracticeQuestionRequest q : questions) {
-            PracticeQuestion entity = new PracticeQuestion();
+            boolean newQuestion = q.id() == null;
+            PracticeQuestion entity = newQuestion ? new PracticeQuestion() : existedQuestionById.get(q.id());
             entity.setLesson(lesson);
-            entity.setQuestionIndex(q.position() == null ? mapped.size() + 1 : q.position());
+            entity.setQuestionIndex(q.position());
             entity.setQuestionType(q.questionType());
             entity.setQuestionText(q.questionText());
             entity.setTrainerHint(q.trainerHint());
@@ -217,23 +241,28 @@ public class CourseLessonAdminService {
             entity.setCorrectAnswers(q.correctAnswers() == null ? null : new ArrayList<>(q.correctAnswers()));
             entity.setFullPoints(q.fullPoints());
             entity.setPartialPoints(q.partialPoints() == null ? 0 : q.partialPoints());
-            mapped.add(entity);
+            if (newQuestion) {
+                lesson.getQuestions().add(entity);
+            }
         }
-        lesson.getQuestions().clear();
-        lesson.getQuestions().addAll(mapped);
+    }
+
+    private void onQuestionsChanged(List<Long> questionIdsToDelete, PracticeLesson lesson) {
+        final List<LessonSubmission> lessonSubmissions = submissionRepository.findAllByLessonId(lesson.getId());
+        for (LessonSubmission submission : lessonSubmissions) {
+            final List<QuestionProgress> questionProgressWithoutDeletedQuestions = submission.getQuestionProgress().stream()
+                    .filter(progress -> !questionIdsToDelete.contains(progress.getQuestionId()))
+                    .toList();
+            submission.setQuestionProgress(questionProgressWithoutDeletedQuestions);
+        }
+        submissionRepository.saveAllAndFlush(lessonSubmissions);
     }
 
     private CreateTheoryLessonRequest toCreateTheoryLessonRequest(UpdateTheoryLessonRequest request) {
         return new CreateTheoryLessonRequest(
-                request.position(),
                 request.title(),
                 request.description(),
-                null,
-                null,
-                null,
                 request.stopLesson(),
-                request.blockedDuringAttempt(),
-                request.attemptLimit(),
                 request.timeLimitMinutes(),
                 request.lessonType(),
                 request.content(),
@@ -244,41 +273,18 @@ public class CourseLessonAdminService {
 
     private CreatePracticeLessonRequest toCreatePracticeLessonRequest(UpdatePracticeLessonRequest request) {
         return new CreatePracticeLessonRequest(
-                request.position(),
                 request.title(),
                 request.description(),
                 request.stopLesson(),
                 request.attemptLimit(),
                 request.timeLimitMinutes(),
                 request.lessonType(),
-                request.fullPoints(),
                 request.passingThresholdPercent(),
                 request.shuffleOptions(),
                 request.showQuestionStatus(),
                 request.showCorrectAnswers(),
                 request.questions()
         );
-    }
-
-    private int resolveCreateLessonPosition(Long courseId, Integer requestedPosition) {
-        int nextPosition = nextLessonPosition(courseId);
-        if (requestedPosition == null) {
-            return nextPosition;
-        }
-
-        long lessonCount = lessonRepository.countByCourseId(courseId);
-        if (requestedPosition < 1 || requestedPosition > lessonCount + 1) {
-            throw new BadRequestException("lesson position must be between 1 and " + (lessonCount + 1));
-        }
-
-        if (requestedPosition <= lessonCount) {
-            List<Lesson> lessonsToShift = lessonRepository
-                    .findByCourse_IdAndPositionGreaterThanEqualOrderByPositionDesc(courseId, requestedPosition);
-            lessonsToShift.forEach(existing -> existing.setPosition(existing.getPosition() + 1));
-            lessonRepository.saveAllAndFlush(lessonsToShift);
-        }
-
-        return requestedPosition;
     }
 
     private void applyLessonPositionPatch(Lesson lesson, Integer requestedPosition) {

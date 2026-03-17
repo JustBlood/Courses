@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.exception.BadRequestException;
-import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
@@ -22,16 +21,14 @@ public class PracticeSubmissionService {
     private final LessonSubmissionRepository submissionRepository;
     private final AppUserRepository userRepository;
     private final LessonAccessPolicy lessonAccessPolicy;
-    private final EnrollmentProgressService enrollmentProgressService;
+    private final CourseProgressService courseProgressService;
     private final PracticeScoringPolicy practiceScoringPolicy;
     private final CourseAccessPolicy courseAccessPolicy;
 
     @Transactional
     public SubmissionResultDto completeTheoryLesson(Long lessonId, Long userId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
-        courseAccessPolicy.assertStudentEnrolled(userId, lesson.getCourse().getId());
-        lessonAccessPolicy.assertLessonAccessAllowed(userId, lesson);
-        lessonAccessPolicy.assertStopLessonAccessAllowed(userId, lesson);
+        validateLessonAllowedRules(lessonId, userId, lesson);
         courseAccessPolicy.assertCourseDeadlineNotExceededForStudent(userId, lesson.getCourse().getId());
 
         if (!lesson.getLessonType().isTheory()) {
@@ -41,18 +38,14 @@ public class PracticeSubmissionService {
         LessonSubmission submission = completeTheoryLessonInternal(userId, lesson);
         return new SubmissionResultDto(
                 submission.getId(),
-                submission.getStatus(),
-                submission.getCompleted(),
-                "Theory lesson completed"
+                submission.getStatus()
         );
     }
 
     @Transactional
     public SubmissionResultDto submitPractice(Long lessonId, PracticeSubmissionRequest request, Long studentId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
-        courseAccessPolicy.assertStudentEnrolled(studentId, lesson.getCourse().getId());
-        lessonAccessPolicy.assertLessonAccessAllowed(studentId, lesson);
-        lessonAccessPolicy.assertStopLessonAccessAllowed(studentId, lesson);
+        validateLessonAllowedRules(lessonId, studentId, lesson);
         courseAccessPolicy.assertCourseDeadlineNotExceededForStudent(studentId, lesson.getCourse().getId());
 
         if (!(lesson instanceof PracticeLesson practiceLesson)
@@ -63,95 +56,103 @@ public class PracticeSubmissionService {
 
         LessonSubmission existingSubmission = submissionRepository
                 .findByStudentIdAndLessonId(studentId, lessonId)
-                .orElse(null);
-        if (existingSubmission != null && Boolean.TRUE.equals(existingSubmission.getCompleted())) {
-            throw new BadRequestException("Submission is already finalized");
+                .orElseThrow(() -> new BadRequestException("Lesson not started"));
+        boolean isReworkOrStartedSubmission = existingSubmission.getStatus() == SubmissionStatus.REWORKING || existingSubmission.getStatus() == SubmissionStatus.STARTED;
+        if (!isReworkOrStartedSubmission) {
+            throw new BadRequestException("Practice submission can be updated only from REWORKING or STARTED status");
         }
 
         validatePracticeAttemptLimit(existingSubmission, practiceLesson.getAttemptLimit());
         validatePracticeTimeLimit(existingSubmission, practiceLesson.getTimeLimitMinutes());
 
-        enrollmentProgressService.markEnrollmentStarted(studentId, lesson.getCourse().getId());
-        Map<Integer, List<String>> answersByQuestion = validateAndNormalizeAnswersByQuestion(practiceLesson, request);
+        Map<Long, List<String>> answersByQuestion = validateAndNormalizeAnswersByQuestion(practiceLesson, request);
 
+        SubmissionResultDto submissionResultDto;
         if (lesson.getLessonType() == LessonType.PRACTICE_OPEN_ANSWER) {
-            return submitOpenPractice(studentId, lesson, practiceLesson, existingSubmission, answersByQuestion);
+            submissionResultDto = submitOpenPractice(practiceLesson, existingSubmission, answersByQuestion);
+        } else {
+            submissionResultDto = submitTestPractice(practiceLesson, existingSubmission, answersByQuestion);
         }
+        courseProgressService.recalcCourseProgressByUser(studentId, lesson.getCourse().getId());
 
-        return submitTestPractice(studentId, lesson, practiceLesson, existingSubmission, answersByQuestion);
+        return submissionResultDto;
     }
 
-    private SubmissionResultDto submitOpenPractice(Long studentId,
-                                                   Lesson lesson,
-                                                   PracticeLesson practiceLesson,
-                                                   LessonSubmission existingSubmission,
-                                                   Map<Integer, List<String>> answersByQuestion) {
-        boolean isReworkSubmission = existingSubmission != null && existingSubmission.getStatus() == SubmissionStatus.REWORK;
-        if (existingSubmission != null && !isReworkSubmission) {
-            throw new BadRequestException("Open submission can be updated only from REWORK status");
-        }
+    @Transactional
+    public SubmissionResultDto startLesson(Long lessonId, Long studentId) {
+        final Lesson lessonEntity = courseLessonAdminService.getLessonEntity(lessonId);
+        validateLessonAllowedRules(lessonId, studentId, lessonEntity);
 
-        LessonSubmission submission;
+        LessonSubmission existingSubmission = submissionRepository
+                .findByStudentIdAndLessonId(studentId, lessonId)
+                .orElse(null);
+
         if (existingSubmission != null) {
-            submission = existingSubmission;
-        } else {
-            submission = new LessonSubmission();
-            submission.setLesson(lesson);
-            AppUser student = new AppUser();
-            student.setId(studentId);
-            submission.setStudent(student);
+            if (existingSubmission.getStatus() != SubmissionStatus.REWORKING) {
+                throw new BadRequestException("Lesson already started");
+            }
+            existingSubmission.setStartedAt(LocalDateTime.now());
+            submissionRepository.save(existingSubmission);
+            return new SubmissionResultDto(existingSubmission.getId(), existingSubmission.getStatus());
         }
 
-        submission.setQuestionProgress(buildOpenQuestionProgressForSubmit(
-                practiceLesson,
-                answersByQuestion,
-                submission.getQuestionProgress(),
-                isReworkSubmission
-        ));
-        submission.setStatus(SubmissionStatus.PENDING_REVIEW);
-        submission.setCompleted(false);
-        submission.setPointsAwarded(0);
-        submission.setAttemptCounter(Optional.ofNullable(submission.getAttemptCounter()).orElse(0) + 1);
-        submission.setReviewedByAdminId(null);
-        submission.setReviewedAt(null);
-
-        if (submission.getFirstSubmittedAt() == null) {
-            submission.setFirstSubmittedAt(LocalDateTime.now());
-        }
+        LessonSubmission submission = new LessonSubmission();
+        Lesson lesson = new Lesson();
+        lesson.setId(lessonId);
+        submission.setLesson(lesson);
+        AppUser student = new AppUser();
+        student.setId(studentId);
+        submission.setStudent(student);
+        submission.setStartedAt(LocalDateTime.now());
+        submission.setStatus(SubmissionStatus.STARTED);
 
         submission = submissionRepository.save(submission);
+        courseProgressService.markCourseProgressStarted(studentId, lessonEntity.getCourse().getId(), submission.getStartedAt());
+
+        return new SubmissionResultDto(submission.getId(), submission.getStatus());
+    }
+
+    private void validateLessonAllowedRules(Long lessonId, Long studentId, Lesson lesson) {
+        courseAccessPolicy.assertStudentEnrolled(studentId, lesson.getCourse().getId());
+        lessonAccessPolicy.assertLessonAccessAllowed(studentId, lessonId);
+        lessonAccessPolicy.assertStopLessonAccessAllowed(studentId, lesson);
+    }
+
+    private SubmissionResultDto submitOpenPractice(PracticeLesson practiceLesson,
+                                                   LessonSubmission existingSubmission,
+                                                   Map<Long, List<String>> answersByQuestion) {
+        existingSubmission.setQuestionProgress(buildOpenQuestionProgressForSubmit(
+                practiceLesson,
+                answersByQuestion,
+                existingSubmission.getQuestionProgress()
+        ));
+        existingSubmission.setStatus(SubmissionStatus.PENDING_REVIEW);
+        existingSubmission.setAttemptCounter(Optional.ofNullable(existingSubmission.getAttemptCounter()).orElse(0) + 1);
+        existingSubmission.setReviewedByAdminId(null);
+        existingSubmission.setReviewedAt(null);
+        existingSubmission.setSubmittedAt(LocalDateTime.now());
+
+        existingSubmission = submissionRepository.saveAndFlush(existingSubmission);
         return new SubmissionResultDto(
-                submission.getId(),
-                submission.getStatus(),
-                false,
-                "Answer submitted and waiting for admin review"
+                existingSubmission.getId(),
+                existingSubmission.getStatus()
         );
     }
 
-    private SubmissionResultDto submitTestPractice(Long studentId,
-                                                   Lesson lesson,
-                                                   PracticeLesson practiceLesson,
+    private SubmissionResultDto submitTestPractice(PracticeLesson practiceLesson,
                                                    LessonSubmission existingSubmission,
-                                                   Map<Integer, List<String>> answersByQuestion) {
-        LessonSubmission submission;
-        if (existingSubmission != null) {
-            submission = existingSubmission;
-        } else {
-            submission = new LessonSubmission();
-            submission.setLesson(lesson);
-            submission.setStudent(getStudent(studentId));
-            submission.setFirstSubmittedAt(LocalDateTime.now());
-        }
+                                                   Map<Long, List<String>> answersByQuestion) {
+        existingSubmission.setSubmittedAt(LocalDateTime.now());
 
-        int totalQuestionPoints = 0;
+        int totalAwardedQuestionPoints = 0;
         for (PracticeQuestion question : practiceLesson.getQuestions()) {
             if (!QuestionType.TEST_QUESTIONS.contains(question.getQuestionType())) {
-                continue;
+                throw new IllegalStateException("Test lesson contains non-tests questions!");
             }
 
-            List<String> selectedAnswers = answersByQuestion.get(question.getQuestionIndex());
+            List<String> selectedAnswers = answersByQuestion.get(question.getId());
             List<String> correctAnswers = normalizeList(question.getCorrectAnswers());
-            totalQuestionPoints += practiceScoringPolicy.scoreQuestion(question, selectedAnswers, correctAnswers);
+            totalAwardedQuestionPoints += practiceScoringPolicy.scoreQuestion(question, selectedAnswers, correctAnswers);
         }
 
         // Если набранное кол-во баллов больше порога И лимит попыток не исчерпан - то урок пройден (status=COMPLETED) и completed=true
@@ -159,26 +160,17 @@ public class PracticeSubmissionService {
         // Если набранное кол-во баллов меньше порога - status INCOMPLETE, completed=false
 
         // обновляем номер текущей попытки
-        submission.setAttemptCounter(Optional.ofNullable(submission.getAttemptCounter()).orElse(0) + 1);
-        boolean isLastAttempt = submission.getAttemptCounter() >= practiceLesson.getAttemptLimit();
-        Integer maxPointsByAllQuestions = practiceLesson.getQuestions().stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).get();
-        boolean passedByPoints = totalQuestionPoints * 100 >= maxPointsByAllQuestions * practiceLesson.getPassingThresholdPercent();
-        int lessonPointsAwarded = totalQuestionPoints;
+        boolean passedByPoints = practiceLesson.passedByPoints(totalAwardedQuestionPoints);
+        existingSubmission.setAttemptCounter(Optional.ofNullable(existingSubmission.getAttemptCounter()).orElse(0) + 1);
+        boolean isLastAttempt = existingSubmission.getAttemptCounter() >= practiceLesson.getAttemptLimit();
 
-        submission.setQuestionProgress(buildTestQuestionProgress(practiceLesson, answersByQuestion));
-        submission.setStatus(passedByPoints ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        submission.setCompleted(passedByPoints || isLastAttempt); // Если это последняя попытка - то урок считается завершенным
-        submission.setPointsAwarded(lessonPointsAwarded);
-        submission = submissionRepository.save(submission);
-        if (submission.getCompleted()) {
-            enrollmentProgressService.markEnrollmentCompletedIfDone(studentId, lesson.getCourse().getId());
-        }
+        existingSubmission.setQuestionProgress(buildTestQuestionProgress(practiceLesson, answersByQuestion));
+        existingSubmission.setStatus(passedByPoints ? SubmissionStatus.COMPLETED : isLastAttempt ? SubmissionStatus.INCOMPLETED : SubmissionStatus.REWORKING);
+        existingSubmission = submissionRepository.saveAndFlush(existingSubmission);
 
         return new SubmissionResultDto(
-                submission.getId(),
-                submission.getStatus(),
-                submission.getCompleted(),
-                submission.getCompleted() ? "Practice completed" : "Practice is not completed"
+                existingSubmission.getId(),
+                existingSubmission.getStatus()
         );
     }
 
@@ -198,126 +190,114 @@ public class PracticeSubmissionService {
             return;
         }
 
-        LocalDateTime firstSubmittedAt = existingSubmission.getFirstSubmittedAt();
-        if (firstSubmittedAt == null) {
+        LocalDateTime startedAt = existingSubmission.getStartedAt();
+        if (startedAt == null) {
             return;
         }
 
-        LocalDateTime deadlineAt = firstSubmittedAt.plusMinutes(timeLimitMinutes);
+        LocalDateTime deadlineAt = startedAt.plusMinutes(timeLimitMinutes);
         if (LocalDateTime.now().isAfter(deadlineAt)) {
             throw new BadRequestException("Time limit exceeded for this lesson");
         }
     }
 
     private LessonSubmission completeTheoryLessonInternal(Long studentId, Lesson lesson) {
-        Optional<LessonSubmission> existingPassedTheorySubmission = submissionRepository
-                .findFirstByStudentIdAndLessonIdAndCompletedTrueOrderBySubmittedAtDesc(studentId, lesson.getId());
-        if (existingPassedTheorySubmission.isPresent()) {
-            return existingPassedTheorySubmission.get();
+        Optional<LessonSubmission> existingSubmission = submissionRepository
+                .findByStudentIdAndLessonId(studentId, lesson.getId());
+        if (existingSubmission.isEmpty()) {
+            throw new BadRequestException("Сначала необходимо начать выполнение теоретического урока");
         }
 
-        LessonSubmission submission = new LessonSubmission();
-        submission.setLesson(lesson);
-        submission.setStudent(getStudent(studentId));
-        submission.setStatus(SubmissionStatus.COMPLETE);
-        submission.setCompleted(true);
-        submission.setPointsAwarded(lesson.getFullPoints());
-        submission.setFirstSubmittedAt(LocalDateTime.now());
+        if (SubmissionStatus.COMPLETED == existingSubmission.get().getStatus()) {
+            return existingSubmission.get();
+        }
 
-        enrollmentProgressService.markEnrollmentStarted(studentId, lesson.getCourse().getId());
-        submission = submissionRepository.save(submission);
-        enrollmentProgressService.markEnrollmentCompletedIfDone(studentId, lesson.getCourse().getId());
+        LessonSubmission submission = existingSubmission.get();
+        submission.setStatus(SubmissionStatus.COMPLETED);
+        submission.setSubmittedAt(LocalDateTime.now());
+
+        submission = submissionRepository.saveAndFlush(submission);
+        courseProgressService.recalcCourseProgressByUser(studentId, lesson.getCourse().getId());
         return submission;
     }
 
-    private AppUser getStudent(Long userId) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        if (user.getRole() != Role.STUDENT && user.getRole() != Role.ADMIN) {
-            throw new BadRequestException("Only STUDENT or ADMIN can submit lessons");
-        }
-        return user;
-    }
-
-    private Map<Integer, List<String>> validateAndNormalizeAnswersByQuestion(PracticeLesson lesson,
+    private Map<Long, List<String>> validateAndNormalizeAnswersByQuestion(PracticeLesson lesson,
                                                                              PracticeSubmissionRequest request) {
-        Map<Integer, List<String>> incoming = request.questionAnswers();
+        Map<Long, List<String>> incoming = request.questionAnswers();
         if (incoming == null || incoming.isEmpty()) {
             throw new BadRequestException("questionAnswers is required");
         }
 
-        Set<Integer> lessonQuestionIndexes = lesson.getQuestions().stream()
-                .map(PracticeQuestion::getQuestionIndex)
+        Set<Long> lessonQuestionIds = lesson.getQuestions().stream()
+                .map(PracticeQuestion::getId)
                 .collect(Collectors.toSet());
 
-        Set<Integer> incomingQuestionIndexes = incoming.keySet();
-        if (!lessonQuestionIndexes.equals(incomingQuestionIndexes)) {
+        Set<Long> incomingQuestionIndexes = incoming.keySet();
+        if (!lessonQuestionIds.equals(incomingQuestionIndexes)) {
             throw new BadRequestException("questionAnswers must contain answers for all lesson questions and only for them");
         }
 
-        Map<Integer, PracticeQuestion> questionsByIndex = lesson.getQuestions().stream()
-                .collect(Collectors.toMap(PracticeQuestion::getQuestionIndex, q -> q));
+        Map<Long, PracticeQuestion> questionsById = lesson.getQuestions().stream()
+                .collect(Collectors.toMap(PracticeQuestion::getId, q -> q));
 
-        Map<Integer, List<String>> normalized = new HashMap<>();
-        for (Integer questionIndex : lessonQuestionIndexes) {
-            PracticeQuestion question = questionsByIndex.get(questionIndex);
-            List<String> answers = normalizeList(incoming.get(questionIndex));
+        Map<Long, List<String>> normalized = new HashMap<>();
+        for (Long questionId : lessonQuestionIds) {
+            PracticeQuestion question = questionsById.get(questionId);
+            List<String> answers = normalizeList(incoming.get(questionId));
+
+            if (answers.isEmpty()) {
+                throw new BadRequestException("Требуется указать ответы для вопроса с id=" + questionId);
+            }
 
             if (question.getQuestionType() == QuestionType.OPEN_ANSWER || question.getQuestionType() == QuestionType.SINGLE_CHOICE) {
-                normalized.put(questionIndex, List.of(answers.getFirst()));
+                normalized.put(questionId, List.of(answers.getFirst()));
                 continue;
             }
 
-            normalized.put(questionIndex, answers);
+            normalized.put(questionId, answers);
         }
 
         return normalized;
     }
 
     private List<QuestionProgress> buildOpenQuestionProgressForSubmit(PracticeLesson lesson,
-                                                                      Map<Integer, List<String>> answersByQuestion,
-                                                                      List<QuestionProgress> existingProgress,
-                                                                      boolean reworkSubmission) {
-        Map<Integer, QuestionProgress> existingProgressByQuestionIndex = Optional.ofNullable(existingProgress)
+                                                                      Map<Long, List<String>> answersByQuestion,
+                                                                      List<QuestionProgress> existingProgress) {
+        Map<Long, QuestionProgress> existingProgressByQuestionId = Optional.ofNullable(existingProgress)
                 .orElse(List.of())
                 .stream()
-                .collect(Collectors.toMap(QuestionProgress::getQuestionIndex, q -> q, (left, right) -> right));
+                .collect(Collectors.toMap(QuestionProgress::getQuestionId, q -> q, (left, right) -> right));
 
         return lesson.getQuestions().stream()
                 .sorted(Comparator.comparing(PracticeQuestion::getQuestionIndex))
                 .map(question -> {
-                    Integer questionIndex = question.getQuestionIndex();
-                    QuestionProgress progress = existingProgressByQuestionIndex.getOrDefault(questionIndex, new QuestionProgress());
-                    progress.setQuestionIndex(questionIndex);
-                    progress.setAnswers(answersByQuestion.getOrDefault(questionIndex, List.of()));
-                    progress.setReviewStatus(OpenReviewStatus.PENDING_REVIEW);
-                    progress.setAwardedPoints(0);
-                    progress.setPointsType(null);
+                    QuestionProgress progress = existingProgressByQuestionId.getOrDefault(question.getId(), new QuestionProgress());
+                    // вопросы, которые УЖЕ финализированы - не обновляются. Здесь только новые и не-финальные
+                    if (progress.getReviewStatus() == null || !progress.getReviewStatus().isFinal()) {
+                        progress.setQuestionId(question.getId());
+                        progress.setAnswers(answersByQuestion.getOrDefault(question.getId(), List.of()));
+                        progress.setReviewStatus(OpenReviewStatus.PENDING_REVIEW);
+                        progress.setPointsType(null);
+                    }
 
                     return progress;
                 }).toList();
     }
 
     private List<QuestionProgress> buildTestQuestionProgress(PracticeLesson lesson,
-                                                             Map<Integer, List<String>> answersByQuestion) {
+                                                             Map<Long, List<String>> answersByQuestion) {
         return lesson.getQuestions().stream()
                 .sorted(Comparator.comparing(PracticeQuestion::getQuestionIndex))
                 .filter(question -> QuestionType.TEST_QUESTIONS.contains(question.getQuestionType()))
                 .map(question -> {
-                    List<String> selectedAnswers = answersByQuestion.getOrDefault(question.getQuestionIndex(), List.of());
+                    List<String> selectedAnswers = answersByQuestion.getOrDefault(question.getId(), List.of());
                     List<String> correctAnswers = normalizeList(question.getCorrectAnswers());
                     QuestionPointsType pointsType = practiceScoringPolicy.resolveTestQuestionPointsType(question, selectedAnswers, correctAnswers);
-                    int awardedPoints = switch (pointsType) {
-                        case FULL -> question.getFullPoints();
-                        case PARTIAL -> question.getPartialPoints();
-                        case ZERO -> 0;
-                    };
 
                     return QuestionProgress.builder()
-                            .questionIndex(question.getQuestionIndex())
+                            .questionId(question.getId())
                             .answers(selectedAnswers)
                             .pointsType(pointsType)
-                            .awardedPoints(awardedPoints)
                             .reviewStatus(null)
                             .reviewComment(null)
                             .build();

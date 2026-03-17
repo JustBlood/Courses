@@ -11,12 +11,12 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.PasswordSetupToken;
 import ru.just.monolithmvp.model.SubmissionStatus;
-import ru.just.monolithmvp.model.CourseProgressStatus;
-import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.CourseProgressRepository;
+import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.PasswordSetupTokenRepository;
 
@@ -1099,9 +1099,7 @@ class CourseLessonCrudIntegrationTest {
                 .reduce((a, b) -> b)
                 .orElseThrow();
 
-        assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
-        assertThat(submission.getCompleted()).isTrue();
-        assertThat(submission.getPointsAwarded()).isEqualTo(2);
+        assertThat(submission.getStatus()).isEqualTo(SubmissionStatus.COMPLETED);
 
         String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")
                         .header("Authorization", "Bearer " + studentToken))

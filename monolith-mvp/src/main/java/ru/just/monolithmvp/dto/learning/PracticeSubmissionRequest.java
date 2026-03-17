@@ -7,7 +7,7 @@ import java.util.Map;
 
 @Schema(description = "Ответ студента на практический урок")
 public record PracticeSubmissionRequest(
-        @Schema(description = "Ответы по индексам вопросов: questionIndex -> answers[]")
-        Map<Integer, List<String>> questionAnswers
+        @Schema(description = "Ответы по id вопросов: questionId -> answers[]")
+        Map<Long, List<String>> questionAnswers
 ) {
 }

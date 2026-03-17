@@ -6,6 +6,7 @@ import ru.just.monolithmvp.model.QuestionType;
 import java.util.List;
 
 public record LearnerPracticeQuestionDto(
+        Long id,
         Integer position,
         QuestionType questionType,
         String questionText,

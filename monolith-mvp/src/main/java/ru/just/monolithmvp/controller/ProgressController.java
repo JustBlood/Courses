@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
+import ru.just.monolithmvp.dto.ResetLessonProgressRequest;
+import ru.just.monolithmvp.dto.ResetStudentLessonProgressRequest;
 import ru.just.monolithmvp.dto.ResetStudentProgressRequest;
 import ru.just.monolithmvp.dto.course.CourseSummaryDto;
 import ru.just.monolithmvp.dto.learning.PendingSubmissionDto;
@@ -92,7 +94,7 @@ public class ProgressController {
         return ResponseEntity.ok(statisticsService.courseStats(courseId));
     }
 
-    @PostMapping("/users/reset")
+    @PostMapping("/courses/user/reset")
     @Operation(summary = "Сбросить прогресс пользователя по курсу")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс пользователя по курсу сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
@@ -101,6 +103,28 @@ public class ProgressController {
     public ResponseEntity<ApiResponse> resetStudentProgressByCourse(@RequestBody ResetStudentProgressRequest resetRequest) {
         courseService.resetStudentCourseProgress(resetRequest.userId(), resetRequest.courseId());
         return ResponseEntity.ok(new ApiResponse("Student progress has been cleared"));
+    }
+
+    @PostMapping("/lessons/user/reset")
+    @Operation(summary = "Сбросить прогресс пользователя по уроку")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс пользователя по уроку сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не записан на курс/курс не существует/пользователь не существует", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> resetStudentProgressByLesson(@RequestBody ResetStudentLessonProgressRequest resetRequest) {
+        courseService.resetStudentLessonProgress(resetRequest.userId(), resetRequest.courseId(), resetRequest.lessonId());
+        return ResponseEntity.ok(new ApiResponse("Student progress has been cleared"));
+    }
+
+    @PostMapping("/lessons/{lessonId}/reset")
+    @Operation(summary = "Сбросить прогресс всех пользователей по уроку")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс всех пользователей по уроку сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не записан на курс/курс не существует/пользователь не существует", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> resetLessonProgressForAllUsers(@RequestBody ResetLessonProgressRequest resetRequest) {
+        courseService.resetLessonProgressForAll(resetRequest.courseId(), resetRequest.lessonId());
+        return ResponseEntity.ok(new ApiResponse("Lesson progress has been cleared for all users"));
     }
 
     @GetMapping(value = "/reports/summary.csv", produces = MediaType.TEXT_PLAIN_VALUE)

@@ -17,7 +17,9 @@ import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,7 +33,6 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
     private final LearningGroupRepository learningGroupRepository;
     private final AppUserRepository userRepository;
-    private final CourseLearnerReadService courseReadService;
     private final CourseEnrollmentLifecycleService courseEnrollmentLifecycleService;
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
@@ -39,7 +40,9 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
 
     @Transactional
     public void enrollUnenrollStudents(Long courseId, Set<Long> idsToEnroll, Set<Long> idsToUnEnroll) {
-
+        if (!courseRepository.existsById(courseId)) {
+            throw new NotFoundException("Course %d not found".formatted(courseId));
+        }
         idsToEnroll.forEach(id -> courseEnrollmentLifecycleService.assignToCourse(id, courseId));
         idsToUnEnroll.forEach(id -> courseEnrollmentLifecycleService.unassignFromCourse(id, courseId));
     }
@@ -53,7 +56,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     @Transactional
     @Override
     public void enrollStudentToCourse(Long courseId, Long userId) {
-        Course course = courseReadService.getCourseEntity(courseId);
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("course not found"));
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
@@ -62,7 +65,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
 
     @Transactional(readOnly = true)
     public UserInNotInListsDto getEnrollmentLists(Long courseId) {
-        courseReadService.getCourseEntity(courseId);
+        courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("course not found"));
 
         List<AppUser> enrolledStudents = enrollmentRepository.findByCourseId(courseId).stream()
                 .map(Enrollment::getUser)
@@ -85,7 +88,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     @Transactional
     public void assignReviewerToCourse(Long courseId, Long reviewerId) {
         String actor = resolveCurrentActor();
-        Course course = courseReadService.getCourseEntity(courseId);
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("course not found"));
         AppUser reviewer = userRepository.findById(reviewerId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + reviewerId));
         if (reviewer.getRole() != Role.ADMIN) {
@@ -122,7 +125,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
 
     @Transactional
     public void assignGroupToCourse(Long courseId, UUID groupId) {
-        Course course = courseReadService.getCourseEntity(courseId);
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new NotFoundException("course not found"));
         LearningGroup group = learningGroupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
 

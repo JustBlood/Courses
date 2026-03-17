@@ -9,6 +9,7 @@ public record LearnerLessonSummaryDto(
         LessonType lessonType,
         Boolean blocked,
         String blockReason,
+        Integer fullPoints,
         LessonProgressDto lessonProgress
 ) {
 }

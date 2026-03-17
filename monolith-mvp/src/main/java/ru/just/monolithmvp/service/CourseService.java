@@ -1,16 +1,18 @@
 package ru.just.monolithmvp.service;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import ru.just.monolithmvp.dto.course.*;
-import ru.just.monolithmvp.dto.lesson.*;
+import ru.just.monolithmvp.dto.lesson.LessonDto;
 import ru.just.monolithmvp.dto.section.SectionWithCoursesDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.mapper.CourseMapper;
 import ru.just.monolithmvp.mapper.LessonMapper;
-import ru.just.monolithmvp.model.*;
+import ru.just.monolithmvp.model.Course;
+import ru.just.monolithmvp.model.Lesson;
 import ru.just.monolithmvp.repository.CourseRepository;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonRepository;
@@ -37,6 +39,7 @@ public class CourseService {
     private final SectionService sectionService;
     private final FileStorageService fileStorageService;
 
+    private final CourseLessonAdminService lessonAdminService;
     private final CourseLearnerReadService courseLearnerReadService;
     private final CourseAssignmentService courseAssignmentService;
     private final CourseEnrollmentLifecycleService courseEnrollmentLifecycleService;
@@ -46,7 +49,7 @@ public class CourseService {
         Course course = new Course();
         applyCourseFields(course, request);
         course.setCreatedByAdminId(securityUtils.currentUserId());
-        return toCourseDtoWithPublicCover(courseRepository.save(course));
+        return courseMapper.toDto(courseRepository.save(course));
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +75,7 @@ public class CourseService {
         List<LessonDto> lessons = lessonRepository.findByCourseIdOrderByPositionAsc(courseId).stream()
                 .map(lessonMapper::toDto)
                 .toList();
-        return new CourseAdminDetailsDto(toCourseDtoWithPublicCover(course), lessons);
+        return new CourseAdminDetailsDto(courseMapper.toDto(course), lessons);
     }
 
     @Transactional
@@ -84,7 +87,7 @@ public class CourseService {
         if (!Objects.equals(oldCoverPath, course.getCoverFilePath())) {
             fileStorageService.deleteIfExists(oldCoverPath);
         }
-        return toCourseDtoWithPublicCover(courseRepository.save(course));
+        return courseMapper.toDto(courseRepository.save(course));
     }
 
     @Transactional
@@ -98,12 +101,10 @@ public class CourseService {
     }
 
     @Transactional(readOnly = true)
-    public List<CourseDto> getMyCourses() {
+    public List<CourseLearnerDto> getMyCourses() {
         Long userId = securityUtils.currentUserId();
-        return enrollmentRepository.findByUserId(userId).stream()
-                .map(Enrollment::getCourse)
-                .map(this::toCourseDtoWithPublicCover)
-                .toList();
+
+        return courseLearnerReadService.getCoursesForLearner(userId);
     }
 
     @Transactional
@@ -138,17 +139,27 @@ public class CourseService {
     }
 
     private void applyCourseFields(Course course, CreateCourseRequest request) {
-        course.setTitle(request.title());
-        course.setDescription(request.description());
-        course.setAuthorFullName(request.authorFullName());
-        final String newCoverFilePath = fileStorageService.normalizeStoredPath(request.coverFilePath());
-        if (newCoverFilePath != null && !fileStorageService.isFileExistsByRelativePath(newCoverFilePath)) {
-            throw new BadRequestException("New avatar path is not valid or file does not exists.");
+        course.setTitle(patchValue(request.title(), course.getTitle()));
+        course.setDescription(patchValue(request.description(), course.getDescription()));
+        course.setAuthorFullName(patchValue(request.authorFullName(), course.getAuthorFullName()));
+        if (request.coverFilePath() != null) {
+            final String newCoverFilePath = fileStorageService.normalizeStoredPath(request.coverFilePath());
+            if (newCoverFilePath != null && !fileStorageService.isFileExistsByRelativePath(newCoverFilePath)) {
+                throw new BadRequestException("New avatar path is not valid or file does not exists.");
+            }
+            course.setCoverFilePath(newCoverFilePath);
         }
-        course.setCoverFilePath(newCoverFilePath);
-        course.setDeadlineDays(request.deadlineDays());
-        course.setLessonsFreeOrder(Boolean.TRUE.equals(request.lessonsFreeOrder()));
-        course.setSection(request.sectionId() == null ? sectionService.getDefaultSection() : sectionService.getSectionEntity(request.sectionId()));
+        course.setDeadlineDays(patchValue(request.deadlineDays(), course.getDeadlineDays()));
+        course.setLessonsFreeOrder(patchValue(patchValue(request.lessonsFreeOrder(), course.getLessonsFreeOrder()), false));
+        course.setSection(request.sectionId() != null
+                ? sectionService.getSectionEntity(request.sectionId())
+                : course.getSection() != null
+                    ? course.getSection()
+                    : sectionService.getDefaultSection());
+    }
+
+    private <T> T patchValue(T requestedValue, T currentValue) {
+        return requestedValue != null ? requestedValue : currentValue;
     }
 
     private CourseSummaryDto toCourseSummaryDto(Course course) {
@@ -167,25 +178,6 @@ public class CourseService {
         );
     }
 
-    private CourseDto toCourseDtoWithPublicCover(Course course) {
-        CourseDto dto = courseMapper.toDto(course);
-        return new CourseDto(
-                dto.id(),
-                dto.title(),
-                dto.description(),
-                dto.authorFullName(),
-                fileStorageService.normalizeStoredPath(dto.coverFilePath()),
-                dto.passingThresholdPercent(),
-                dto.deadlineDays(),
-                dto.lessonsFreeOrder(),
-                dto.blockAfterDeadline(),
-                dto.includeInOverallStats(),
-                dto.sectionId(),
-                dto.sectionTitle(),
-                dto.sectionPriority()
-        );
-    }
-
     private List<SectionWithCoursesDto> toSectionWithCoursesDto(List<Course> courses) {
         return courses.stream()
                 .collect(Collectors.groupingBy(Course::getSection)).entrySet()
@@ -196,5 +188,18 @@ public class CourseService {
                 })
                 .sorted(Comparator.comparing(SectionWithCoursesDto::priority))
                 .toList();
+    }
+
+    public void resetStudentLessonProgress(@NotNull Long userId, @NotNull Long courseId, @NotNull Long lessonId) {
+        if (!enrollmentRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new ru.just.monolithmvp.exception.NotFoundException("Enrollment not found for user/course");
+        }
+
+        lessonAdminService.resetLessonProgress(userId, courseId, lessonId);
+    }
+
+    @Transactional
+    public void resetLessonProgressForAll(@NotNull Long courseId, @NotNull Long lessonId) {
+        lessonAdminService.resetLessonProgressForAll(courseId, lessonId);
     }
 }

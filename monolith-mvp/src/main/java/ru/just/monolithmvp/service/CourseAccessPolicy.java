@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class CourseAccessPolicy {
     private final EnrollmentRepository enrollmentRepository;
+    private final CourseProgressService courseProgressService;
 
     @Transactional(readOnly = true)
     public boolean isUserEnrolled(Long userId, Long courseId) {
@@ -28,16 +29,22 @@ public class CourseAccessPolicy {
 
     @Transactional(readOnly = true)
     public void assertCourseDeadlineNotExceededForStudent(Long userId, Long courseId) {
+        if (isCourseDeadlineExceeded(userId, courseId)) {
+            courseProgressService.recalcCourseProgressByUserInNewTransaction(userId, courseId);
+            throw new BadRequestException("Course deadline exceeded");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isCourseDeadlineExceeded(Long userId, Long courseId) {
         Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new BadRequestException("Student is not enrolled on this course"));
         Integer deadlineDays = enrollment.getCourse().getDeadlineDays();
         if (deadlineDays == null) {
-            return;
+            return false;
         }
 
         LocalDateTime deadlineAt = enrollment.getEnrolledAt().plusDays(deadlineDays);
-        if (LocalDateTime.now().isAfter(deadlineAt)) {
-            throw new BadRequestException("Course deadline exceeded");
-        }
+        return LocalDateTime.now().isAfter(deadlineAt);
     }
 }

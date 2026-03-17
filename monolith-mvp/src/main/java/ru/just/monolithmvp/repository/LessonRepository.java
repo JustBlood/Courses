@@ -11,11 +11,9 @@ import java.util.Optional;
 
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
     List<Lesson> findByCourse_IdAndPositionGreaterThan(Long courseId, Integer deletingLessonPosition);
-    List<Lesson> findByCourse_IdAndPositionGreaterThanEqualOrderByPositionDesc(Long courseId, Integer position);
     List<Lesson> findByCourse_IdAndPositionBetweenOrderByPositionAsc(Long courseId, Integer fromInclusive, Integer toInclusive);
     List<Lesson> findByCourseIdOrderByPositionAsc(Long courseId);
     Lesson findFirstByCourse_IdOrderByPositionDesc(Long courseId);
-    Optional<Lesson> findFirstByCourse_IdAndPositionLessThanOrderByPositionDesc(Long courseId, Integer position);
     @Query("select l from PracticeLesson l where l.id = ?1")
     Optional<PracticeLesson> findPracticeLessonById(Long lessonId);
 
@@ -39,17 +37,11 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     @Query("""
             select count(l) > 0
-            from Lesson l
+            from Lesson l join LessonSubmission s on  l.id = s.lesson.id and s.student.id = :studentId
             where l.course.id = :courseId
               and l.position < :targetPosition
               and l.stopLesson = true
-              and not exists (
-                    select s.id
-                    from LessonSubmission s
-                    where s.lesson.id = l.id
-                      and s.student.id = :studentId
-                      and s.completed = true
-              )
+              and s.status != 'COMPLETED'
             """)
     boolean existsUncompletedStopLessonBeforePosition(Long courseId, Long studentId, Integer targetPosition);
 }

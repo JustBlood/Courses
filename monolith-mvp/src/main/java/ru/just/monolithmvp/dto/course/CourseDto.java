@@ -6,11 +6,8 @@ public record CourseDto(
         String description,
         String authorFullName,
         String coverFilePath,
-        Integer passingThresholdPercent,
         Integer deadlineDays,
         Boolean lessonsFreeOrder,
-        Boolean blockAfterDeadline,
-        Boolean includeInOverallStats,
         Long sectionId,
         String sectionTitle,
         Integer sectionPriority

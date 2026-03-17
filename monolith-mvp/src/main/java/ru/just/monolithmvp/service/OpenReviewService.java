@@ -25,7 +25,7 @@ public class OpenReviewService {
     private final LessonSubmissionRepository submissionRepository;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
-    private final EnrollmentProgressService enrollmentProgressService;
+    private final CourseProgressService courseProgressService;
     private final PracticeScoringPolicy practiceScoringPolicy;
 
     @Transactional(readOnly = true)
@@ -45,7 +45,7 @@ public class OpenReviewService {
                         s.getLesson().getCourse().getTitle(),
                         s.getStudent().getId(),
                         s.getStudent().getFullName(),
-                        s.getFirstSubmittedAt(),
+                        s.getSubmittedAt(),
                         Math.max(Optional.ofNullable(s.getAttemptCounter()).orElse(0), 1)
                 )).toList();
     }
@@ -58,32 +58,34 @@ public class OpenReviewService {
 
         final PracticeLesson practiceLesson = validateAndGetPracticeLesson(submission, reviewerId);
 
-        Map<Integer, QuestionProgress> progressByQuestionIndex = Optional.ofNullable(submission.getQuestionProgress())
+        Map<Long, QuestionProgress> progressByQuestionId = Optional.ofNullable(submission.getQuestionProgress())
                 .orElse(List.of())
                 .stream()
-                .collect(Collectors.toMap(QuestionProgress::getQuestionIndex, q -> q, (left, right) -> right));
+                .collect(Collectors.toMap(QuestionProgress::getQuestionId, q -> q, (left, right) -> right));
 
         return practiceLesson.getQuestions().stream()
                 .sorted(Comparator.comparing(PracticeQuestion::getQuestionIndex))
                 .map(question -> {
-                    QuestionProgress questionProgress = progressByQuestionIndex.get(question.getQuestionIndex());
+                    QuestionProgress questionProgress = progressByQuestionId.get(question.getId());
                     OpenReviewStatus reviewStatus = questionProgress != null && questionProgress.getReviewStatus() != null
                             ? questionProgress.getReviewStatus()
                             : OpenReviewStatus.PENDING_REVIEW;
-                    Integer awardedPoints = questionProgress != null && questionProgress.getAwardedPoints() != null
-                            ? questionProgress.getAwardedPoints()
-                            : 0;
+                    Integer awardedPoints = questionProgress != null && questionProgress.getPointsType() != null
+                            ? practiceScoringPolicy.scoreQuestion(questionProgress.getPointsType(), question)
+                            : null;
                     List<String> answers = questionProgress != null && questionProgress.getAnswers() != null
                             ? questionProgress.getAnswers()
                             : List.of();
 
                     return new PendingSubmissionQuestionDto(
+                            question.getId(),
                             question.getQuestionIndex(),
                             reviewStatus,
                             question.getQuestionText(),
                             question.getTrainerHint(),
                             awardedPoints,
                             question.getFullPoints(),
+                            question.getPartialPoints(),
                             answers.isEmpty() ? null : answers.getFirst(),
                             questionProgress == null ? null : questionProgress.getReviewComment()
                     );
@@ -100,82 +102,61 @@ public class OpenReviewService {
 
         final PracticeLesson practiceLesson = validateSubmissionForReviewAndGetPracticeLesson(submission, reviewerId);
 
-        Map<Integer, ReviewQuestionDecisionDto> questionReviews = request.questionReviews();
+        Map<Long, ReviewQuestionDecisionDto> questionReviews = request.questionReviews();
         if (questionReviews == null || questionReviews.isEmpty()) {
             throw new BadRequestException("questionReviews is required");
         }
 
-        Set<Integer> lessonQuestionIndexes = practiceLesson.getQuestions().stream()
-                .map(PracticeQuestion::getQuestionIndex)
+        Set<Long> lessonQuestionIndexes = practiceLesson.getQuestions().stream()
+                .map(PracticeQuestion::getId)
                 .collect(Collectors.toSet());
         if (!lessonQuestionIndexes.equals(questionReviews.keySet())) {
             throw new BadRequestException("questionReviews must contain decisions for all lesson questions and only for them");
         }
 
-        Map<Integer, QuestionProgress> existingProgressByQuestionIndex = Optional.ofNullable(submission.getQuestionProgress())
+        Map<Long, QuestionProgress> existingProgressByQuestionId = Optional.ofNullable(submission.getQuestionProgress())
                 .orElse(List.of())
                 .stream()
-                .collect(Collectors.toMap(QuestionProgress::getQuestionIndex, q -> q, (left, right) -> right));
+                .collect(Collectors.toMap(QuestionProgress::getQuestionId, q -> q, (left, right) -> right));
 
         boolean hasRework = false;
         int totalAwardedPoints = 0;
         List<QuestionProgress> nextProgress = new ArrayList<>();
 
         for (PracticeQuestion question : practiceLesson.getQuestions()) {
-            Integer questionIndex = question.getQuestionIndex();
-            ReviewQuestionDecisionDto decision = questionReviews.get(questionIndex);
-            if (decision == null || decision.submissionStatus() == null) {
-                throw new BadRequestException("submissionStatus is required for questionIndex=" + questionIndex);
-            }
-
+            ReviewQuestionDecisionDto decision = questionReviews.get(question.getId());
             OpenReviewStatus reviewStatus = decision.submissionStatus();
-            if (reviewStatus == OpenReviewStatus.PENDING_REVIEW) {
-                throw new BadRequestException("PENDING_REVIEW is not allowed as review decision");
-            }
+            validateReviewQuestionDecision(reviewStatus, decision, question.getId());
 
-            int awardedPoints = Optional.ofNullable(decision.awardedPoints()).orElse(0);
-            if ((reviewStatus == OpenReviewStatus.REWORK || reviewStatus == OpenReviewStatus.REJECTED) && awardedPoints != 0) {
-                awardedPoints = 0;
-            }
-            if (reviewStatus == OpenReviewStatus.ACCEPTED) {
-                if (awardedPoints < 0 || awardedPoints > question.getFullPoints()) {
-                    throw new BadRequestException("ACCEPTED awardedPoints must be in range 0..fullPoints");
-                }
-                totalAwardedPoints += awardedPoints;
-            }
+            int awardedPoints = decision.pointsType() != null
+                    ? practiceScoringPolicy.scoreQuestion(decision.pointsType(), question)
+                    : 0;
+            totalAwardedPoints += awardedPoints;
             if (reviewStatus == OpenReviewStatus.REWORK) {
                 hasRework = true;
             }
 
-            QuestionProgress questionProgress = existingProgressByQuestionIndex.getOrDefault(questionIndex, new QuestionProgress());
-            questionProgress.setQuestionIndex(questionIndex);
+            QuestionProgress questionProgress = existingProgressByQuestionId.getOrDefault(question.getId(), new QuestionProgress());
+            questionProgress.setQuestionId(question.getId());
             questionProgress.setAnswers(Optional.ofNullable(questionProgress.getAnswers()).orElse(List.of()));
             questionProgress.setReviewStatus(reviewStatus);
-            questionProgress.setAwardedPoints(awardedPoints);
-            questionProgress.setPointsType(practiceScoringPolicy.resolveOpenQuestionPointsType(awardedPoints, question.getFullPoints()));
+            questionProgress.setPointsType(decision.pointsType());
             questionProgress.setReviewComment(decision.reviewComment());
             nextProgress.add(questionProgress);
         }
 
-        final Integer maxPointsByAllQuestions = practiceLesson.getQuestions().stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).get();
-        boolean finalPassed = !hasRework
-                && totalAwardedPoints * 100 >= maxPointsByAllQuestions * practiceLesson.getPassingThresholdPercent();
+        boolean finalPassed = !hasRework && practiceLesson.passedByPoints(totalAwardedPoints);
         SubmissionStatus finalStatus = hasRework
-                ? SubmissionStatus.REWORK
-                : (finalPassed ? SubmissionStatus.COMPLETE : SubmissionStatus.INCOMPLETE);
-        int pointsAwarded = hasRework ? 0 : (finalPassed ? totalAwardedPoints : 0);
+                ? SubmissionStatus.REWORKING
+                : (finalPassed ? SubmissionStatus.COMPLETED : SubmissionStatus.INCOMPLETED);
 
-        submission.setCompleted(!hasRework);
         submission.setStatus(finalStatus);
-        submission.setPointsAwarded(pointsAwarded);
         submission.setQuestionProgress(nextProgress);
         submission.setReviewedByAdminId(reviewerId);
         submission.setReviewedAt(LocalDateTime.now());
 
         submission = submissionRepository.save(submission);
-        if (finalPassed) {
-            enrollmentProgressService.markEnrollmentCompletedIfDone(submission.getStudent().getId(), submission.getLesson().getCourse().getId());
-        }
+        courseProgressService.recalcCourseProgressByUser(submission.getStudent().getId(), submission.getLesson().getCourse().getId());
 
         businessEventLogger.log("learning.open_submission.review", "success",
                 "submissionId", submission.getId(),
@@ -186,21 +167,29 @@ public class OpenReviewService {
                 "fromStatus", previousStatus,
                 "toStatus", finalStatus,
                 "completed", finalPassed,
-                "points", pointsAwarded);
+                "points", totalAwardedPoints);
 
         return new SubmissionResultDto(
                 submission.getId(),
-                submission.getStatus(),
-                submission.getCompleted(),
-                "Submission reviewed"
+                submission.getStatus()
         );
+    }
+
+    private static void validateReviewQuestionDecision(OpenReviewStatus reviewStatus, ReviewQuestionDecisionDto decision, Long questionId) {
+        if (reviewStatus == OpenReviewStatus.PENDING_REVIEW) {
+            throw new BadRequestException("PENDING_REVIEW is not allowed as review decision");
+        }
+        if ((OpenReviewStatus.REWORK == reviewStatus || OpenReviewStatus.REJECTED == reviewStatus)
+                && decision.pointsType() != null) {
+            throw new BadRequestException("pointsType should not be defined if reviewStatus not COMPLETED. Bad questionId: " + questionId);
+        }
     }
 
     private PracticeLesson validateAndGetPracticeLesson(LessonSubmission submission, Long reviewerId) {
         if (!courseAssignmentService.canReviewCourse(submission.getLesson().getCourse().getId(), reviewerId)) {
             throw new AccessDeniedException("Admin is not assigned as reviewer for this course");
         }
-        if (Boolean.TRUE.equals(submission.getCompleted())) {
+        if (SubmissionStatus.FINAL_STATUSES.contains(submission.getStatus())) {
             throw new BadRequestException("Submission is already finalized");
         }
         if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW) {
@@ -212,7 +201,7 @@ public class OpenReviewService {
     }
 
     private PracticeLesson validateSubmissionForReviewAndGetPracticeLesson(LessonSubmission submission, Long reviewerId) {
-        if (Boolean.TRUE.equals(submission.getCompleted())) {
+        if (SubmissionStatus.FINAL_STATUSES.contains(submission.getStatus())) {
             throw new BadRequestException("Submission is already finalized");
         }
         if (submission.getStatus() != SubmissionStatus.PENDING_REVIEW) {

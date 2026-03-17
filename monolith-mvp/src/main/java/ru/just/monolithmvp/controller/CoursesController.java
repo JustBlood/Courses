@@ -78,7 +78,7 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<CourseDto> updateCourse(@PathVariable Long courseId,
-                                                  @Valid @RequestBody CreateCourseRequest request) {
+                                                  @RequestBody CreateCourseRequest request) {
         return ResponseEntity.ok(courseService.updateCourse(courseId, request));
     }
 

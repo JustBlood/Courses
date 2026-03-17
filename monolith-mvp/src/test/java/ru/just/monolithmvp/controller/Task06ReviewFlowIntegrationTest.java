@@ -150,9 +150,7 @@ class Task06ReviewFlowIntegrationTest {
         assertThat(reworkReview.get("completed").asBoolean()).isFalse();
 
         LessonSubmission afterRework = lessonSubmissionRepository.findById(submissionId).orElseThrow();
-        assertThat(afterRework.getStatus()).isEqualTo(SubmissionStatus.REWORK);
-        assertThat(afterRework.getCompleted()).isFalse();
-        assertThat(afterRework.getPointsAwarded()).isZero();
+        assertThat(afterRework.getStatus()).isEqualTo(SubmissionStatus.REWORKING);
 
         String pendingAfterReworkResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/pending")
                         .header("Authorization", "Bearer " + reviewerToken))
@@ -194,9 +192,7 @@ class Task06ReviewFlowIntegrationTest {
         assertThat(finalizeReview.get("completed").asBoolean()).isTrue();
 
         LessonSubmission finalizedSubmission = lessonSubmissionRepository.findById(submissionId).orElseThrow();
-        assertThat(finalizedSubmission.getStatus()).isEqualTo(SubmissionStatus.COMPLETE);
-        assertThat(finalizedSubmission.getCompleted()).isTrue();
-        assertThat(finalizedSubmission.getPointsAwarded()).isEqualTo(10);
+        assertThat(finalizedSubmission.getStatus()).isEqualTo(SubmissionStatus.COMPLETED);
 
         String pendingAfterFinalizeResponse = mockMvc.perform(get("/api/v1/admin/progress/reviews/pending")
                         .header("Authorization", "Bearer " + reviewerToken))
