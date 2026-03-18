@@ -9,8 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -32,6 +32,39 @@ class UsersControllerValidationIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Test
+    void createUser_shouldPersistSnils() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        String createResponse = mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "User With Snils",
+                                  "email": "snils-user@example.com",
+                                  "role": "STUDENT",
+                                  "snils": "123-456-789 00"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long userId = objectMapper.readTree(createResponse).get("id").asLong();
+        assertThat(objectMapper.readTree(createResponse).get("snils").asText()).isEqualTo("123-456-789 00");
+
+        String getResponse = mockMvc.perform(get("/api/v1/admin/users/{userId}", userId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(getResponse).get("snils").asText()).isEqualTo("123-456-789 00");
+    }
 
     @Test
     void updateUser_shouldReturnBadRequest_forInvalidEmail() throws Exception {

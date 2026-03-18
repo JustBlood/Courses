@@ -10,6 +10,7 @@ public record UpdateUserRequest(
         Role role,
         String avatarFilePath,
         @Size(max = 255) String phone,
+        String snils,
         @Size(max = 2000) String comment,
         String password
 ) {

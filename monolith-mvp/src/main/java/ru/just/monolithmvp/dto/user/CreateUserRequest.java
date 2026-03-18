@@ -14,6 +14,7 @@ public record CreateUserRequest(
         @NotNull Role role,
         String avatarFilePath,
         String phone,
+        String snils,
         String comment,
         Long createdAt,
         String createdBy,

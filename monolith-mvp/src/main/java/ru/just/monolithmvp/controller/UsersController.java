@@ -327,7 +327,7 @@ public class UsersController {
         return ResponseEntity.ok(new ApiResponse("Programs assigned to group"));
     }
 
-    @DeleteMapping("/groups/{groupId}/courses/assign")
+    @DeleteMapping("/groups/{groupId}/programs/assign")
     @Operation(summary = "Удалить назначения курсов с группы", description = "Удаляет назначения курсов с группы")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи удалены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),

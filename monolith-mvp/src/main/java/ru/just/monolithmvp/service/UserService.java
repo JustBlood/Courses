@@ -78,6 +78,7 @@ public class UserService {
             user.setActivation(true);
             user.setEnabled(!sendInvite);
             user.setPhone(request.phone());
+            user.setSnils(request.snils());
             user.setComment(request.comment());
             user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now(Clock.systemUTC()) : LocalDateTime.ofEpochSecond(request.createdAt(), 0, ZoneOffset.UTC));
             user.setCreatedBy(
@@ -128,6 +129,7 @@ public class UserService {
             user.setEmail(request.email() != null ? request.email() : user.getEmail());
             user.setRole(request.role() != null ? request.role() : user.getRole());
             user.setPhone(request.phone() != null ? request.phone() : user.getPhone());
+            user.setSnils(request.snils() != null ? request.snils() : user.getSnils());
             user.setComment(request.comment() != null ? request.comment() : user.getComment());
             if (request.avatarFilePath() != null) {
                 String oldAvatarPath = user.getAvatarFilePath();
@@ -172,6 +174,7 @@ public class UserService {
                 && request.role() == null
                 && request.avatarFilePath() == null
                 && request.phone() == null
+                && request.snils() == null
                 && request.comment() == null
                 && request.password() == null) {
             throw new BadRequestException("At least one field must be provided for profile update");
@@ -214,6 +217,10 @@ public class UserService {
 
         if (request.phone() != null) {
             user.setPhone(request.phone().trim());
+        }
+
+        if (request.snils() != null) {
+            user.setSnils(request.snils().trim());
         }
 
         if (request.comment() != null) {
@@ -354,6 +361,7 @@ public class UserService {
                             ru.just.monolithmvp.model.Role.valueOf(roleRaw),
                             null,
                             val(r, 6),
+                            null,
                             val(r, 14),
                             parseDateTime(val(r, 19)).toEpochSecond(ZoneOffset.UTC),
                             val(r, 20),
@@ -611,6 +619,7 @@ public class UserService {
                 user.activation(),
                 user.enabled(),
                 user.phone(),
+                user.snils(),
                 null,
                 user.avatarFilePath(),
                 user.createdAt(),

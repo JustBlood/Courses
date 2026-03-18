@@ -1,5 +1,20 @@
 # System development progress
 
+## 2026-03-18 — User SNILS field propagation across domain and DTO contracts
+
+- Added `snils` to user domain and API contracts:
+  - `AppUser.snils` in persistence model;
+  - `UserDto.snils` in read model;
+  - `CreateUserRequest.snils` and `UpdateUserRequest.snils` in write contracts.
+- Wired SNILS handling in `UserService` create/update/profile-update flows and preserved the field in student-visible profile shaping.
+- Added Flyway migration:
+  - `V5__add_snils_to_users.sql` (`users.snils varchar(255)`).
+- Added integration test coverage for SNILS persistence in users validation suite:
+  - `UsersControllerValidationIntegrationTest.createUser_shouldPersistSnils`.
+- Verification status:
+  - module compilation succeeds (`mvn -f monolith-mvp/pom.xml -DskipTests compile`);
+  - targeted test run is currently blocked by pre-existing unrelated application context startup error due duplicate `DELETE /api/v1/admin/groups/{groupId}/courses/assign` mapping in `UsersController`.
+
 ## 2026-03-05 — Files storage URL strategy alignment
 
 - Unified files strategy for monolith backend:

@@ -13,6 +13,7 @@ public record UserDto(
         boolean activation,
         boolean enabled,
         String phone,
+        String snils,
         String comment,
         String avatarFilePath,
         Long createdAt,

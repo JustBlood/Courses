@@ -111,3 +111,6 @@ where status = 'INCOMPLETE';
 update lesson_submissions
 set status = 'REWORKING'
 where status = 'REWORK';
+
+alter table users
+    add column if not exists snils varchar(255);
