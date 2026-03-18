@@ -17,9 +17,18 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
+import ru.just.monolithmvp.dto.course.CourseSummaryDto;
+import ru.just.monolithmvp.dto.course.UnassignCoursesFromGroupRequest;
 import ru.just.monolithmvp.dto.group.*;
+import ru.just.monolithmvp.dto.program.ProgramSummaryDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
-import ru.just.monolithmvp.dto.user.*;
+import ru.just.monolithmvp.dto.user.ActivationRequest;
+import ru.just.monolithmvp.dto.user.CreateUserRequest;
+import ru.just.monolithmvp.dto.user.UpdateUserRequest;
+import ru.just.monolithmvp.dto.user.UserDto;
+import ru.just.monolithmvp.mapper.CourseMapper;
+import ru.just.monolithmvp.mapper.ProgramMapper;
+import ru.just.monolithmvp.service.GroupAssignmentService;
 import ru.just.monolithmvp.service.GroupService;
 import ru.just.monolithmvp.service.StatisticsService;
 import ru.just.monolithmvp.service.UserService;
@@ -41,7 +50,10 @@ import java.util.UUID;
 public class UsersController {
     private final UserService userService;
     private final GroupService groupService;
+    private final GroupAssignmentService groupAssignmentService;
     private final StatisticsService statisticsService;
+    private final CourseMapper courseMapper;
+    private final ProgramMapper programMapper;
 
     @PostMapping("/users")
     @Operation(summary = "Создать пользователя", description = "Создает пользователя и при необходимости отправляет ссылку для установки пароля")
@@ -126,7 +138,7 @@ public class UsersController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или попытка удалить текущего администратора", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Один или несколько пользователей не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
-    public ResponseEntity<ApiResponse> deleteUsers(@RequestBody @Valid IdsRequest request) {
+    public ResponseEntity<ApiResponse> deleteUsers(@RequestBody @Valid ru.just.monolithmvp.dto.common.IdsRequest request) {
         userService.deleteUsers(request.ids());
         return ResponseEntity.ok(new ApiResponse("Users deleted"));
     }
@@ -179,18 +191,19 @@ public class UsersController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список групп", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupDto.class))))
     })
-    public ResponseEntity<List<GroupDto>> groups() {
+    public ResponseEntity<List<GroupWithStatDto>> groups() {
         return ResponseEntity.ok(groupService.getGroups());
     }
 
-    @GetMapping("/groups/{groupId}/users")
-    @Operation(summary = "Получить участников группы", description = "Возвращает группу и ее участников")
+    @GetMapping("/groups/{groupId}")
+    @Operation(summary = "Получить полную информацию о группе")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Участники группы", content = @Content(schema = @Schema(implementation = GroupUsersDto.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Группа найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт типов групп", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа или пользователи не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
-    public ResponseEntity<GroupUsersDto> groupUsersById(@PathVariable UUID groupId) {
-        return ResponseEntity.ok(groupService.getGroupUsers(groupId));
+    public ResponseEntity<GroupFullInfoDto> getGroupFullInfoById(@PathVariable UUID groupId) {
+        return ResponseEntity.ok(groupService.getGroupFullInfoById(groupId));
     }
 
     @GetMapping("/groups/users")
@@ -202,6 +215,24 @@ public class UsersController {
         return ResponseEntity.ok(groupService.getGroupUsersByTitle(title));
     }
 
+    @GetMapping("/groups/users/{userId}")
+    @Operation(summary = "Получить список групп пользователя", description = "Возвращает список учебных групп конкретного пользователя")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список групп", content = @Content(array = @ArraySchema(schema = @Schema(implementation = GroupDto.class))))
+    })
+    public ResponseEntity<List<GroupDto>> getUserGroups(@PathVariable Long userId) {
+        return ResponseEntity.ok(groupService.getUserGroups(userId));
+    }
+
+    @GetMapping("/groups/{groupId}/users/availableToAssign")
+    @Operation(summary = "Получить список пользователей, доступных для записи в группу", description = "Возвращает список пользователей системы, которые могут быть записаны в группу")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список пользователей", content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserDto.class))))
+    })
+    public ResponseEntity<List<UserDto>> getUsersWithoutGroup(@PathVariable UUID groupId) {
+        return ResponseEntity.ok(groupService.getAvailableToAssignUsers(groupId));
+    }
+
     @PostMapping("/groups/{groupId}/members")
     @Operation(summary = "Добавить участников в группу", description = "Добавляет выбранных пользователей в группу")
     @ApiResponses(value = {
@@ -210,8 +241,8 @@ public class UsersController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа или пользователи не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> addUserToGroup(@PathVariable UUID groupId,
-                                                      @RequestBody @Valid GroupUsersRequest request) {
-        groupService.addUsersToGroup(groupId, request.userIds());
+                                                      @RequestBody @Valid IdsRequest request) {
+        groupService.addUsersToGroup(groupId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Users added to group"));
     }
 
@@ -223,8 +254,8 @@ public class UsersController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> removeUsersFromGroup(@PathVariable UUID groupId,
-                                                            @RequestBody @Valid GroupUsersRequest request) {
-        groupService.removeUsersFromGroup(groupId, request.userIds());
+                                                            @RequestBody @Valid IdsRequest request) {
+        groupService.removeUsersFromGroup(groupId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Users removed from group"));
     }
 
@@ -237,5 +268,75 @@ public class UsersController {
     public ResponseEntity<ApiResponse> deleteGroup(@PathVariable UUID groupId) {
         groupService.deleteGroup(groupId);
         return ResponseEntity.ok(new ApiResponse("Group deleted"));
+    }
+
+    @GetMapping("/groups/{groupId}/courses/assign")
+    @Operation(summary = "Получить список курсов, доступных для назначения на группу", description = "Возвращает список курсов системы, которые могут быть записаны в группу")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список пользователей", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseSummaryDto.class))))
+    })
+    public ResponseEntity<List<CourseSummaryDto>> getAvailableToAssignCourses(@PathVariable UUID groupId) {
+        return ResponseEntity.ok(groupAssignmentService.findCoursesNotAssignedToGroup(groupId).stream().map(courseMapper::toSummaryDto).toList());
+    }
+
+    @PostMapping("/groups/{groupId}/courses/assign")
+    @Operation(summary = "Назначить курсы группе", description = "Назначает выбранные курсы группе")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Курсы добавлены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт типов групп", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа или пользователи не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> assignCoursesToGroup(@PathVariable UUID groupId,
+                                                      @RequestBody @Valid IdsRequest request) {
+        groupAssignmentService.assignCoursesToGroup(groupId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Courses assigned to group"));
+    }
+
+    @DeleteMapping("/groups/{groupId}/courses/assign")
+    @Operation(summary = "Удалить назначения курсов с группы", description = "Удаляет назначения курсов с группы")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Курсы удалены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> unassignCoursesFromGroup(@PathVariable UUID groupId,
+                                                            @RequestBody @Valid UnassignCoursesFromGroupRequest request) {
+        groupAssignmentService.unassignCoursesFromGroup(groupId, request.courseIds(), request.deleteProgress());
+        return ResponseEntity.ok(new ApiResponse("Courses unassigned from group"));
+    }
+
+    @GetMapping("/groups/{groupId}/programs/assign")
+    @Operation(summary = "Получить список программ, доступных для назначения на группу", description = "Возвращает список программ системы, которые могут быть записаны в группу")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список программ", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProgramSummaryDto.class))))
+    })
+    public ResponseEntity<List<ProgramSummaryDto>> getAvailableToAssignPrograms(@PathVariable UUID groupId) {
+        return ResponseEntity.ok(groupAssignmentService.findProgramsNotAssignedToGroup(groupId).stream().map(programMapper::toSummaryDto).toList());
+    }
+
+    @PostMapping("/groups/{groupId}/programs/assign")
+    @Operation(summary = "Назначить программы группе", description = "Назначает выбранные программы группе")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Программы добавлены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или конфликт типов групп", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа или пользователи не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> assignProgramsToGroup(@PathVariable UUID groupId,
+                                                            @RequestBody @Valid IdsRequest request) {
+        groupAssignmentService.assignProgramsToGroup(groupId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Programs assigned to group"));
+    }
+
+    @DeleteMapping("/groups/{groupId}/courses/assign")
+    @Operation(summary = "Удалить назначения курсов с группы", description = "Удаляет назначения курсов с группы")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пользователи удалены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
+    })
+    public ResponseEntity<ApiResponse> unassignProgramsFromGroup(@PathVariable UUID groupId,
+                                                                @RequestBody @Valid IdsRequest request) {
+        groupAssignmentService.unassignProgramsFromGroup(groupId, request.ids());
+        return ResponseEntity.ok(new ApiResponse("Programs unassigned from group"));
     }
 }

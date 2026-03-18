@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
+import ru.just.monolithmvp.dto.group.GroupDto;
 import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
@@ -102,7 +103,7 @@ public class UserService {
                     "role", user.getRole(),
                     "invite", sendInvite);
 
-            return toUserDtoWithPublicAvatar(userMapper.toDto(user));
+            return userMapper.toDto(user);
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.create", "failure",
                     "actor", actor,
@@ -151,7 +152,7 @@ public class UserService {
                     "userId", savedUser.getId(),
                     "email", savedUser.getEmail(),
                     "role", savedUser.getRole());
-            return toUserDtoWithPublicAvatar(userMapper.toDto(savedUser));
+            return userMapper.toDto(savedUser, groupService.getUserGroups(userId));
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.update", "failure",
                     "actor", actor,
@@ -225,15 +226,12 @@ public class UserService {
             user.setEnabled(true);
         }
 
-        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
+        return userMapper.toDto(userRepository.save(user), groupService.getUserGroups(userId));
     }
 
     @Transactional(readOnly = true)
-    public StudentProfileDto getStudentProfile(Long userId) {
-        return new StudentProfileDto(
-                hideCommentForStudent(getUser(userId)),
-                groupService.getUserGroups(userId)
-        );
+    public UserDto getStudentProfile(Long userId) {
+        return hideCommentForStudent(getUser(userId));
     }
 
     @Transactional
@@ -264,9 +262,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toDto)
-                .map(this::toUserDtoWithPublicAvatar)
+        final List<AppUser> users = userRepository.findAll();
+        return users.stream()
+                .map(user -> {
+                    final List<GroupDto> userGroups = groupService.getUserGroups(user.getId());
+                    return userMapper.toDto(user, userGroups);
+                })
                 .toList();
     }
 
@@ -274,7 +275,8 @@ public class UserService {
     public UserDto getUser(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        return toUserDtoWithPublicAvatar(userMapper.toDto(user));
+        final List<GroupDto> userGroups = groupService.getUserGroups(userId);
+        return userMapper.toDto(user, userGroups);
     }
 
     @Transactional
@@ -306,17 +308,17 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateLastVisit(Long userId) {
+    public void updateLastVisit(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
         user.setLastVisit(LocalDateTime.now(Clock.systemUTC()));
-        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
+        userRepository.save(user);
     }
 
     @Transactional
-    public UserDto updateCurrentUserLastVisit() {
+    public void updateCurrentUserLastVisit() {
         Long userId = securityUtils.currentUserId();
-        return updateLastVisit(userId);
+        updateLastVisit(userId);
     }
 
     @Transactional
@@ -597,25 +599,6 @@ public class UserService {
         return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
     }
 
-    private UserDto toUserDtoWithPublicAvatar(UserDto dto) {
-        return new UserDto(
-                dto.id(),
-                dto.fullName(),
-                dto.email(),
-                dto.role(),
-                dto.activation(),
-                dto.enabled(),
-                dto.phone(),
-                dto.comment(),
-                fileStorageService.normalizeStoredPath(dto.avatarFilePath()),
-                dto.createdAt(),
-                dto.createdBy(),
-                dto.lastVisit(),
-                dto.deactivatedAt(),
-                dto.deactivatedBy()
-        );
-    }
-
     private UserDto hideCommentForStudent(UserDto user) {
         if (user.role() != Role.STUDENT) {
             return user;
@@ -634,7 +617,8 @@ public class UserService {
                 user.createdBy(),
                 user.lastVisit(),
                 user.deactivatedAt(),
-                user.deactivatedBy()
+                user.deactivatedBy(),
+                user.groups()
         );
     }
 

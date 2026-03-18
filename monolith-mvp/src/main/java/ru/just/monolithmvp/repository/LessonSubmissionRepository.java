@@ -56,7 +56,7 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     //    @Query("""
 //            select s.student.id as userId, s.lesson.course.id as courseId, coalesce(sum(s.pointsAwarded), 0) as value
 //            from LessonSubmission s
-//            where s.student.id in :userIds and s.lesson.course.id in :courseIds
+//            where s.student.id in :ids and s.lesson.course.id in :courseIds
 //            group by s.student.id, s.lesson.course.id
 //            """)
     default List<UserCourseMetricProjection> sumPointsByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
@@ -66,7 +66,7 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     //    @Query("""
 //            select s.student.id as userId, s.lesson.course.id as courseId, count(distinct s.lesson.id) as value
 //            from LessonSubmission s
-//            where s.completed = true and s.student.id in :userIds and s.lesson.course.id in :courseIds
+//            where s.completed = true and s.student.id in :ids and s.lesson.course.id in :courseIds
 //            group by s.student.id, s.lesson.course.id
 //            """)
     default List<UserCourseMetricProjection> countCompletedLessonsByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
@@ -78,7 +78,7 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
 //                   s.lesson.course.id as courseId,
 //                   coalesce(sum(case when s.attemptCounter > 1 then s.attemptCounter - 1 else 0 end), 0) as value
 //            from LessonSubmission s
-//            where s.student.id in :userIds and s.lesson.course.id in :courseIds
+//            where s.student.id in :ids and s.lesson.course.id in :courseIds
 //            group by s.student.id, s.lesson.course.id
 //            """)
     default List<UserCourseMetricProjection> sumRetakesByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {

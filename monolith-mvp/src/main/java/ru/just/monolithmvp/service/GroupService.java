@@ -5,16 +5,16 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-import ru.just.monolithmvp.dto.group.CreateGroupRequest;
-import ru.just.monolithmvp.dto.group.GroupDto;
-import ru.just.monolithmvp.dto.group.GroupUsersDto;
-import ru.just.monolithmvp.dto.group.UpdateGroupRequest;
+import ru.just.monolithmvp.dto.course.CourseSummaryDto;
+import ru.just.monolithmvp.dto.group.*;
+import ru.just.monolithmvp.dto.program.ProgramSummaryDto;
+import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.exception.NotFoundException;
+import ru.just.monolithmvp.mapper.CourseMapper;
 import ru.just.monolithmvp.mapper.UserMapper;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.AppUserRepository;
-import ru.just.monolithmvp.repository.GroupCourseAssignmentRepository;
 import ru.just.monolithmvp.repository.GroupMembershipRepository;
 import ru.just.monolithmvp.repository.LearningGroupRepository;
 
@@ -25,9 +25,10 @@ import java.util.*;
 public class GroupService {
     private final LearningGroupRepository groupRepository;
     private final GroupMembershipRepository membershipRepository;
-    private final GroupCourseAssignmentRepository groupCourseAssignmentRepository;
+    private final GroupAssignmentService groupAssignmentService;
     private final AppUserRepository userRepository;
     private final UserMapper userMapper;
+    private final CourseMapper courseMapper;
     private final CourseEnrollmentPort courseEnrollmentPort;
     private final ProgramService programService;
 
@@ -86,9 +87,14 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
-    public List<GroupDto> getGroups() {
+    public List<GroupWithStatDto> getGroups() {
         return groupRepository.findAll().stream()
-                .map(g -> new GroupDto(g.getId(), g.getTitle(), g.getType()))
+                .map(g -> {
+                    final long courseCount = groupAssignmentService.findCourseAssignmentsByGroupId(g.getId()).size();
+                    final long programsCount = groupAssignmentService.findProgramAssignmentsByGroupId(g.getId()).size();
+                    final long usersCount = getGroupUsers(g.getId()).users().size();
+                    return new GroupWithStatDto(g.getId(), g.getTitle(), g.getType(), usersCount, courseCount, programsCount);
+                })
                 .toList();
     }
 
@@ -280,7 +286,7 @@ public class GroupService {
             return;
         }
 
-        List<Long> courseIds = groupCourseAssignmentRepository.findByGroupId(groupId).stream()
+        List<Long> courseIds = groupAssignmentService.findCourseAssignmentsByGroupId(groupId).stream()
                 .map(assignment -> assignment.getCourse().getId())
                 .distinct()
                 .toList();
@@ -294,5 +300,38 @@ public class GroupService {
         for (Long studentId : studentIds) {
             programService.handleGroupMembershipAdded(groupId, studentId);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDto> getAvailableToAssignUsers(UUID groupId) {
+        final LearningGroup group = groupRepository.findById(groupId).orElseThrow(() -> new NotFoundException("group not found"));
+        final List<Long> allAssignedUserIds = membershipRepository.findByGroupId(groupId).stream()
+                .map(gm -> gm.getUser().getId()).toList();
+        // для общих групп - можно назначать всех, кто ещё не записан в эту группу
+        // для компании/подразделения/должности - нужно возвращать всех, кто вообще не записан на этот тип группы.
+        if (GroupType.GENERAL == group.getType()) {
+            return userRepository.findAllByIdNotIn(allAssignedUserIds).stream().map(userMapper::toDto).toList();
+        }
+        return userRepository.findAllWhichNotAssignedToGroupType(group.getType()).stream().map(userMapper::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GroupFullInfoDto getGroupFullInfoById(UUID groupId) {
+        final LearningGroup group = groupRepository.findById(groupId).orElseThrow(() -> new NotFoundException("group not found"));
+        final List<UserDto> groupUsers = getGroupUsers(groupId).users();
+        final List<CourseSummaryDto> courses = groupAssignmentService.findCourseAssignmentsByGroupId(groupId).stream()
+                .map(GroupCourseAssignment::getCourse)
+                .map(courseMapper::toSummaryDto)
+                .toList();
+        final List<ProgramSummaryDto> programs = groupAssignmentService.findProgramAssignmentsByGroupId(groupId).stream()
+                .map(GroupProgramAssignment::getProgram)
+                .map(p -> new ProgramSummaryDto(p.getId(), p.getTitle(), p.getDescription()))
+                .toList();
+        return new GroupFullInfoDto(
+                new GroupDto(group.getId(), group.getTitle(), group.getType()),
+                groupUsers,
+                courses,
+                programs
+        );
     }
 }

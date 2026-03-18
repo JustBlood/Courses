@@ -45,7 +45,7 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
             throw new NotFoundException("Course %d not found".formatted(courseId));
         }
         idsToEnroll.forEach(id -> courseEnrollmentLifecycleService.assignToCourse(id, courseId));
-        idsToUnEnroll.forEach(id -> courseEnrollmentLifecycleService.unassignFromCourse(id, courseId));
+        idsToUnEnroll.forEach(id -> courseEnrollmentLifecycleService.unassignFromCourse(id, courseId, false));
     }
 
     @Transactional
@@ -160,10 +160,10 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     }
 
     @Transactional
-    public void unassignGroupFromCourse(Long courseId, UUID groupId) {
+    public void unassignGroupFromCourse(Long courseId, UUID groupId, boolean deleteProgress) {
         groupCourseAssignmentRepository.deleteByGroupIdAndCourseId(groupId, courseId);
         groupMembershipRepository.findByGroupId(groupId)
-                .forEach(m -> courseEnrollmentLifecycleService.unassignFromCourse(m.getUser().getId(), courseId));
+                .forEach(m -> courseEnrollmentLifecycleService.unassignFromCourse(m.getUser().getId(), courseId, deleteProgress));
     }
 
     @Transactional(readOnly = true)
@@ -194,8 +194,8 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     }
 
     @Transactional
-    public void unassignGroupsFromCourse(Long courseId, List<UUID> groupIds) {
-        groupIds.forEach(groupId -> unassignGroupFromCourse(courseId, groupId));
+    public void unassignGroupsFromCourse(Long courseId, List<UUID> groupIds, boolean deleteProgress) {
+        groupIds.forEach(groupId -> unassignGroupFromCourse(courseId, groupId, deleteProgress));
     }
 
     @Transactional

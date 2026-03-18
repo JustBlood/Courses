@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import ru.just.monolithmvp.dto.course.CourseDto;
 import ru.just.monolithmvp.dto.course.CourseLearnerDto;
 import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
@@ -81,7 +80,7 @@ public class StudentController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль текущего пользователя", content = @Content(schema = @Schema(implementation = StudentProfileDto.class)))
     })
-    public ResponseEntity<StudentProfileDto> myProfile() {
+    public ResponseEntity<UserDto> myProfile() {
         return ResponseEntity.ok(userService.getStudentProfile(securityUtils.currentUserId()));
     }
 
@@ -101,8 +100,9 @@ public class StudentController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Дата последнего визита обновлена", content = @Content(schema = @Schema(implementation = UserDto.class)))
     })
-    public ResponseEntity<UserDto> updateMyLastVisit() {
-        return ResponseEntity.ok(userService.updateCurrentUserLastVisit());
+    public ResponseEntity<Void> updateMyLastVisit() {
+        userService.updateCurrentUserLastVisit();
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/courses/{courseId}") // todo: возможно, стоит удалить этот рест совсем

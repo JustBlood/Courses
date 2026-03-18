@@ -49,10 +49,14 @@ public class CourseEnrollmentLifecycleService {
     }
 
     @Transactional
-    public void unassignFromCourse(Long userId, Long courseId) {
+    public void unassignFromCourse(Long userId, Long courseId, boolean deleteProgress) {
         enrollmentRepository.deleteByUserIdAndCourseId(userId, courseId);
-        courseProgressRepository.deleteByUserIdAndCourseId(userId, courseId);
-        lessonSubmissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
+        if (deleteProgress) {
+            courseProgressRepository.deleteByUserIdAndCourseId(userId, courseId);
+            lessonSubmissionRepository.deleteByStudentIdAndLesson_Course_Id(userId, courseId);
+        } else {
+            courseProgressRepository.deleteByUserIdAndCourseIdAndStatus(userId, courseId, CourseProgressStatus.NEW);
+        }
     }
 
     @Transactional
@@ -61,7 +65,7 @@ public class CourseEnrollmentLifecycleService {
                 .ifPresent(programEnrollmentRepository::delete);
 
         programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId)
-                .forEach(pc -> unassignFromCourse(userId, pc.getCourse().getId()));
+                .forEach(pc -> unassignFromCourse(userId, pc.getCourse().getId(), false));
     }
 
     @Transactional

@@ -1,6 +1,9 @@
 package ru.just.monolithmvp.dto.user;
 
+import ru.just.monolithmvp.dto.group.GroupDto;
 import ru.just.monolithmvp.model.Role;
+
+import java.util.List;
 
 public record UserDto(
         Long id,
@@ -16,6 +19,7 @@ public record UserDto(
         String createdBy,
         Long lastVisit,
         Long deactivatedAt,
-        String deactivatedBy
+        String deactivatedBy,
+        List<GroupDto> groups
 ) {
 }
