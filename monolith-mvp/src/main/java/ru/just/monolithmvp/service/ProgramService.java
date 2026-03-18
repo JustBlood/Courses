@@ -1,5 +1,6 @@
 package ru.just.monolithmvp.service;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +43,6 @@ public class ProgramService {
         LearningProgram program = new LearningProgram();
         applyProgramFields(program, request);
         LearningProgram saved = learningProgramRepository.save(program);
-        replaceProgramCourses(saved, request.courses());
         return getProgram(saved.getId());
     }
 
@@ -64,7 +64,7 @@ public class ProgramService {
         LearningProgram program = getProgramEntity(programId);
         applyProgramFields(program, request);
         learningProgramRepository.save(program);
-        replaceProgramCourses(program, request.courses());
+        final List<ProgramCourse> existed = programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId);
 
         for (Long userId : getProgramEnrolledUserIds(programId)) {
             ensureProgramCourseEnrollmentsForUser(program, userId);
@@ -209,21 +209,34 @@ public class ProgramService {
 
     @Transactional
     public void updateProgramCourses(Long programId, ProgramCourseAssignRequest request) {
-        validateNoDuplicates(request.idsIn(), "Program courses in-list must not contain duplicates");
-        validateNoDuplicates(request.idsNotIn(), "Program courses not-in-list must not contain duplicates");
-        validateNoOverlap(request.idsIn(), request.idsNotIn(), "Program courses lists must be unique");
         LearningProgram program = getProgramEntity(programId);
 
-        Set<Long> touchedCourseIds = new LinkedHashSet<>(request.idsIn());
-        touchedCourseIds.addAll(request.idsNotIn());
-        if (!touchedCourseIds.isEmpty()) {
-            List<Course> touchedCourses = courseRepository.findAllById(touchedCourseIds);
-            if (touchedCourses.size() != touchedCourseIds.size()) {
-                throw new NotFoundException("Some courses were not found");
-            }
+        List<Course> existCourses = courseRepository.findAllById(request.orderedCourseIds());
+        if (existCourses.size() != request.orderedCourseIds().size()) {
+            throw new NotFoundException("Some courses were not found");
         }
 
-        replaceProgramCourses(program, request.idsIn());
+        final List<ProgramCourse> prevProgramCourses = programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId);
+        programCourseRepository.deleteByProgramId(program.getId());
+        final List<Long> enrolledUserIds = getProgramEnrolledUserIds(programId);
+        for (Long userId : enrolledUserIds) { // fixme: пиздец как плохо
+            for (ProgramCourse programCourse : prevProgramCourses) {
+                courseEnrollmentLifecycleService.unassignFromCourse(userId, programCourse.getCourse().getId(), false);
+            }
+        }
+        program.getCourses().clear();
+
+        List<ProgramCourse> programCourses = new ArrayList<>();
+        for (int i = 0; i < request.orderedCourseIds().size(); i++) {
+                final ProgramCourse programCourse = new ProgramCourse();
+                Course course = new Course();
+                course.setId(request.orderedCourseIds().get(i));
+                programCourse.setCourse(course);
+                programCourse.setProgram(program);
+                programCourse.setOrderIndex(i + 1);
+                programCourses.add(programCourse);
+        }
+        programCourseRepository.saveAllAndFlush(programCourses);
 
         for (Long userId : getProgramEnrolledUserIds(programId)) {
             ensureProgramCourseEnrollmentsForUser(program, userId);
@@ -348,7 +361,7 @@ public class ProgramService {
                 program.getTitle(),
                 program.getDescription(),
                 program.getAccessCondition(),
-                program.getDeadlineAt().toEpochSecond(ZoneOffset.UTC),
+                program.getDeadlineAt() == null ? null : program.getDeadlineAt().toEpochSecond(ZoneOffset.UTC),
                 program.getBlockAfterDeadline(),
                 completedProgram,
                 courseDtos
@@ -361,48 +374,13 @@ public class ProgramService {
     }
 
     private void applyProgramFields(LearningProgram program, CreateLearningProgramRequest request) {
-        program.setTitle(request.title());
-        program.setDescription(request.description());
+        program.setTitle(request.title() != null ? request.title() : program.getTitle());
+        program.setDescription(request.description() != null ? request.description() : program.getDescription());
         program.setAccessCondition(request.accessCondition() == null
-                ? ProgramAccessCondition.ALL_OPEN
+                ? program.getAccessCondition() != null ? program.getAccessCondition() : ProgramAccessCondition.ALL_OPEN
                 : request.accessCondition());
-        program.setDeadlineAt(LocalDateTime.ofEpochSecond(request.deadlineAt(), 0, ZoneOffset.UTC));
-        program.setBlockAfterDeadline(Boolean.TRUE.equals(request.blockAfterDeadline()));
-    }
-
-    private void replaceProgramCourses(LearningProgram program, List<Long> coursesIds) {
-        List<Long> orderedCourseIds = coursesIds == null ? List.of() : coursesIds;
-        validateNoDuplicates(orderedCourseIds, "Program courses list must not contain duplicates");
-
-        Map<Long, Course> coursesById = courseRepository.findAllById(orderedCourseIds)
-                .stream().collect(Collectors.toMap(Course::getId, c -> c));
-
-        if (coursesById.size() != orderedCourseIds.size()) {
-            throw new NotFoundException("Some courses were not found");
-        }
-
-        if (program.getId() == null) {
-            learningProgramRepository.saveAndFlush(program);
-        }
-
-        program.getCourses().clear();
-        programCourseRepository.deleteByProgramId(program.getId());
-        programCourseRepository.flush();
-
-        if (orderedCourseIds.isEmpty()) {
-            return;
-        }
-
-        List<ProgramCourse> programCourses = new ArrayList<>(orderedCourseIds.size());
-        for (int i = 0; i < orderedCourseIds.size(); i++) {
-            Long courseId = orderedCourseIds.get(i);
-            ProgramCourse pc = new ProgramCourse();
-            pc.setProgram(program);
-            pc.setCourse(coursesById.get(courseId));
-            pc.setOrderIndex(i);
-            programCourses.add(pc);
-        }
-        programCourseRepository.saveAllAndFlush(programCourses);
+        program.setDeadlineAt(request.deadlineAt() == null ? null : LocalDateTime.ofEpochSecond(request.deadlineAt(), 0, ZoneOffset.UTC));
+        program.setBlockAfterDeadline(request.blockAfterDeadline() != null ? request.blockAfterDeadline() : program.getBlockAfterDeadline());
     }
 
     private List<Long> getProgramEnrolledUserIds(Long programId) {

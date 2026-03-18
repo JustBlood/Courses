@@ -16,11 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.course.CourseInNotInListsDto;
 import ru.just.monolithmvp.dto.course.UserInNotInListsDto;
-import ru.just.monolithmvp.dto.program.CreateLearningProgramRequest;
-import ru.just.monolithmvp.dto.program.ProgramCourseAssignRequest;
-import ru.just.monolithmvp.dto.program.ProgramDto;
-import ru.just.monolithmvp.dto.program.ProgramGroupAssignRequest;
-import ru.just.monolithmvp.dto.program.ProgramUserAssignRequest;
+import ru.just.monolithmvp.dto.program.*;
 import ru.just.monolithmvp.service.ProgramService;
 
 import java.util.List;
@@ -78,7 +74,7 @@ public class ProgramsController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Программа или один из курсов не найдены", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
     public ResponseEntity<ProgramDto> updateProgram(@PathVariable Long programId,
-                                                    @RequestBody @Valid CreateLearningProgramRequest request) {
+                                                    @RequestBody CreateLearningProgramRequest request) {
         return ResponseEntity.ok(programService.updateProgram(programId, request));
     }
 
@@ -127,7 +123,7 @@ public class ProgramsController {
     }
 
     @PostMapping("/{programId}/courses/assign")
-    @Operation(summary = "Добавить/удалить курсы в learning program", description = "Обновляет состав курсов программы")
+    @Operation(summary = "Обновить курсы в learning program", description = "Обновляет состав курсов программы")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Состав курсов программы обновлен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Некорректные списки курсов", content = @Content(schema = @Schema(implementation = ApiResponse.class))),

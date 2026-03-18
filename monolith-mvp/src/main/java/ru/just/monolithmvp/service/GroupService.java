@@ -29,7 +29,7 @@ public class GroupService {
     private final AppUserRepository userRepository;
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
-    private final CourseEnrollmentPort courseEnrollmentPort;
+    private final CourseAssignmentService courseAssignmentService;
     private final ProgramService programService;
 
     @Transactional
@@ -260,7 +260,10 @@ public class GroupService {
     public void deleteGroup(UUID groupId) {
         LearningGroup group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
-        membershipRepository.deleteByGroupId(groupId);
+        final List<Long> userIdsToDeleteProgress = membershipRepository.findByGroupId(groupId).stream()
+                .map(gm -> gm.getUser().getId())
+                .toList();
+        removeUsersFromGroup(groupId, userIdsToDeleteProgress);
         groupRepository.delete(group);
     }
 
@@ -293,7 +296,7 @@ public class GroupService {
 
         for (Long courseId : courseIds) {
             for (Long studentId : studentIds) {
-                courseEnrollmentPort.enrollStudentToCourse(courseId, studentId);
+                courseAssignmentService.enrollStudentToCourse(courseId, studentId);
             }
         }
 
