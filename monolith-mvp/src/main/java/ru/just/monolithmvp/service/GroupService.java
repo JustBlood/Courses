@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import ru.just.monolithmvp.repository.LearningGroupRepository;
 
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GroupService {
@@ -243,11 +245,9 @@ public class GroupService {
         groupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found: " + groupId));
 
-        if (CollectionUtils.isEmpty(userIds)) {
-            throw new BadRequestException("User ids must not be empty");
-        }
-        if (userIds.stream().anyMatch(Objects::isNull)) {
-            throw new BadRequestException("User ids must not contain null values");
+        if (CollectionUtils.isEmpty(userIds) || userIds.stream().anyMatch(Objects::isNull)) {
+            log.warn("При удалении группы, переданы userIds пустые или с null-значениями.");
+            return;
         }
 
         userIds.forEach(userId -> {

@@ -98,20 +98,21 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
         CourseReviewer cr = new CourseReviewer();
         cr.setCourse(course);
         cr.setReviewer(reviewer);
-        try {
-            courseReviewerRepository.save(cr);
-            businessEventLogger.log("course.reviewer.assign", "success",
-                    "actor", actor,
-                    "courseId", courseId,
-                    "reviewerId", reviewerId);
-        } catch (DataIntegrityViolationException e) {
+
+        if (courseReviewerRepository.existsByCourseIdAndReviewerId(courseId, reviewerId)) {
             log.warn("User already reviewer on course");
             businessEventLogger.log("course.reviewer.assign", "noop",
                     "actor", actor,
                     "courseId", courseId,
                     "reviewerId", reviewerId,
                     "reason", "already_assigned");
+            return;
         }
+        courseReviewerRepository.save(cr);
+        businessEventLogger.log("course.reviewer.assign", "success",
+                "actor", actor,
+                "courseId", courseId,
+                "reviewerId", reviewerId);
     }
 
     @Transactional

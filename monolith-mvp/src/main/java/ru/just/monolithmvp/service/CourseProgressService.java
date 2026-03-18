@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 
@@ -47,13 +48,22 @@ public class CourseProgressService {
         final List<Lesson> courseLessons = getCourseLessons(courseId);
         long totalLessons = courseLessons.size();
         CourseProgress progress = resolveOrCreateProgress(userId, courseId);
-        final Course course = courseRepository.findById(courseId).orElseThrow();
-        final Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId).orElseThrow();
         // курс назначен, но не начат
         if (CourseProgressStatus.NEW == progress.getStatus()) {
             log.error("Курс назначен, но не начат и вызван recalcCourseProgressByUser.");
             return;
-        } else if (totalLessons <= 0 || completedLessons >= totalLessons) {
+        }
+
+        final Course course = courseRepository.findById(courseId).orElseThrow();
+        final Enrollment enrollment = enrollmentRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElse(null);
+
+        if (enrollment == null) {
+            log.warn("Пользователь {} не записан на курс {}, прогресс не будет изменен", userId, courseId);
+            return;
+        }
+
+        if (totalLessons <= 0 || completedLessons >= totalLessons) {
             // курс пройден
             if (progress.getCompletedAt() == null) {
                 progress.setCompletedAt(LocalDateTime.now(Clock.systemUTC()));

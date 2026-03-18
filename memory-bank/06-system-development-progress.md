@@ -1,5 +1,21 @@
 # System development progress
 
+## 2026-03-18 — ADHOC full backend logical E2E scenario (without stats/tests)
+
+- Prepared a full cross-module **logical** backend validation scenario artifact:
+  - `memory-bank/task-artifacts/ADHOC-FULL-BACKEND-LOGICAL-E2E-SCENARIO-2026-03-18.md`.
+- Scope decisions fixed in the scenario:
+  - includes CRUD for users/groups/sections/courses/lessons/programs,
+  - includes assignments/enrollments matrix (`user/group/course/program`),
+  - includes role model checks (`401/403/200`),
+  - includes learner flow (theory/practice/open-review/program progression),
+  - includes idempotency and cross-module side-effect validation,
+  - **explicitly excludes** statistics and test-suite execution for this run.
+
+- Scenario structure was aligned to current API contracts (not legacy payloads), including:
+  - group-centric operations via `ids` payloads,
+  - program two-lists operations via `idsIn/idsNotIn`.
+
 ## 2026-03-18 — User SNILS field propagation across domain and DTO contracts
 
 - Added `snils` to user domain and API contracts:
