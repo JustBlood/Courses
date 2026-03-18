@@ -160,10 +160,8 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     }
 
     @Transactional
-    public void unassignGroupFromCourse(Long courseId, UUID groupId, boolean deleteProgress) {
+    public void unassignGroupFromCourse(Long courseId, UUID groupId) {
         groupCourseAssignmentRepository.deleteByGroupIdAndCourseId(groupId, courseId);
-        groupMembershipRepository.findByGroupId(groupId)
-                .forEach(m -> courseEnrollmentLifecycleService.unassignFromCourse(m.getUser().getId(), courseId, deleteProgress));
     }
 
     @Transactional(readOnly = true)
@@ -194,8 +192,8 @@ public class CourseAssignmentService implements CourseEnrollmentPort {
     }
 
     @Transactional
-    public void unassignGroupsFromCourse(Long courseId, List<UUID> groupIds, boolean deleteProgress) {
-        groupIds.forEach(groupId -> unassignGroupFromCourse(courseId, groupId, deleteProgress));
+    public void unassignGroupsFromCourse(Long courseId, List<UUID> groupIds) {
+        groupIds.forEach(groupId -> unassignGroupFromCourse(courseId, groupId));
     }
 
     @Transactional

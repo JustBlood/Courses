@@ -252,7 +252,6 @@ public class GroupService {
 
         userIds.forEach(userId -> {
             membershipRepository.deleteByGroupIdAndUserId(groupId, userId);
-            programService.handleGroupMembershipRemoved(groupId, userId);
         });
     }
 

@@ -18,7 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.just.monolithmvp.dto.ApiResponse;
 import ru.just.monolithmvp.dto.common.IdsRequest;
 import ru.just.monolithmvp.dto.course.CourseSummaryDto;
-import ru.just.monolithmvp.dto.course.UnassignCoursesFromGroupRequest;
 import ru.just.monolithmvp.dto.group.*;
 import ru.just.monolithmvp.dto.program.ProgramSummaryDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
@@ -300,8 +299,8 @@ public class UsersController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Группа не найдена", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> unassignCoursesFromGroup(@PathVariable UUID groupId,
-                                                            @RequestBody @Valid UnassignCoursesFromGroupRequest request) {
-        groupAssignmentService.unassignCoursesFromGroup(groupId, request.courseIds(), request.deleteProgress());
+                                                            @RequestBody @Valid IdsRequest request) {
+        groupAssignmentService.unassignCoursesFromGroup(groupId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Courses unassigned from group"));
     }
 

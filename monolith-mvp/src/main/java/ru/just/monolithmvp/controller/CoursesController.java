@@ -234,8 +234,8 @@ public class CoursesController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс/группа не найдены", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
     public ResponseEntity<ApiResponse> unassignGroupFromCourse(@PathVariable Long courseId,
-                                                                @RequestBody @Valid UnassignGroupFromCourseRequest request) {
-        courseAssignmentService.unassignGroupsFromCourse(courseId, request.groupIds(), request.deleteProgress());
+                                                                @RequestBody @Valid UuidIdsRequest request) {
+        courseAssignmentService.unassignGroupsFromCourse(courseId, request.ids());
         return ResponseEntity.ok(new ApiResponse("Group unassigned from course"));
     }
 }

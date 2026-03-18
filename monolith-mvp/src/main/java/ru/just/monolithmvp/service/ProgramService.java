@@ -1,6 +1,5 @@
 package ru.just.monolithmvp.service;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,11 +143,6 @@ public class ProgramService {
 
         for (UUID groupId : idsNotIn) {
             groupProgramAssignmentRepository.deleteByGroupIdAndProgramId(groupId, programId);
-            groupMembershipRepository.findByGroupId(groupId).stream()
-                    .map(GroupMembership::getUser)
-                    .map(AppUser::getId)
-                    .forEach(userId -> programEnrollmentRepository.findByUserIdAndProgramId(userId, programId)
-                            .ifPresent(pe -> courseEnrollmentLifecycleService.unassignFromProgram(programId, userId)));
         }
     }
 
@@ -297,17 +291,6 @@ public class ProgramService {
                 programEnrollmentRepository.save(enrollment);
             }
             ensureProgramCourseEnrollmentsForUser(program, userId);
-        }
-    }
-
-    @Transactional
-    public void handleGroupMembershipRemoved(UUID groupId, Long userId) {
-        List<Long> programIds = groupProgramAssignmentRepository.findByGroupId(groupId).stream()
-                .map(gpa -> gpa.getProgram().getId())
-                .toList();
-        for (Long programId : programIds) {
-            programEnrollmentRepository.findByUserIdAndProgramId(userId, programId)
-                    .ifPresent(pe -> courseEnrollmentLifecycleService.unassignFromProgram(programId, userId));
         }
     }
 

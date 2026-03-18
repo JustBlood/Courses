@@ -46,8 +46,8 @@ public class GroupAssignmentService {
     }
 
     @Transactional
-    public void unassignCoursesFromGroup(UUID groupId, @NotEmpty List<Long> courseIds, boolean deleteProgress) {
-        courseIds.forEach(courseId -> courseAssignmentService.unassignGroupFromCourse(courseId, groupId, deleteProgress));
+    public void unassignCoursesFromGroup(UUID groupId, @NotEmpty List<Long> courseIds) {
+        courseIds.forEach(courseId -> courseAssignmentService.unassignGroupFromCourse(courseId, groupId));
     }
 
     public List<LearningProgram> findProgramsNotAssignedToGroup(UUID groupId) {
