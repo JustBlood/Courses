@@ -117,7 +117,7 @@ public class ProgressController {
         return ResponseEntity.ok(new ApiResponse("Student progress has been cleared"));
     }
 
-    @PostMapping("/lessons/{lessonId}/reset")
+    @PostMapping("/lessons/reset")
     @Operation(summary = "Сбросить прогресс всех пользователей по уроку", description = "Удаляет отправки всех пользователей по конкретному уроку")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Прогресс всех пользователей по уроку сброшен", content = @Content(schema = @Schema(implementation = ApiResponse.class))),

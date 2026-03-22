@@ -93,6 +93,7 @@ alter table lesson_submissions
     add column if not exists started_at timestamp not null default now()::timestamp;
 
 alter table lesson_submissions alter column submitted_at drop not null;
+alter table lesson_submissions alter column started_at drop not null;
 
 alter table lesson_submissions
     drop column if exists points_awarded;
@@ -114,3 +115,9 @@ where status = 'REWORK';
 
 alter table users
     add column if not exists snils varchar(255);
+
+delete from lesson_submissions;
+delete from course_progress;
+delete from enrollments;
+delete from program_enrollments;
+

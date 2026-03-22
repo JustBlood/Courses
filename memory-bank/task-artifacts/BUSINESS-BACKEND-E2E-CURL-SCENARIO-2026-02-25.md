@@ -292,6 +292,35 @@ curl -sS -X POST "$BASE_URL/api/v1/student/lessons/{PRACTICE_ID}/submit-practice
 
 Отдельно проверить lesson с `attemptLimit=2`: третья попытка должна дать 4xx.
 
+### 6.3.1 Негативный кейс: тайм-лимит 1 минута + автозавершение scheduler
+
+Цель: проверить, что после истечения `timeLimitMinutes=1` и срабатывания scheduler отправка `submit-practice` больше не принимается.
+
+Подготовка: создайте отдельный практический урок, например `Practice Timeout 1m`, с параметрами:
+- `attemptLimit=1`
+- `timeLimitMinutes=1`
+
+```bash
+# 1) студент явно стартует урок
+curl -sS -X POST "$BASE_URL/api/v1/student/lessons/{PRACTICE_TIMEOUT_ID}/start" \
+  -H "Authorization: Bearer $U1_TOKEN"
+
+# 2) ждем > 1 минуты + запас на тик scheduler (fixedDelay=1 minute)
+sleep 130
+
+# 3) пробуем отправить ответы после срабатывания scheduler
+NOW_UTC=$(date -u +%s)
+curl -sS -X POST "$BASE_URL/api/v1/student/lessons/{PRACTICE_TIMEOUT_ID}/submit-practice" \
+  -H "Authorization: Bearer $U1_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"questionAnswers\":{...valid answers...},\"submittedAt\":$NOW_UTC}"
+```
+
+Ожидание:
+- HTTP `4xx` (обычно `400`),
+- попытка должна быть уже финализирована scheduler (для `attemptLimit=1` — `INCOMPLETED`),
+- повторный `submit-practice` не принимается.
+
 ### 6.4 Open-ended + review workflow
 
 ```bash

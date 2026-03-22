@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
 import ru.just.monolithmvp.dto.group.GroupDto;
-import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -242,9 +241,8 @@ public class UserService {
     }
 
     @Transactional
-    public StudentProfileDto updateStudentProfile(Long userId, UpdateUserRequest request) {
-        UserDto updatedUser = updateMyProfile(userId, request);
-        return new StudentProfileDto(hideCommentForStudent(updatedUser), groupService.getUserGroups(userId));
+    public UserDto updateStudentProfile(Long userId, UpdateUserRequest request) {
+        return updateMyProfile(userId, request);
     }
 
     @Transactional

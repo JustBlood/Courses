@@ -7,6 +7,7 @@ BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-monolith-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-courses}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
+POSTGRES_VOLUME_SOURCE="${POSTGRES_VOLUME_SOURCE:-/var/lib/docker/volumes/backend_monolith_pg_data/_data}"
 
 APP_CONTAINER="${APP_CONTAINER:-monolith-mvp}"
 BACKUP_FILES_SOURCE="${BACKUP_FILES_SOURCE:-/opt/app/data}"
@@ -57,6 +58,7 @@ backup_root=${BACKUP_ROOT}
 postgres_container=${POSTGRES_CONTAINER}
 postgres_db=${POSTGRES_DB}
 postgres_user=${POSTGRES_USER}
+postgres_volume_source=${POSTGRES_VOLUME_SOURCE}
 db_dump_file=${DB_DUMP_FILE}
 app_container=${APP_CONTAINER}
 backup_files_source=${BACKUP_FILES_SOURCE}

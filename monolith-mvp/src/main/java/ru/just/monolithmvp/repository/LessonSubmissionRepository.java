@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.repository;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -52,23 +53,25 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
 
     List<LessonSubmission> findAllByLessonId(Long lessonId);
 
+    @EntityGraph(attributePaths = {"lesson", "student"})
+    List<LessonSubmission> findAllByStatusIn(List<SubmissionStatus> status);
 
-    //    @Query("""
-//            select s.student.id as userId, s.lesson.course.id as courseId, coalesce(sum(s.pointsAwarded), 0) as value
-//            from LessonSubmission s
-//            where s.student.id in :ids and s.lesson.course.id in :courseIds
-//            group by s.student.id, s.lesson.course.id
-//            """)
+//    @Query("""
+//        select s.student.id as userId, s.lesson.course.id as courseId, coalesce(sum(s.pointsAwarded), 0) as value
+//        from LessonSubmission s
+//        where s.student.id in :ids and s.lesson.course.id in :courseIds
+//        group by s.student.id, s.lesson.course.id
+//        """)
     default List<UserCourseMetricProjection> sumPointsByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
         throw new NotImplementedException();
     }
 
-    //    @Query("""
-//            select s.student.id as userId, s.lesson.course.id as courseId, count(distinct s.lesson.id) as value
-//            from LessonSubmission s
-//            where s.completed = true and s.student.id in :ids and s.lesson.course.id in :courseIds
-//            group by s.student.id, s.lesson.course.id
-//            """)
+//    @Query("""
+//        select s.student.id as userId, s.lesson.course.id as courseId, count(distinct s.lesson.id) as value
+//        from LessonSubmission s
+//        where s.completed = true and s.student.id in :ids and s.lesson.course.id in :courseIds
+//        group by s.student.id, s.lesson.course.id
+//        """)
     default List<UserCourseMetricProjection> countCompletedLessonsByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
         throw new NotImplementedException();
     }

@@ -7,7 +7,6 @@ import ru.just.monolithmvp.dto.learning.PracticeSubmissionRequest;
 import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.exception.BadRequestException;
 import ru.just.monolithmvp.model.*;
-import ru.just.monolithmvp.repository.AppUserRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 
 import java.time.Clock;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 public class PracticeSubmissionService {
     private final CourseLessonAdminService courseLessonAdminService;
     private final LessonSubmissionRepository submissionRepository;
-    private final AppUserRepository userRepository;
     private final LessonAccessPolicy lessonAccessPolicy;
     private final CourseProgressService courseProgressService;
     private final PracticeScoringPolicy practiceScoringPolicy;
@@ -59,8 +57,7 @@ public class PracticeSubmissionService {
         LessonSubmission existingSubmission = submissionRepository
                 .findByStudentIdAndLessonId(studentId, lessonId)
                 .orElseThrow(() -> new BadRequestException("Lesson not started"));
-        boolean isReworkOrStartedSubmission = existingSubmission.getStatus() == SubmissionStatus.REWORKING || existingSubmission.getStatus() == SubmissionStatus.STARTED;
-        if (!isReworkOrStartedSubmission) {
+        if (!(existingSubmission.getStatus() == SubmissionStatus.STARTED)) {
             throw new BadRequestException("Practice submission can be updated only from REWORKING or STARTED status");
         }
 
@@ -93,6 +90,7 @@ public class PracticeSubmissionService {
             if (existingSubmission.getStatus() != SubmissionStatus.REWORKING) {
                 throw new BadRequestException("Lesson already started");
             }
+            existingSubmission.setStatus(SubmissionStatus.STARTED);
             existingSubmission.setStartedAt(LocalDateTime.now(Clock.systemUTC()));
             submissionRepository.save(existingSubmission);
             return new SubmissionResultDto(existingSubmission.getId(), existingSubmission.getStatus());
@@ -132,6 +130,7 @@ public class PracticeSubmissionService {
         existingSubmission.setAttemptCounter(Optional.ofNullable(existingSubmission.getAttemptCounter()).orElse(0) + 1);
         existingSubmission.setReviewedByAdminId(null);
         existingSubmission.setReviewedAt(null);
+        existingSubmission.setStartedAt(null);
         existingSubmission.setSubmittedAt(LocalDateTime.now(Clock.systemUTC()));
 
         existingSubmission = submissionRepository.saveAndFlush(existingSubmission);
@@ -164,10 +163,11 @@ public class PracticeSubmissionService {
         // обновляем номер текущей попытки
         boolean passedByPoints = practiceLesson.passedByPoints(totalAwardedQuestionPoints);
         existingSubmission.setAttemptCounter(Optional.ofNullable(existingSubmission.getAttemptCounter()).orElse(0) + 1);
-        boolean isLastAttempt = existingSubmission.getAttemptCounter() >= practiceLesson.getAttemptLimit();
+        boolean isLastAttempt = practiceLesson.getAttemptLimit() != null && existingSubmission.getAttemptCounter() >= practiceLesson.getAttemptLimit();
 
         existingSubmission.setQuestionProgress(buildTestQuestionProgress(practiceLesson, answersByQuestion));
         existingSubmission.setStatus(passedByPoints ? SubmissionStatus.COMPLETED : isLastAttempt ? SubmissionStatus.INCOMPLETED : SubmissionStatus.REWORKING);
+        existingSubmission.setStartedAt(existingSubmission.getStatus() == SubmissionStatus.REWORKING ? null : existingSubmission.getStartedAt());
         existingSubmission = submissionRepository.saveAndFlush(existingSubmission);
 
         return new SubmissionResultDto(

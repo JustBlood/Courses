@@ -1,7 +1,7 @@
 services:
-  monolith-postgres:
+  monolith-postgres2:
     image: postgres:16-alpine
-    container_name: monolith-postgres
+    container_name: monolith-postgres2
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-courses}
@@ -9,8 +9,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - monolith_pg_data:/var/lib/postgresql/data
+#    volumes:
+#      - monolith_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-courses}"]
       interval: 10s
@@ -18,12 +18,14 @@ services:
       retries: 10
 
   monolith-mvp:
-    image: ${APP_IMAGE:?APP_IMAGE is required}
+    # image: ${APP_IMAGE:?APP_IMAGE is required}
+    build:
+      dockerfile: monolith-mvp/Dockerfile
     pull_policy: always
     container_name: monolith-mvp
     restart: unless-stopped
     depends_on:
-      monolith-postgres:
+      monolith-postgres2:
         condition: service_healthy
     environment:
       JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
@@ -37,12 +39,12 @@ services:
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.yandex.ru}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-465}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-kirillporozoff}
-      APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:?APP_SECURITY_JWT_SECRET is required}
-      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:?APP_BOOTSTRAP_ADMIN_PASSWORD is required}
+      APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:-A6MXczQc1c5ZXQj4ayA1yhBkfRnMkBWf3jq2brEkhri}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-123}
       SPRING_MAIL_PROTOCOL: ${SPRING_MAIL_PROTOCOL:-smtps}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:-true}
-      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:?SPRING_MAIL_PASSWORD is required}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-123}
       SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:-200MB}
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:-200MB}
     ports:

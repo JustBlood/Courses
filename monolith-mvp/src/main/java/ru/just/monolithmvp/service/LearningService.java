@@ -23,7 +23,7 @@ public class LearningService {
     private final LessonAccessPolicy lessonAccessPolicy;
     private final CourseAccessPolicy courseAccessPolicy;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LearnerLessonDto getLessonForLearner(Long lessonId, Long userId) {
         Lesson lesson = courseLessonAdminService.getLessonEntity(lessonId);
         courseAccessPolicy.assertStudentEnrolled(userId, lesson.getCourse().getId());
@@ -40,7 +40,8 @@ public class LearningService {
                 .position(lesson.getPosition())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
-                .lessonType(lesson.getLessonType());
+                .lessonType(lesson.getLessonType())
+                .timeLimitMinutes(lesson.getTimeLimitMinutes());
 
         if (LessonType.LessonSubType.PRACTICE.equals(lesson.getLessonType().getSubType())) {
             PracticeLesson practiceLesson = (PracticeLesson) lesson;
@@ -94,6 +95,9 @@ public class LearningService {
             }).toList();
 
             learnerLessonDtoBuilder.questions(questions);
+            learnerLessonDtoBuilder.status(submission != null ? submission.getStatus() : null);
+            learnerLessonDtoBuilder.attempts(submission != null ? submission.getAttemptCounter() : null);
+            learnerLessonDtoBuilder.maxAttempts(lesson.getAttemptLimit());
         } else {
             TheoryLesson theoryLesson = (TheoryLesson) lesson;
             learnerLessonDtoBuilder.theoryContent(theoryLesson.getContent());

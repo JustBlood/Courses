@@ -12,6 +12,7 @@ BACKUP_ROOT="${BACKUP_ROOT:-backups/monolith}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-monolith-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-courses}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
+POSTGRES_VOLUME_SOURCE="${POSTGRES_VOLUME_SOURCE:-/var/lib/docker/volumes/backend_monolith_pg_data/_data}"
 APP_CONTAINER="${APP_CONTAINER:-monolith-mvp}"
 RESTORE_RECREATE_SCHEMA="${RESTORE_RECREATE_SCHEMA:-true}"
 
@@ -78,6 +79,7 @@ rpo_seconds=${RPO_SECONDS}
 files_restore_status=${FILES_RESTORE_STATUS}
 postgres_container=${POSTGRES_CONTAINER}
 postgres_db=${POSTGRES_DB}
+postgres_volume_source=${POSTGRES_VOLUME_SOURCE}
 app_container=${APP_CONTAINER}
 META
 

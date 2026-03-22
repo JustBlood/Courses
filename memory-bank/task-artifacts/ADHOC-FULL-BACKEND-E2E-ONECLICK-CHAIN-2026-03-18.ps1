@@ -619,6 +619,37 @@ Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_LIMIT/submit-pr
 Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_LIMIT/submit-practice" -Token $STUDENT_A_TOKEN -ExpectedStatus @(200) -Body @{ questionAnswers = @{ "$Q_LIMIT" = @("3") }; submittedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() } | Out-Null
 Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_LIMIT/submit-practice" -Token $STUDENT_A_TOKEN -ExpectedStatus @(400) -Body @{ questionAnswers = @{ "$Q_LIMIT" = @("3") }; submittedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() } | Out-Null
 
+# scheduler timeout validation: after 1 minute timeout, submission must be rejected
+$timeoutLesson = Invoke-Api -Method "POST" -Path "/api/v1/admin/courses/$COURSE_BASE/lessons/practice" -Token $ADMIN_TOKEN -ExpectedStatus @(201) -Body @{
+    title = "TIMEOUT LESSON $RUN"
+    description = "scheduler timeout check"
+    stopLesson = $false
+    attemptLimit = 1
+    timeLimitMinutes = 1
+    lessonType = "PRACTICE_TEST"
+    passingThresholdPercent = 100
+    shuffleOptions = $false
+    showQuestionStatus = $true
+    showCorrectAnswersAfterCompletion = $false
+    questions = @(
+        @{ position = 1; questionType = "SINGLE_CHOICE"; questionText = "timeout check"; options = @("A", "B"); correctAnswers = @("A"); fullPoints = 1 }
+    )
+}
+$LESSON_TIMEOUT = [long]$timeoutLesson.Json.id
+$Q_TIMEOUT = [long]$timeoutLesson.Json.questions[0].id
+
+Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_TIMEOUT/start" -Token $STUDENT_A_TOKEN -ExpectedStatus @(200) | Out-Null
+Start-Sleep -Seconds 130
+
+$timeoutLessonState = Invoke-Api -Method "GET" -Path "/api/v1/student/lessons/$LESSON_TIMEOUT" -Token $STUDENT_A_TOKEN -ExpectedStatus @(200)
+Assert-True ($timeoutLessonState.Json.status -eq "INCOMPLETED") "Scheduler must set timeout lesson status to INCOMPLETED"
+Assert-True ([int]$timeoutLessonState.Json.attempts -eq 1) "Scheduler must increment attempts for timeout lesson"
+
+Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_TIMEOUT/submit-practice" -Token $STUDENT_A_TOKEN -ExpectedStatus @(400) -Body @{
+    questionAnswers = @{ "$Q_TIMEOUT" = @("A") }
+    submittedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+} | Out-Null
+
 Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_PRACTICE_OPEN/start" -Token $STUDENT_A_TOKEN -ExpectedStatus @(200) | Out-Null
 Invoke-Api -Method "POST" -Path "/api/v1/student/lessons/$LESSON_PRACTICE_OPEN/submit-practice" -Token $STUDENT_A_TOKEN -ExpectedStatus @(200) -Body @{
     questionAnswers = @{ "$Q_OPEN_1" = @("open answer v1") }

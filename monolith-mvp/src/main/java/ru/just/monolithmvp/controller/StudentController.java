@@ -18,7 +18,6 @@ import ru.just.monolithmvp.dto.learning.SubmissionResultDto;
 import ru.just.monolithmvp.dto.lesson.LearnerLessonDto;
 import ru.just.monolithmvp.dto.program.ProgramDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
-import ru.just.monolithmvp.dto.student.StudentProfileDto;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
 import ru.just.monolithmvp.security.SecurityUtils;
@@ -78,7 +77,7 @@ public class StudentController {
     @GetMapping("/my/profile")
     @Operation(summary = "Получить профиль текущего пользователя")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль текущего пользователя", content = @Content(schema = @Schema(implementation = StudentProfileDto.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль текущего пользователя", content = @Content(schema = @Schema(implementation = UserDto.class)))
     })
     public ResponseEntity<UserDto> myProfile() {
         return ResponseEntity.ok(userService.getStudentProfile(securityUtils.currentUserId()));
@@ -87,11 +86,11 @@ public class StudentController {
     @PatchMapping("/my/profile")
     @Operation(summary = "Обновить разрешённые поля профиля текущего пользователя", description = "Обновляет доступные для редактирования поля профиля текущего пользователя")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль обновлён", content = @Content(schema = @Schema(implementation = StudentProfileDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Профиль обновлён", content = @Content(schema = @Schema(implementation = UserDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Пользователь не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
-    public ResponseEntity<StudentProfileDto> updateMyProfile(@Valid @RequestBody UpdateUserRequest request) {
+    public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateStudentProfile(securityUtils.currentUserId(), request));
     }
 

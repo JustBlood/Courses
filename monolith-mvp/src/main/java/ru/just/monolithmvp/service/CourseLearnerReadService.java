@@ -51,7 +51,7 @@ public class CourseLearnerReadService {
         CourseProgressDto progress = null;
         if (enrollment != null) {
             progress = new CourseProgressDto(
-                    enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()).toEpochSecond(ZoneOffset.UTC),
+                    course.getDeadlineDays() != null ? enrollment.getEnrolledAt().plusDays(course.getDeadlineDays()).toEpochSecond(ZoneOffset.UTC) : null,
                     completionPercent,
                     completedLessons,
                     remainingLessons,
