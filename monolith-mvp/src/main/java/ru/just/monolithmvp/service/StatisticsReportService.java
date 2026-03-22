@@ -12,11 +12,7 @@ import ru.just.monolithmvp.service.StatisticsQueryService.UserCourseKey;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,10 +32,15 @@ public class StatisticsReportService {
         List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByUser(userId);
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
         Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(List.of(userId), courseIds);
+        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(List.of(userId), courseIds);
 
         Map<Long, Integer> maxPointsByCourse = statisticsQueryService.sumMaxPointsByCourseIds(courseIds);
         Map<Long, Long> totalLessonsByCourse = statisticsQueryService.countLessonsByCourseIds(courseIds);
-        Map<UserCourseKey, Integer> earnedByUserCourse = sumEarnedPointsByUserAndCourse(List.of(userId), courseIds);
+        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
+        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
+                pointsAggregation.earnedCompletedPointsByUserCourse(),
+                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        );
         Map<UserCourseKey, Long> completedByUserCourse = statisticsQueryService
                 .countCompletedLessonsByUserAndCourse(List.of(userId), courseIds);
 
@@ -49,6 +50,7 @@ public class StatisticsReportService {
                         maxPointsByCourse,
                         totalLessonsByCourse,
                         earnedByUserCourse,
+                        efficiencyByUserCourse,
                         completedByUserCourse))
                 .toList();
     }
@@ -63,10 +65,15 @@ public class StatisticsReportService {
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = List.of(courseId);
         Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
+        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(userIds, courseIds);
 
         int maxPoints = statisticsQueryService.sumMaxPointsByCourseIds(courseIds).getOrDefault(courseId, 0);
         long totalLessons = statisticsQueryService.countLessonsByCourseIds(courseIds).getOrDefault(courseId, 0L);
-        Map<UserCourseKey, Integer> earnedByUserCourse = sumEarnedPointsByUserAndCourse(userIds, courseIds);
+        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
+        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
+                pointsAggregation.earnedCompletedPointsByUserCourse(),
+                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        );
         Map<UserCourseKey, Long> completedByUserCourse = statisticsQueryService
                 .countCompletedLessonsByUserAndCourse(userIds, courseIds);
 
@@ -77,7 +84,7 @@ public class StatisticsReportService {
                     CourseProgress progressModel = progressByUserCourse.get(key);
                     int earned = earnedByUserCourse.getOrDefault(key, 0);
                     long completed = completedByUserCourse.getOrDefault(key, 0L);
-                    int efficiency = maxPoints == 0 ? 0 : roundToInt(((double) earned * 100D) / maxPoints);
+                    int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
                     int progress = totalLessons == 0 ? 0 : roundToInt(((double) completed * 100D) / totalLessons);
                     return new CourseStudentStatDto(
                             user.getId(),
@@ -90,6 +97,7 @@ public class StatisticsReportService {
                             progress,
                             completed,
                             totalLessons,
+                            progressModel.getStatus(),
                             fmt(enrollment.getEnrolledAt()),
                             fmt(startedAt(progressModel)),
                             fmt(completedAt(progressModel))
@@ -104,10 +112,15 @@ public class StatisticsReportService {
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
         Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
+        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(userIds, courseIds);
 
         Map<Long, List<GroupMembership>> membershipsByUser = loadMembershipsByUser(userIds);
         Map<Long, Integer> maxPointsByCourse = statisticsQueryService.sumMaxPointsByCourseIds(courseIds);
-        Map<UserCourseKey, Integer> earnedByUserCourse = sumEarnedPointsByUserAndCourse(userIds, courseIds);
+        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
+        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
+                pointsAggregation.earnedCompletedPointsByUserCourse(),
+                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        );
 
         List<List<String>> rows = enrollments.stream()
                 .map(enrollment -> {
@@ -115,8 +128,9 @@ public class StatisticsReportService {
                     Long courseId = enrollment.getCourse().getId();
                     CourseProgress progress = progressByUserCourse.get(new UserCourseKey(userId, courseId));
                     int maxPoints = maxPointsByCourse.getOrDefault(courseId, 0);
-                    int earned = earnedByUserCourse.getOrDefault(new UserCourseKey(userId, courseId), 0);
-                    double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
+                    UserCourseKey key = new UserCourseKey(userId, courseId);
+                    int earned = earnedByUserCourse.getOrDefault(key, 0);
+                    int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
                     String groups = membershipsByUser.getOrDefault(userId, List.of()).stream()
                             .map(membership -> membership.getGroup().getTitle())
                             .filter(Objects::nonNull)
@@ -138,7 +152,7 @@ public class StatisticsReportService {
                             datePart(completedAt(progress)),
                             timePart(completedAt(progress)),
                             String.valueOf(earned),
-                            String.format(Locale.US, "%.2f", efficiency),
+                            String.format(Locale.US, "%.2f", (double) efficiency),
                             "",
                             formatSpentTime(startedAt(progress), completedAt(progress)),
                             "",
@@ -179,11 +193,16 @@ public class StatisticsReportService {
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = List.of(courseId);
         Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
+        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(userIds, courseIds);
 
         int maxPoints = statisticsQueryService.sumMaxPointsByCourseIds(courseIds).getOrDefault(courseId, 0);
         long totalLessons = statisticsQueryService.countLessonsByCourseIds(courseIds).getOrDefault(courseId, 0L);
         Map<Long, List<GroupMembership>> membershipsByUser = loadMembershipsByUser(userIds);
-        Map<UserCourseKey, Integer> earnedByUserCourse = sumEarnedPointsByUserAndCourse(userIds, courseIds);
+        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
+        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
+                pointsAggregation.earnedCompletedPointsByUserCourse(),
+                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        );
         Map<UserCourseKey, Long> completedByUserCourse = statisticsQueryService
                 .countCompletedLessonsByUserAndCourse(userIds, courseIds);
         Map<UserCourseKey, Integer> retakesByUserCourse = statisticsQueryService
@@ -196,7 +215,7 @@ public class StatisticsReportService {
                     CourseProgress progressModel = progressByUserCourse.get(key);
                     int earned = earnedByUserCourse.getOrDefault(key, 0);
                     long completed = completedByUserCourse.getOrDefault(key, 0L);
-                    double efficiency = maxPoints == 0 ? 0D : ((double) earned * 100D) / maxPoints;
+                    int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
                     double progress = totalLessons == 0 ? 0D : ((double) completed * 100D) / totalLessons;
                     int retakes = retakesByUserCourse.getOrDefault(key, 0);
 
@@ -226,7 +245,7 @@ public class StatisticsReportService {
                             position,
                             groups,
                             String.valueOf(earned),
-                            String.format(Locale.US, "%.2f", efficiency),
+                            String.format(Locale.US, "%.2f", (double) efficiency),
                             "",
                             String.valueOf(retakes),
                             fmt(enrollment.getEnrolledAt()),
@@ -277,6 +296,7 @@ public class StatisticsReportService {
                                                      Map<Long, Integer> maxPointsByCourse,
                                                      Map<Long, Long> totalLessonsByCourse,
                                                      Map<UserCourseKey, Integer> earnedByUserCourse,
+                                                     Map<UserCourseKey, Integer> efficiencyByUserCourse,
                                                      Map<UserCourseKey, Long> completedByUserCourse) {
         Long courseId = enrollment.getCourse().getId();
         Long userId = enrollment.getUser().getId();
@@ -287,7 +307,7 @@ public class StatisticsReportService {
         long completed = completedByUserCourse.getOrDefault(key, 0L);
         long totalLessons = totalLessonsByCourse.getOrDefault(courseId, 0L);
 
-        int efficiency = maxPoints == 0 ? 0 : roundToInt(((double) earned * 100D) / maxPoints);
+        int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
         int progress = totalLessons == 0 ? 0 : roundToInt(((double) completed * 100D) / totalLessons);
 
         return new StudentCourseStatDto(
@@ -305,18 +325,18 @@ public class StatisticsReportService {
         );
     }
 
-    private Map<UserCourseKey, Integer> sumEarnedPointsByUserAndCourse(Collection<Long> userIds,
-                                                                        Collection<Long> courseIds) {
+    private UserCoursePointsAggregation aggregatePointsByUserAndCourse(Collection<Long> userIds,
+                                                                       Collection<Long> courseIds) {
         List<Long> normalizedUserIds = distinctIds(userIds);
         List<Long> normalizedCourseIds = distinctIds(courseIds);
         if (normalizedUserIds.isEmpty() || normalizedCourseIds.isEmpty()) {
-            return Map.of();
+            return new UserCoursePointsAggregation(Map.of(), Map.of(), Map.of());
         }
 
         List<LessonSubmission> submissions = lessonSubmissionRepository
-                .findByStudentIdInAndLessonCourseIdIn(normalizedUserIds, normalizedCourseIds);
+                .findByStudentIdInAndLessonCourseIdInAndStatusIn(normalizedUserIds, normalizedCourseIds, SubmissionStatus.FINAL_STATUSES);
         if (submissions.isEmpty()) {
-            return Map.of();
+            return new UserCoursePointsAggregation(Map.of(), Map.of(), Map.of());
         }
 
         List<Long> practiceLessonIds = submissions.stream()
@@ -329,6 +349,8 @@ public class StatisticsReportService {
         Map<Long, Map<Long, PracticeQuestion>> questionsByLessonId = loadPracticeQuestionsByLessonId(practiceLessonIds);
 
         Map<UserCourseKey, Integer> earnedByUserCourse = new java.util.HashMap<>();
+        Map<UserCourseKey, Integer> earnedCompletedByUserCourse = new java.util.HashMap<>();
+        Map<UserCourseKey, Integer> maxCompletedByUserCourse = new java.util.HashMap<>();
         for (LessonSubmission submission : submissions) {
             Long userId = submission.getStudent().getId();
             Long courseId = submission.getLesson().getCourse().getId();
@@ -339,9 +361,24 @@ public class StatisticsReportService {
 
             UserCourseKey key = new UserCourseKey(userId, courseId);
             earnedByUserCourse.merge(key, submissionPoints, Integer::sum);
+            earnedCompletedByUserCourse.merge(key, submissionPoints, Integer::sum);
+            maxCompletedByUserCourse.merge(key, Optional.ofNullable(submission.getLesson().getFullPoints()).orElse(0), Integer::sum);
         }
 
-        return earnedByUserCourse;
+        return new UserCoursePointsAggregation(earnedByUserCourse, earnedCompletedByUserCourse, maxCompletedByUserCourse);
+    }
+
+    private Map<UserCourseKey, Integer> calculateEfficiencyByUserAndCourse(Map<UserCourseKey, Integer> earnedCompletedByUserCourse,
+                                                                            Map<UserCourseKey, Integer> maxCompletedByUserCourse) {
+        Map<UserCourseKey, Integer> efficiencyByUserCourse = new java.util.HashMap<>();
+        for (Map.Entry<UserCourseKey, Integer> maxCompletedEntry : maxCompletedByUserCourse.entrySet()) {
+            UserCourseKey key = maxCompletedEntry.getKey();
+            int maxCompletedPoints = maxCompletedEntry.getValue();
+            int earnedCompletedPoints = earnedCompletedByUserCourse.getOrDefault(key, 0);
+            int efficiency = maxCompletedPoints == 0 ? 0 : roundToInt(((double) earnedCompletedPoints * 100D) / maxCompletedPoints);
+            efficiencyByUserCourse.put(key, efficiency);
+        }
+        return efficiencyByUserCourse;
     }
 
     private int calculateSubmissionPoints(LessonSubmission submission, Map<Long, PracticeQuestion> practiceQuestionsById) {
@@ -407,6 +444,10 @@ public class StatisticsReportService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
+    }
+
+    private String toStringNullable(Object value) {
+        return value == null ? null : value.toString();
     }
 
     private String fmt(Object value) {
@@ -491,5 +532,10 @@ public class StatisticsReportService {
 
     private int roundToInt(double value) {
         return (int) Math.round(value);
+    }
+
+    private record UserCoursePointsAggregation(Map<UserCourseKey, Integer> earnedPointsByUserCourse,
+                                               Map<UserCourseKey, Integer> earnedCompletedPointsByUserCourse,
+                                               Map<UserCourseKey, Integer> maxCompletedLessonPointsByUserCourse) {
     }
 }

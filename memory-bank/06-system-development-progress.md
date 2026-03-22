@@ -837,6 +837,31 @@
   - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
   - `mvn -f monolith-mvp/pom.xml -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test` → **BUILD SUCCESS**.
 
+## 2026-03-22 - Efficiency formula aligned to completed-lessons-only rule
+
+- Business rule alignment implemented for statistics and CSV reports:
+  - efficiency now equals: `earned points on completed lessons / max points of completed lessons * 100`;
+  - progress remains: `completed lessons / total lessons * 100`.
+- Introduced a single in-service source of truth for course/user point aggregation in `StatisticsReportService`:
+  - `aggregatePointsByUserAndCourse(...)` now returns one aggregation object with:
+    - total earned points,
+    - earned points on completed lessons,
+    - max points on completed lessons;
+  - `calculateEfficiencyByUserAndCourse(...)` computes efficiency map once and is reused by:
+    - `userCourseStats(...)`,
+    - `courseStats(...)`,
+    - `summaryReportCsv()` and `summaryReportCsv(courseId)`.
+- Integration test update:
+  - `Task07StatisticsAndLearnerSummaryIntegrationTest` extended with a second (not completed) lesson to validate:
+    - efficiency = `100` when all completed lessons are solved at max,
+    - progress = `50` when completed 1 of 2 lessons,
+    - CSV values: efficiency `100.00`, progress `50.00%`.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` -> **BUILD SUCCESS**;
+  - `mvn -pl monolith-mvp -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test -q` -> **BUILD SUCCESS**;
+  - focused `CourseLessonCrudIntegrationTest` methods still fail on pre-existing flow constraints (`Theory lesson not started`), not introduced by this change-set.
+
 ## 2026-03-22 — Fix: `LessonRepository.sumFullPointsByCourseIds` query binding/type alignment
 
 - Fixed JPQL aggregation method in `LessonRepository`:

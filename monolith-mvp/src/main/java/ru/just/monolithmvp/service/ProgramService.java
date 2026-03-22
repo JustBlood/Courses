@@ -36,6 +36,7 @@ public class ProgramService {
     private final CourseEnrollmentPort courseEnrollmentPort;
     private final CourseMapper courseMapper;
     private final UserMapper userMapper;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Transactional
     public ProgramDto createProgram(CreateLearningProgramRequest request) {
@@ -319,22 +320,32 @@ public class ProgramService {
     private ProgramDto toProgramDto(LearningProgram program, Long userId) {
         List<ProgramCourse> orderedCourses = getOrderedProgramCourses(program);
 
+        final Long deadlineAt = Optional.ofNullable(program.getDeadlineDays())
+                .flatMap(p -> programEnrollmentRepository.findByUserIdAndProgramId(userId, program.getId())
+                        .map(pe -> pe.getEnrolledAt().plusDays(program.getDeadlineDays()).toEpochSecond(ZoneOffset.UTC)))
+                .orElse(null);
+
         List<ProgramCourseDto> courseDtos;
         Boolean completedProgram = null;
         if (userId == null) {
             courseDtos = orderedCourses.stream()
-                    .map(pc -> new ProgramCourseDto(pc.getCourse().getId(), pc.getOrderIndex(), null, null, null))
+                    .map(pc -> new ProgramCourseDto(pc.getCourse().getId(), pc.getCourse().getTitle(), pc.getCourse().getDescription(), pc.getCourse().getCoverFilePath(), null, Long.valueOf(pc.getCourse().getDeadlineDays()), pc.getOrderIndex(), null, null, null))
                     .toList();
         } else {
             List<ResolvedProgramCourseState> courseStates = resolveProgramCourseStatesForUser(program, userId);
             courseDtos = courseStates.stream()
                     .map(state -> new ProgramCourseDto(
-                            state.courseId(),
-                            state.orderIndex(),
-                            state.available(),
-                            state.viewed(),
-                            state.completed()
-                    ))
+                                state.courseId(),
+                                state.title(),
+                                state.description(),
+                                state.coverFilePath(),
+                                state.deadlineAt(),
+                                state.deadlineDays(),
+                                state.orderIndex(),
+                                state.available(),
+                                state.viewed(),
+                                state.completed()
+                        ))
                     .toList();
             completedProgram = !courseStates.isEmpty() && courseStates.stream().allMatch(ResolvedProgramCourseState::completed);
         }
@@ -344,7 +355,8 @@ public class ProgramService {
                 program.getTitle(),
                 program.getDescription(),
                 program.getAccessCondition(),
-                program.getDeadlineAt() == null ? null : program.getDeadlineAt().toEpochSecond(ZoneOffset.UTC),
+                program.getDeadlineDays(),
+                deadlineAt,
                 program.getBlockAfterDeadline(),
                 completedProgram,
                 courseDtos
@@ -362,7 +374,7 @@ public class ProgramService {
         program.setAccessCondition(request.accessCondition() == null
                 ? program.getAccessCondition() != null ? program.getAccessCondition() : ProgramAccessCondition.ALL_OPEN
                 : request.accessCondition());
-        program.setDeadlineAt(request.deadlineAt() == null ? null : LocalDateTime.ofEpochSecond(request.deadlineAt(), 0, ZoneOffset.UTC));
+        program.setDeadlineDays(request.deadlineDays());
         program.setBlockAfterDeadline(request.blockAfterDeadline() != null ? request.blockAfterDeadline() : program.getBlockAfterDeadline());
     }
 
@@ -407,14 +419,27 @@ public class ProgramService {
         }
 
         Map<Long, CourseProgress> progressByCourseId = loadProgressByCourseId(userId, orderedCourses);
+
         List<ResolvedProgramCourseState> states = new ArrayList<>();
 
         boolean allPreviousCompleted = true;
         boolean previousViewed = false;
 
+        Long deadlineAt = programEnrollmentRepository.findByUserIdAndProgramId(userId, program.getId())
+                    .map(programEnrollment -> programEnrollment.getEnrolledAt().plusDays(program.getDeadlineDays()).toEpochSecond(ZoneOffset.UTC))
+                    .orElse(null);
+
         for (int i = 0; i < orderedCourses.size(); i++) {
             ProgramCourse pc = orderedCourses.get(i);
             CourseProgress progress = progressByCourseId.get(pc.getCourse().getId());
+
+            Long courseDeadlineAt = null;
+            if (progress != null) {
+                courseDeadlineAt = Optional.ofNullable(pc.getCourse().getDeadlineDays())
+                        .flatMap(deadlineDays -> enrollmentRepository.findByUserIdAndCourseId(userId, pc.getCourse().getId())
+                                .map(enrollment -> enrollment.getEnrolledAt().plusDays(deadlineDays).toEpochSecond(ZoneOffset.UTC)))
+                        .orElse(null);
+            }
 
             boolean viewed = progress != null && progress.getStatus() != CourseProgressStatus.NEW;
             boolean completed = progress != null && progress.getStatus() == CourseProgressStatus.COMPLETED;
@@ -429,13 +454,18 @@ public class ProgramService {
             }
 
             boolean blockedByDeadline = Boolean.TRUE.equals(program.getBlockAfterDeadline())
-                    && program.getDeadlineAt() != null
-                    && LocalDateTime.now(Clock.systemUTC()).isAfter(program.getDeadlineAt())
+                    && program.getDeadlineDays() != null && deadlineAt != null
+                    && LocalDateTime.now(Clock.systemUTC()).isAfter(LocalDateTime.ofEpochSecond(deadlineAt, 0, ZoneOffset.UTC))
                     && !completed;
 
             boolean available = unlockedByRule && !blockedByDeadline;
             states.add(new ResolvedProgramCourseState(
                     pc.getCourse().getId(),
+                    pc.getCourse().getTitle(),
+                    pc.getCourse().getDescription(),
+                    pc.getCourse().getCoverFilePath(),
+                    courseDeadlineAt,
+                    Long.valueOf(pc.getCourse().getDeadlineDays()),
                     pc.getOrderIndex(),
                     available,
                     viewed,
@@ -476,6 +506,11 @@ public class ProgramService {
 
     private record ResolvedProgramCourseState(
             Long courseId,
+            String title,
+            String description,
+            String coverFilePath,
+            Long deadlineAt,
+            Long deadlineDays,
             Integer orderIndex,
             boolean available,
             boolean viewed,

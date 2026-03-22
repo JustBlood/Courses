@@ -9,6 +9,7 @@ public record ProgramDto(
         String title,
         String description,
         ProgramAccessCondition accessCondition,
+        Long deadlineDays,
         Long deadlineAt,
         Boolean blockAfterDeadline,
         Boolean completed,

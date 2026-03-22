@@ -1,5 +1,7 @@
 package ru.just.monolithmvp.dto.stat;
 
+import ru.just.monolithmvp.model.CourseProgressStatus;
+
 public record CourseStudentStatDto(
         Long studentId,
         String fullName,
@@ -11,6 +13,7 @@ public record CourseStudentStatDto(
         Integer progressPercent,
         Long completedLessons,
         Long totalLessons,
+        CourseProgressStatus status,
         String enrolledAt,
         String startedAt,
         String completedAt

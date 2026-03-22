@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +28,7 @@ public class LearningProgram {
     @Column(nullable = false)
     private ProgramAccessCondition accessCondition;
 
-    private LocalDateTime deadlineAt;
+    private Long deadlineDays;
 
     @Column(nullable = false)
     private Boolean blockAfterDeadline = false;

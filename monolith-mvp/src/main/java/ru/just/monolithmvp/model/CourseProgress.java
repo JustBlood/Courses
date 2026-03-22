@@ -34,5 +34,5 @@ public class CourseProgress {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CourseProgressStatus status; // todo: пересчитывать только при удалении и добавлении урока, при сбросе прогресса по уроку, при сбросе прогресса по курсу
+    private CourseProgressStatus status;
 }

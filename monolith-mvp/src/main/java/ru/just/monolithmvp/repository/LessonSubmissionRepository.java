@@ -1,6 +1,5 @@
 package ru.just.monolithmvp.repository;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,10 +24,11 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     @Query("""
         select s
         from LessonSubmission s join fetch s.lesson l
-        where s.student.id in :userIds and l.course.id in :courseIds
+        where s.status in :statuses and s.student.id in :userIds and l.course.id in :courseIds
         """)
-    List<LessonSubmission> findByStudentIdInAndLessonCourseIdIn(@Param("userIds") List<Long> userIds,
-                                                                 @Param("courseIds") List<Long> courseIds);
+    List<LessonSubmission> findByStudentIdInAndLessonCourseIdInAndStatusIn(@Param("userIds") List<Long> userIds,
+                                                                           @Param("courseIds") List<Long> courseIds,
+                                                                           List<SubmissionStatus> statuses);
     Optional<LessonSubmission> findByStudentIdAndLessonId(Long studentId, Long lessonId);
     long countByStudentIdAndLessonId(Long studentId, Long lessonId);
 
