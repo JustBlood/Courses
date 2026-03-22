@@ -401,6 +401,30 @@ class CourseLessonCrudIntegrationTest {
                                 """.formatted(studentDoneId, studentNewId)))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/start", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/start", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/start", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", theoryLessonId)
+                        .header("Authorization", "Bearer " + studentDoneToken))
+                .andExpect(status().isOk());
+
         mockMvc.perform(get("/api/v1/student/lessons/{lessonId}", theoryLessonId)
                         .header("Authorization", "Bearer " + studentDoneToken))
                 .andExpect(status().isOk());
@@ -556,7 +580,7 @@ class CourseLessonCrudIntegrationTest {
         assertThat(lines.length).isGreaterThanOrEqualTo(3);
 
         String expectedHeader =
-                "\"Статус\";\"Программа\";\"ФИО\";\"Email\";\"Логин\";\"cid\";\"Деактивирован\";\"Компания\";\"Подразделение\";\"Должность\";\"Группы\";\"Баллов\";\"Эффективность\";\"Медалей\";\"Пересдач\";\"Назначено\";\"Начало\";\"Завершение\";\"Дедлайн\";\"Затрачено времени\";\"Прогресс\";\"Уроков\";\"Продолжительность\";\"Номер сертификата\";\"Ссылка\"";
+                "\"Статус\";\"Программа\";\"ФИО\";\"СНИЛС\";\"Email\";\"Логин\";\"cid\";\"Деактивирован\";\"Компания\";\"Подразделение\";\"Должность\";\"Группы\";\"Баллов\";\"Эффективность\";\"Медалей\";\"Пересдач\";\"Назначено\";\"Начало\";\"Завершение\";\"Дедлайн\";\"Затрачено времени\";\"Прогресс\";\"Уроков\";\"Продолжительность\";\"Номер сертификата\";\"Ссылка\"";
         assertThat(lines[0]).isEqualTo(expectedHeader);
 
         JsonNode doneCourseStat = null;
@@ -575,27 +599,27 @@ class CourseLessonCrudIntegrationTest {
 
         String[] row1 = parseCsvSemicolonLine(lines[1]);
         String[] row2 = parseCsvSemicolonLine(lines[2]);
-        assertThat(row1.length).isEqualTo(25);
-        assertThat(row2.length).isEqualTo(25);
+        assertThat(row1.length).isEqualTo(26);
+        assertThat(row2.length).isEqualTo(26);
 
         String[] doneRow = row1[2].equals("Report Done") ? row1 : row2;
         String[] newRow = row1[2].equals("Report New") ? row1 : row2;
 
-        assertThat(doneRow[11]).isEqualTo(String.valueOf(doneCourseStat.get("earnedPoints").asInt()));
-        assertThat(doneRow[12]).isEqualTo(String.format(java.util.Locale.US, "%.2f", doneCourseStat.get("efficiencyPercent").asDouble()));
-        assertThat(doneRow[20]).isEqualTo(String.format(java.util.Locale.US, "%.2f%%", doneCourseStat.get("progressPercent").asDouble()));
-        assertThat(doneRow[21]).isEqualTo(doneCourseStat.get("completedLessons").asText() + "/" + doneCourseStat.get("totalLessons").asText());
+        assertThat(doneRow[12]).isEqualTo(String.valueOf(doneCourseStat.get("earnedPoints").asInt()));
+        assertThat(doneRow[13]).isEqualTo(String.format(java.util.Locale.US, "%.2f", doneCourseStat.get("efficiencyPercent").asDouble()));
+        assertThat(doneRow[21]).isEqualTo("100.00%");
+        assertThat(doneRow[22]).isEqualTo(doneCourseStat.get("completedLessons").asText() + "/" + doneCourseStat.get("totalLessons").asText());
 
-        assertThat(newRow[11]).isEqualTo(String.valueOf(newCourseStat.get("earnedPoints").asInt()));
-        assertThat(newRow[12]).isEqualTo(String.format(java.util.Locale.US, "%.2f", newCourseStat.get("efficiencyPercent").asDouble()));
-        assertThat(newRow[20]).isEqualTo(String.format(java.util.Locale.US, "%.2f%%", newCourseStat.get("progressPercent").asDouble()));
-        assertThat(newRow[21]).isEqualTo(newCourseStat.get("completedLessons").asText() + "/" + newCourseStat.get("totalLessons").asText());
+        assertThat(newRow[12]).isEqualTo(String.valueOf(newCourseStat.get("earnedPoints").asInt()));
+        assertThat(newRow[13]).isEqualTo(String.format(java.util.Locale.US, "%.2f", newCourseStat.get("efficiencyPercent").asDouble()));
+        assertThat(newRow[21]).isEqualTo("0.00%");
+        assertThat(newRow[22]).isEqualTo(newCourseStat.get("completedLessons").asText() + "/" + newCourseStat.get("totalLessons").asText());
 
-        assertThat(doneRow[4]).isEmpty();
-        assertThat(doneRow[5]).isEmpty();
-        assertThat(doneRow[13]).isEmpty();
-        assertThat(doneRow[23]).isEmpty();
+        assertThat(doneRow[5]).isEqualTo(studentDoneEmail.substring(0, studentDoneEmail.indexOf('@')));
+        assertThat(doneRow[6]).isEmpty();
+        assertThat(doneRow[14]).isEmpty();
         assertThat(doneRow[24]).isEmpty();
+        assertThat(doneRow[25]).isEmpty();
     }
 
     @Test
@@ -605,6 +629,16 @@ class CourseLessonCrudIntegrationTest {
         String studentEmail = uniqueEmail("summary-multi");
         Long studentId = createUser(adminToken, "Summary Multi", studentEmail, "STUDENT");
         String studentToken = setPasswordAndLogin(studentId, studentEmail, "Stud123!");
+
+        mockMvc.perform(put("/api/v1/admin/users/{id}", studentId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "snils": "123-456-789 00"
+                                }
+                                """))
+                .andExpect(status().isOk());
 
         String firstCourseResponse = mockMvc.perform(post("/api/v1/admin/courses")
                         .header("Authorization", "Bearer " + adminToken)
@@ -697,6 +731,10 @@ class CourseLessonCrudIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
 
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/start", firstTheoryLessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
+
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/complete-theory", firstTheoryLessonId)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk());
@@ -712,13 +750,13 @@ class CourseLessonCrudIntegrationTest {
         assertThat(lines.length).isGreaterThanOrEqualTo(2);
 
         String expectedHeader =
-                "\"Группы\";\"ФИО студента\";\"Email\";\"Логин\";\"CID\";\"Название курса\";\"CID\";\"Дата назначения\";\"Время\";\"Дата начала\";\"Время\";\"Дата завершения\";\"Время\";\"Баллов\";\"Эффективность\";\"Продолжительность\";\"Затрачено\";\"Номер сертификата\";\"Ссылка\"";
+                "\"Группы\";\"ФИО студента\";\"СНИЛС\";\"Email\";\"Логин\";\"CID\";\"Название курса\";\"CID\";\"Дата назначения\";\"Время\";\"Дата начала\";\"Время\";\"Дата завершения\";\"Время\";\"Баллов\";\"Эффективность\";\"Продолжительность\";\"Затрачено\";\"Номер сертификата\";\"Ссылка\"";
         assertThat(lines[0]).isEqualTo(expectedHeader);
 
         java.util.List<String[]> studentRows = new java.util.ArrayList<>();
         for (int i = 1; i < lines.length; i++) {
             String[] row = parseCsvSemicolonLine(lines[i]);
-            if (row.length == 19 && studentEmail.equals(row[2])) {
+            if (row.length == 20 && studentEmail.equals(row[3])) {
                 studentRows.add(row);
             }
         }
@@ -726,29 +764,31 @@ class CourseLessonCrudIntegrationTest {
         assertThat(studentRows).hasSize(2);
 
         String[] courseARow = studentRows.stream()
-                .filter(r -> "Summary Course A".equals(r[5]))
+                .filter(r -> "Summary Course A".equals(r[6]))
                 .findFirst()
                 .orElseThrow();
         String[] courseBRow = studentRows.stream()
-                .filter(r -> "Summary Course B".equals(r[5]))
+                .filter(r -> "Summary Course B".equals(r[6]))
                 .findFirst()
                 .orElseThrow();
 
         assertThat(courseARow[1]).isEqualTo("Summary Multi");
-        assertThat(courseARow[2]).isEqualTo(studentEmail);
-        assertThat(courseARow[13]).isEqualTo("10");
-        assertThat(courseARow[14]).isEqualTo("100.00");
+        assertThat(courseARow[3]).isEqualTo(studentEmail);
+        assertThat(courseARow[14]).isEqualTo("10");
+        assertThat(courseARow[15]).isEqualTo("100.00");
 
         assertThat(courseBRow[1]).isEqualTo("Summary Multi");
-        assertThat(courseBRow[2]).isEqualTo(studentEmail);
-        assertThat(courseBRow[13]).isEqualTo("0");
-        assertThat(courseBRow[14]).isEqualTo("0.00");
+        assertThat(courseBRow[3]).isEqualTo(studentEmail);
+        assertThat(courseBRow[14]).isEqualTo("0");
+        assertThat(courseBRow[15]).isEqualTo("0.00");
 
-        assertThat(courseARow[3]).isEmpty();
-        assertThat(courseARow[4]).isEmpty();
-        assertThat(courseARow[6]).isEmpty();
-        assertThat(courseARow[17]).isEmpty();
+        assertThat(courseARow[2]).isEqualTo("123-456-789 00");
+        assertThat(courseARow[4]).isEqualTo(studentEmail.substring(0, studentEmail.indexOf('@')));
+        assertThat(courseARow[5]).isEmpty();
+        assertThat(courseARow[7]).isEmpty();
         assertThat(courseARow[18]).isEmpty();
+        assertThat(courseARow[19]).isEmpty();
+        assertThat(courseBRow[2]).isEqualTo("123-456-789 00");
     }
 
     @Test

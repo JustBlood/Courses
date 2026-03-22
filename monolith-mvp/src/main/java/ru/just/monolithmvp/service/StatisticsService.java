@@ -7,6 +7,8 @@ import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.security.SecurityUtils;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.List;
 
 @Service
@@ -36,7 +38,17 @@ public class StatisticsService {
     }
 
     @Transactional(readOnly = true)
+    public void writeSummaryReportCsv(Writer writer) throws IOException {
+        statisticsReportService.writeSummaryReportCsv(writer);
+    }
+
+    @Transactional(readOnly = true)
     public String summaryReportCsv(Long courseId) {
         return statisticsReportService.summaryReportCsv(courseId);
+    }
+
+    @Transactional(readOnly = true)
+    public void writeSummaryReportCsv(Long courseId, Writer writer) throws IOException {
+        statisticsReportService.writeSummaryReportCsv(courseId, writer);
     }
 }

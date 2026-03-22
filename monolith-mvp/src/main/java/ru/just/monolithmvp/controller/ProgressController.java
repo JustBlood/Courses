@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,8 @@ import ru.just.monolithmvp.service.CourseService;
 import ru.just.monolithmvp.service.OpenReviewService;
 import ru.just.monolithmvp.service.StatisticsService;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -133,8 +136,10 @@ public class ProgressController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV отчёт", content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE, schema = @Schema(type = "string")))
     })
-    public ResponseEntity<String> summaryCsv() {
-        return ResponseEntity.ok(statisticsService.summaryReportCsv());
+    public void summaryCsv(HttpServletResponse response) throws IOException {
+        response.setContentType(MediaType.TEXT_PLAIN_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        statisticsService.writeSummaryReportCsv(response.getWriter());
     }
 
     @GetMapping(value = "/courses/{courseId}/summary-report.csv", produces = MediaType.TEXT_PLAIN_VALUE)
@@ -143,7 +148,9 @@ public class ProgressController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV отчёт по курсу", content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE, schema = @Schema(type = "string"))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
     })
-    public ResponseEntity<String> courseSummaryCsv(@PathVariable Long courseId) {
-        return ResponseEntity.ok(statisticsService.summaryReportCsv(courseId));
+    public void courseSummaryCsv(@PathVariable Long courseId, HttpServletResponse response) throws IOException {
+        response.setContentType(MediaType.TEXT_PLAIN_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        statisticsService.writeSummaryReportCsv(courseId, response.getWriter());
     }
 }

@@ -147,10 +147,10 @@ class Task07StatisticsAndLearnerSummaryIntegrationTest {
         String[] lines = courseSummaryCsv.strip().split("\\R");
         assertThat(lines.length).isGreaterThanOrEqualTo(2);
         String[] studentRow = parseCsvSemicolonLine(lines[1]);
-        assertThat(studentRow[11]).isEqualTo("2");
-        assertThat(studentRow[12]).isEqualTo("100.00");
-        assertThat(studentRow[14]).isEqualTo("1");
-        assertThat(studentRow[20]).isEqualTo("50.00%");
+        assertThat(studentRow[12]).isEqualTo("2");
+        assertThat(studentRow[13]).isEqualTo("100.00");
+        assertThat(studentRow[15]).isEqualTo("1");
+        assertThat(studentRow[21]).isEqualTo("0.00%");
     }
 
     private String login(String email, String password) throws Exception {

@@ -904,3 +904,33 @@
 - Verification:
   - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**;
   - `mvn -pl monolith-mvp -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test -q` → **BUILD SUCCESS**.
+
+## 2026-03-22 — CSV report streaming in HTTP response body (flush each 50 rows)
+
+- Refactored CSV export delivery path to stream directly to HTTP response writer instead of building one large in-memory response string.
+- Scope intentionally limited to transport/output layer; statistics aggregation logic was not changed.
+
+- Controller layer:
+  - `ProgressController` CSV endpoints switched from `ResponseEntity<String>` to direct writing via `HttpServletResponse` writer:
+    - `GET /api/v1/admin/progress/reports/summary.csv`
+    - `GET /api/v1/admin/progress/courses/{courseId}/summary-report.csv`
+  - response `Content-Type`/encoding are set explicitly (`text/plain`, UTF-8).
+
+- Service/renderer layer:
+  - `CsvReportRenderer` extended with writer-based methods:
+    - `writeHeader(Writer, List<String>)`
+    - `writeRow(Writer, List<String>)`
+  - `StatisticsReportService` added writer-based streaming methods:
+    - `writeSummaryReportCsv(Writer)`
+    - `writeSummaryReportCsv(Long, Writer)`
+  - Implemented periodic flush policy in both CSV flows:
+    - `writer.flush()` every 50 data rows,
+    - final flush at method end.
+  - Existing string-returning methods were preserved as compatibility wrappers via `StringWriter`.
+
+- Facade alignment:
+  - `StatisticsService` now exposes writer-based delegating methods for both summary CSV variants.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
+  - Focused CSV-related integration test run was prepared; broader `Task07StatisticsAndLearnerSummaryIntegrationTest` currently fails in this branch due a pre-existing unrelated schema mismatch (`learning_programs.deadline_days` in H2 test context), not introduced by CSV streaming changes.
