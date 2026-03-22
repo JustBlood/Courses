@@ -4,8 +4,6 @@ import ru.just.monolithmvp.model.SubmissionStatus;
 
 public record SubmissionResultDto(
         Long submissionId,
-        SubmissionStatus status,
-        boolean passed,
-        String message
+        SubmissionStatus status
 ) {
 }

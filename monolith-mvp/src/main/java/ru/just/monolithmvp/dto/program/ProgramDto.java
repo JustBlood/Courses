@@ -2,7 +2,6 @@ package ru.just.monolithmvp.dto.program;
 
 import ru.just.monolithmvp.model.ProgramAccessCondition;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public record ProgramDto(
@@ -10,8 +9,8 @@ public record ProgramDto(
         String title,
         String description,
         ProgramAccessCondition accessCondition,
-        LocalDateTime deadlineAt,
-        Boolean blockAfterDeadline,
+        Long deadlineDays,
+        Long deadlineAt,
         Boolean completed,
         List<ProgramCourseDto> courses
 ) {

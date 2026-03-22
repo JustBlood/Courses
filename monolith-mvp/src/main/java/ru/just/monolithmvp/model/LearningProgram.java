@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,10 +28,7 @@ public class LearningProgram {
     @Column(nullable = false)
     private ProgramAccessCondition accessCondition;
 
-    private LocalDateTime deadlineAt;
-
-    @Column(nullable = false)
-    private Boolean blockAfterDeadline = false;
+    private Long deadlineDays;
 
     @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")

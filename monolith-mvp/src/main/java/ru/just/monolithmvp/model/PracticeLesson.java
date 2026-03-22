@@ -18,9 +18,6 @@ public class PracticeLesson extends Lesson {
     private Integer passingThresholdPercent = 100;
 
     @Column(nullable = false)
-    private Boolean evaluateByCorrectCount = false;
-
-    @Column(nullable = false)
     private Boolean shuffleOnEveryAttempt = false;
 
     @Column(nullable = false)
@@ -33,11 +30,7 @@ public class PracticeLesson extends Lesson {
     @OrderBy("questionIndex ASC")
     private List<PracticeQuestion> questions = new ArrayList<>();
 
-    @PrePersist
-    @PreUpdate
-    private void syncLessonType() {
-        if (getLessonType() != LessonType.PRACTICE_OPEN_ANSWER) {
-            setLessonType(LessonType.PRACTICE_TEST);
-        }
+    public boolean passedByPoints(Integer awardedPoints) {
+        return awardedPoints * 100 >= getFullPoints() * passingThresholdPercent;
     }
 }

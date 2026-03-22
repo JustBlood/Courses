@@ -21,7 +21,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "Вход в систему", description = "Возвращает JWT-токен для последующей авторизации")
+    @Operation(summary = "Вход в систему", description = "Проверяет учетные данные и возвращает JWT-токен")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Успешная аутентификация",
                     content = @Content(schema = @Schema(implementation = LoginResponse.class))),
@@ -37,7 +37,7 @@ public class AuthController {
     }
 
     @PostMapping("/recover-password")
-    @Operation(summary = "Инициировать восстановление пароля", description = "Отправляет ссылку/токен для установки нового пароля. Ответ нейтральный")
+    @Operation(summary = "Инициировать восстановление пароля", description = "Отправляет ссылку/токен для установки нового пароля. Ответ нейтральный независимо от наличия пользователя")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Запрос принят",
                     content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
@@ -52,7 +52,7 @@ public class AuthController {
     }
 
     @PostMapping("/set-password")
-    @Operation(summary = "Установить/сбросить пароль по токену", description = "Используется в onboarding и password reset flow")
+    @Operation(summary = "Установить/сбросить пароль по токену", description = "Устанавливает новый пароль по токену приглашения или восстановления")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Пароль успешно установлен",
                     content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),

@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,9 +30,6 @@ public class Course {
     @Column
     private String coverFilePath;
 
-    @Column(nullable = false)
-    private Integer passingThresholdPercent = 70;
-
     @Column
     private Integer deadlineDays;
 
@@ -41,25 +37,11 @@ public class Course {
     private Boolean lessonsFreeOrder = false;
 
     @Column(nullable = false)
-    private Boolean allowContinueAfterFail = false;
-
-    @Column(nullable = false)
-    private Boolean keepAccessAfterDeadline = false;
-
-    @Column(nullable = false)
-    private Boolean includeInOverallStats = true;
-
-    @Column(nullable = false)
     private Long createdByAdminId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id")
     private Section section;
-
-    private LocalDateTime deadlineAt;
-
-    @Column(nullable = false)
-    private Boolean blockAfterDeadline = false;
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")

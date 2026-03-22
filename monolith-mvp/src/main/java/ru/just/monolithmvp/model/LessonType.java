@@ -14,6 +14,14 @@ public enum LessonType {
 
     private final LessonSubType subType;
 
+    public boolean isTheory() {
+        return subType == LessonSubType.THEORY;
+    }
+
+    public boolean isPractice() {
+        return subType == LessonSubType.PRACTICE;
+    }
+
     public enum LessonSubType {
         PRACTICE, THEORY;
     }

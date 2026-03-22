@@ -5,6 +5,8 @@ import ru.just.monolithmvp.model.OpenReviewStatus;
 
 @Schema(description = "Информация по открытому вопросу для ревью")
 public record PendingSubmissionQuestionDto(
+        @Schema(description = "Id вопроса", example = "1")
+        Long questionId,
         @Schema(description = "Индекс вопроса", example = "1")
         Integer questionIndex,
         @Schema(description = "Статус вопроса в review", example = "PENDING_REVIEW")
@@ -17,6 +19,8 @@ public record PendingSubmissionQuestionDto(
         Integer awardedPoints,
         @Schema(description = "Максимальные баллы за вопрос", example = "20")
         Integer fullPoints,
+        @Schema(description = "Частичные баллы за вопрос", example = "10")
+        Integer partialPoints,
         @Schema(description = "Ответ студента", example = "Ответ, данный учеником")
         String answer,
         @Schema(description = "Комментарий ревьювера", example = "Не до конца понял твою мысль")

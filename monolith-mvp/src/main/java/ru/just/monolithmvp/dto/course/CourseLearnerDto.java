@@ -10,11 +10,8 @@ public record CourseLearnerDto(
         String description,
         String coverFilePath,
         Integer deadlineDays,
-        Integer completionPercent,
-        Integer completedLessons,
-        Integer remainingLessons,
         Integer totalLessons,
-        Boolean courseCompleted,
+        CourseProgressDto progress,
         List<LearnerLessonSummaryDto> lessons
 ) {
 }

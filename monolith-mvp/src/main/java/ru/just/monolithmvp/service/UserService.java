@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import ru.just.monolithmvp.config.properties.MailProperties;
+import ru.just.monolithmvp.dto.group.GroupDto;
 import ru.just.monolithmvp.dto.user.CreateUserRequest;
 import ru.just.monolithmvp.dto.user.UpdateUserRequest;
 import ru.just.monolithmvp.dto.user.UserDto;
@@ -28,7 +29,9 @@ import ru.just.monolithmvp.security.SecurityUtils;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -48,11 +51,13 @@ public class UserService {
     private final MailProperties mailProperties;
     private final LearningGroupRepository learningGroupRepository;
     private final GroupMembershipRepository groupMembershipRepository;
+    private final GroupService groupService;
     private final SecurityUtils securityUtils;
     private final BusinessEventLogger businessEventLogger;
     private final FileStorageService fileStorageService;
 
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
+    private final ProgramEnrollmentRepository programEnrollmentRepository;
 
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
@@ -73,15 +78,16 @@ public class UserService {
             user.setActivation(true);
             user.setEnabled(!sendInvite);
             user.setPhone(request.phone());
+            user.setSnils(request.snils());
             user.setComment(request.comment());
-            user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now() : request.createdAt());
+            user.setCreatedAt(request.createdAt() == null ? LocalDateTime.now(Clock.systemUTC()) : LocalDateTime.ofEpochSecond(request.createdAt(), 0, ZoneOffset.UTC));
             user.setCreatedBy(
                     request.createdBy() == null || request.createdBy().isBlank()
                             ? actor
                             : request.createdBy()
             );
-            user.setLastVisit(request.lastVisit());
-            user.setDeactivatedAt(request.deactivatedAt());
+            user.setLastVisit(request.lastVisit() == null ? null : LocalDateTime.ofEpochSecond(request.lastVisit(), 0, ZoneOffset.UTC));
+            user.setDeactivatedAt(request.deactivatedAt() == null ? null : LocalDateTime.ofEpochSecond(request.deactivatedAt(), 0, ZoneOffset.UTC));
             user.setDeactivatedBy(request.deactivatedBy());
             user = userRepository.save(user);
 
@@ -98,7 +104,7 @@ public class UserService {
                     "role", user.getRole(),
                     "invite", sendInvite);
 
-            return toUserDtoWithPublicAvatar(userMapper.toDto(user));
+            return userMapper.toDto(user);
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.create", "failure",
                     "actor", actor,
@@ -123,6 +129,7 @@ public class UserService {
             user.setEmail(request.email() != null ? request.email() : user.getEmail());
             user.setRole(request.role() != null ? request.role() : user.getRole());
             user.setPhone(request.phone() != null ? request.phone() : user.getPhone());
+            user.setSnils(request.snils() != null ? request.snils() : user.getSnils());
             user.setComment(request.comment() != null ? request.comment() : user.getComment());
             if (request.avatarFilePath() != null) {
                 String oldAvatarPath = user.getAvatarFilePath();
@@ -147,7 +154,7 @@ public class UserService {
                     "userId", savedUser.getId(),
                     "email", savedUser.getEmail(),
                     "role", savedUser.getRole());
-            return toUserDtoWithPublicAvatar(userMapper.toDto(savedUser));
+            return userMapper.toDto(savedUser, groupService.getUserGroups(userId));
         } catch (RuntimeException ex) {
             businessEventLogger.log("user.update", "failure",
                     "actor", actor,
@@ -167,6 +174,7 @@ public class UserService {
                 && request.role() == null
                 && request.avatarFilePath() == null
                 && request.phone() == null
+                && request.snils() == null
                 && request.comment() == null
                 && request.password() == null) {
             throw new BadRequestException("At least one field must be provided for profile update");
@@ -211,6 +219,10 @@ public class UserService {
             user.setPhone(request.phone().trim());
         }
 
+        if (request.snils() != null) {
+            user.setSnils(request.snils().trim());
+        }
+
         if (request.comment() != null) {
             user.setComment(request.comment().trim());
         }
@@ -221,7 +233,17 @@ public class UserService {
             user.setEnabled(true);
         }
 
-        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
+        return userMapper.toDto(userRepository.save(user), groupService.getUserGroups(userId));
+    }
+
+    @Transactional(readOnly = true)
+    public UserDto getStudentProfile(Long userId) {
+        return hideCommentForStudent(getUser(userId));
+    }
+
+    @Transactional
+    public UserDto updateStudentProfile(Long userId, UpdateUserRequest request) {
+        return updateMyProfile(userId, request);
     }
 
     @Transactional
@@ -237,7 +259,7 @@ public class UserService {
                 user.setDeactivatedAt(null);
                 user.setDeactivatedBy(null);
             } else {
-                user.setDeactivatedAt(LocalDateTime.now());
+                user.setDeactivatedAt(LocalDateTime.now(Clock.systemUTC()));
                 user.setDeactivatedBy(resolveCurrentActor());
             }
         }
@@ -246,9 +268,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toDto)
-                .map(this::toUserDtoWithPublicAvatar)
+        final List<AppUser> users = userRepository.findAll();
+        return users.stream()
+                .map(user -> {
+                    final List<GroupDto> userGroups = groupService.getUserGroups(user.getId());
+                    return userMapper.toDto(user, userGroups);
+                })
                 .toList();
     }
 
@@ -256,7 +281,8 @@ public class UserService {
     public UserDto getUser(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        return toUserDtoWithPublicAvatar(userMapper.toDto(user));
+        final List<GroupDto> userGroups = groupService.getUserGroups(userId);
+        return userMapper.toDto(user, userGroups);
     }
 
     @Transactional
@@ -276,6 +302,7 @@ public class UserService {
         passwordSetupTokenRepository.deleteByUser_Id(userId);
         groupMembershipRepository.deleteAll(groupMembershipRepository.findByUserId(userId));
         userRepository.delete(user);
+        programEnrollmentRepository.deleteByUserId(userId);
     }
 
     @Transactional
@@ -288,17 +315,17 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateLastVisit(Long userId) {
+    public void updateLastVisit(Long userId) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
-        user.setLastVisit(LocalDateTime.now());
-        return toUserDtoWithPublicAvatar(userMapper.toDto(userRepository.save(user)));
+        user.setLastVisit(LocalDateTime.now(Clock.systemUTC()));
+        userRepository.save(user);
     }
 
     @Transactional
-    public UserDto updateCurrentUserLastVisit() {
+    public void updateCurrentUserLastVisit() {
         Long userId = securityUtils.currentUserId();
-        return updateLastVisit(userId);
+        updateLastVisit(userId);
     }
 
     @Transactional
@@ -334,11 +361,12 @@ public class UserService {
                             ru.just.monolithmvp.model.Role.valueOf(roleRaw),
                             null,
                             val(r, 6),
+                            null,
                             val(r, 14),
-                            parseDateTime(val(r, 19)),
+                            parseDateTime(val(r, 19)).toEpochSecond(ZoneOffset.UTC),
                             val(r, 20),
-                            parseDateTime(val(r, 21)),
-                            parseDateTime(val(r, 22)),
+                            parseDateTime(val(r, 21)).toEpochSecond(ZoneOffset.UTC),
+                            parseDateTime(val(r, 22)).toEpochSecond(ZoneOffset.UTC),
                             val(r, 23),
                             null,
                             null,
@@ -409,7 +437,7 @@ public class UserService {
         PasswordSetupToken invite = new PasswordSetupToken();
         invite.setToken(UUID.randomUUID().toString());
         invite.setUser(user);
-        invite.setCreatedAt(LocalDateTime.now());
+        invite.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
         passwordSetupTokenRepository.save(invite);
 
         String inviteLink = mailProperties.inviteBaseUrl() + "/set-password?token=" + invite.getToken();
@@ -556,7 +584,7 @@ public class UserService {
             Enrollment enrollment = new Enrollment();
             enrollment.setUser(user);
             enrollment.setCourse(course);
-            enrollment.setEnrolledAt(LocalDateTime.now());
+            enrollment.setEnrolledAt(LocalDateTime.now(Clock.systemUTC()));
             enrollmentRepository.save(enrollment);
         }
     }
@@ -579,22 +607,27 @@ public class UserService {
         return groups.stream().map(g -> g.getId().toString()).reduce((a, b) -> a + "," + b).orElse("");
     }
 
-    private UserDto toUserDtoWithPublicAvatar(UserDto dto) {
+    private UserDto hideCommentForStudent(UserDto user) {
+        if (user.role() != Role.STUDENT) {
+            return user;
+        }
         return new UserDto(
-                dto.id(),
-                dto.fullName(),
-                dto.email(),
-                dto.role(),
-                dto.activation(),
-                dto.enabled(),
-                dto.phone(),
-                dto.comment(),
-                fileStorageService.normalizeStoredPath(dto.avatarFilePath()),
-                dto.createdAt(),
-                dto.createdBy(),
-                dto.lastVisit(),
-                dto.deactivatedAt(),
-                dto.deactivatedBy()
+                user.id(),
+                user.fullName(),
+                user.email(),
+                user.role(),
+                user.activation(),
+                user.enabled(),
+                user.phone(),
+                user.snils(),
+                null,
+                user.avatarFilePath(),
+                user.createdAt(),
+                user.createdBy(),
+                user.lastVisit(),
+                user.deactivatedAt(),
+                user.deactivatedBy(),
+                user.groups()
         );
     }
 

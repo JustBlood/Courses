@@ -6,6 +6,7 @@ import ru.just.monolithmvp.model.QuestionType;
 import java.util.List;
 
 public record LearnerPracticeQuestionDto(
+        Long id,
         Integer position,
         QuestionType questionType,
         String questionText,
@@ -13,6 +14,7 @@ public record LearnerPracticeQuestionDto(
         List<String> userAnswers,
         List<String> correctAnswers,
         OpenReviewStatus status,
+        String reviewComment,
         Integer awardedPoints,
         Integer fullPoints,
         Integer partialPoints

@@ -12,10 +12,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuestionProgress {
-    private Integer questionIndex;
+    private Long questionId;
     private List<String> answers;
     private QuestionPointsType pointsType;
-    private Integer awardedPoints;
     private OpenReviewStatus reviewStatus;
     private String reviewComment;
 }

@@ -25,7 +25,7 @@ public class PracticeQuestion {
     private Integer questionIndex;
 
     @Enumerated(EnumType.STRING)
-    @Column
+    @Column(nullable = false)
     private QuestionType questionType;
 
     @Column(length = 4000, nullable = false)

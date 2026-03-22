@@ -1,5 +1,36 @@
 # System development progress
 
+## 2026-03-18 — ADHOC full backend logical E2E scenario (without stats/tests)
+
+- Prepared a full cross-module **logical** backend validation scenario artifact:
+  - `memory-bank/task-artifacts/ADHOC-FULL-BACKEND-LOGICAL-E2E-SCENARIO-2026-03-18.md`.
+- Scope decisions fixed in the scenario:
+  - includes CRUD for users/groups/sections/courses/lessons/programs,
+  - includes assignments/enrollments matrix (`user/group/course/program`),
+  - includes role model checks (`401/403/200`),
+  - includes learner flow (theory/practice/open-review/program progression),
+  - includes idempotency and cross-module side-effect validation,
+  - **explicitly excludes** statistics and test-suite execution for this run.
+
+- Scenario structure was aligned to current API contracts (not legacy payloads), including:
+  - group-centric operations via `ids` payloads,
+  - program two-lists operations via `idsIn/idsNotIn`.
+
+## 2026-03-18 — User SNILS field propagation across domain and DTO contracts
+
+- Added `snils` to user domain and API contracts:
+  - `AppUser.snils` in persistence model;
+  - `UserDto.snils` in read model;
+  - `CreateUserRequest.snils` and `UpdateUserRequest.snils` in write contracts.
+- Wired SNILS handling in `UserService` create/update/profile-update flows and preserved the field in student-visible profile shaping.
+- Added Flyway migration:
+  - `V5__add_snils_to_users.sql` (`users.snils varchar(255)`).
+- Added integration test coverage for SNILS persistence in users validation suite:
+  - `UsersControllerValidationIntegrationTest.createUser_shouldPersistSnils`.
+- Verification status:
+  - module compilation succeeds (`mvn -f monolith-mvp/pom.xml -DskipTests compile`);
+  - targeted test run is currently blocked by pre-existing unrelated application context startup error due duplicate `DELETE /api/v1/admin/groups/{groupId}/courses/assign` mapping in `UsersController`.
+
 ## 2026-03-05 — Files storage URL strategy alignment
 
 - Unified files strategy for monolith backend:
@@ -382,3 +413,565 @@
 
 - Verification:
   - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest#admin_progress_reset_endpoint_should_clear_student_course_progress test` → **BUILD SUCCESS**.
+
+## 2026-03-10 — ADHOC analysis for course/learning refactor scope
+
+- Performed targeted architecture/code analysis for the most complex domain area: course management + learning flow.
+- Fixed analysis and refactor plan in separate artifact:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-ANALYSIS-PLAN-2026-03-10.md`.
+- Key decisions prepared for upcoming implementation phase:
+  - refactor should start from domain-flag/DTO contract normalization,
+  - then split oversized `CourseService` and `LearningService` into focused use-case services,
+  - in parallel reduce DB roundtrips in statistics/reporting and clean repository/API technical debt.
+- Captured open requirement questions (course flags behavior, DTO compatibility strategy, ProgramService scope, implementation priority, JSON mapping strategy) to resolve before coding.
+
+## 2026-03-10 — ADHOC requirements fixation for next refactor-analysis wave
+
+- Updated analysis artifact according to explicit product-owner decisions:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-ANALYSIS-PLAN-2026-03-10.md`.
+- Fixed mandatory scope decisions before implementation:
+  - remove course fields `deadlineAt`, `allowContinueAfterFail`, `keepAccessAfterDeadline`;
+  - keep `blockAfterDeadline`, `includeInOverallStats`, `passingThresholdPercent` as configurable but still non-functional for now;
+  - make `lessonType` the single source of truth, remove `TheoryLesson.contentType`, remove `TheoryLesson.syncLessonType()`, and separately validate necessity of `PracticeLesson.syncLessonType()`;
+  - make `PracticeQuestion.questionType` non-null;
+  - allow optional simplification `null -> empty list` for `options/correctAnswers` only if it clearly reduces complexity;
+  - keep `reviewedByAdminId/reviewedAt`; evaluate `SubmissionStatus` terminal-flag approach pragmatically;
+  - allow removing `QuestionProgressJsonConverter` if confirmed redundant for current mapping.
+- Fixed process constraints for next phase:
+  - no coding changes until this fixation is approved;
+  - next step is mandatory subagent-driven architecture analysis for `CourseService`, `LearningService`, `StatisticsService`, repository aggregation layer, and `ProgramService` integration boundaries;
+  - priority is service decomposition with performance-aware boundaries (avoid over-fragmentation that increases DB roundtrips).
+
+## 2026-03-10 — ADHOC course/learning refactor analysis execution (runbook phase A/B/C)
+
+- Executed analysis runbook from:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-ANALYSIS-PLAN-2026-03-10.md`.
+
+- Produced Phase A artifact (domain/contracts + migration decisions):
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-A-DOMAIN-CONTRACT-DECISION-MATRIX-2026-03-10.md`.
+  - fixed decisions:
+    - remove `Course.deadlineAt`, `allowContinueAfterFail`, `keepAccessAfterDeadline`;
+    - keep configurable `blockAfterDeadline`, `includeInOverallStats`, `passingThresholdPercent`;
+    - use `lessonType` as single source of truth (remove `TheoryLesson.contentType` and `TheoryLesson.syncLessonType()` in implementation wave);
+    - make `PracticeQuestion.questionType` non-null;
+    - keep `LessonSubmission` model as `status + completed` for first wave;
+    - mark `QuestionProgressJsonConverter` as removable dead code (not used by current mapping).
+
+- Executed mandatory Phase B via parallel `backend-architect` subagents and consolidated outputs into:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-B-SUBAGENT-ARCH-ANALYSIS-2026-03-10.md`.
+  - captured:
+    - target decomposition boundaries for `CourseService` and `LearningService`;
+    - policy/utility centralization candidates;
+    - race-condition and transactional risk points;
+    - missing aggregation queries and repository-layer optimization points for statistics/reporting;
+    - bounded wave-1 integration scope for `ProgramService`.
+
+- Completed Phase C final consolidation into:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-C-CONSOLIDATED-PLAN-2026-03-10.md`.
+  - includes:
+    - unified target architecture map;
+    - final ordered backlog with dependencies/risks (`REF-CM-01..07`);
+    - readiness criteria for transition from analysis to implementation;
+    - regression test gate list for implementation waves.
+
+- Current analysis package status:
+  - **READY FOR IMPLEMENTATION PLANNING / EXECUTION**.
+
+## 2026-03-10 — ADHOC course/learning refactor: Wave 0 (REF-CM-01) execution
+
+- Executed Wave 0 from consolidated plan (`REF-CM-01` domain/contract alignment).
+
+- Domain and DTO contract changes implemented:
+  - removed from `Course` model and admin course payloads:
+    - `deadlineAt`,
+    - `allowContinueAfterFail`,
+    - `keepAccessAfterDeadline`;
+  - kept configurable fields unchanged:
+    - `blockAfterDeadline`,
+    - `includeInOverallStats`,
+    - `passingThresholdPercent`.
+
+- Lesson contract alignment implemented:
+  - removed `TheoryLesson.contentType` + `TheoryLesson.syncLessonType()`;
+  - removed `PracticeLesson.syncLessonType()`;
+  - switched theory create/update flow to `lessonType` as the only authoritative type field;
+  - removed theory content-type exposure from lesson DTO/mapper flow.
+
+- Practice question alignment implemented:
+  - enforced `PracticeQuestion.questionType` as non-null in model and DB migration.
+
+- DB migration added:
+  - `V4__course_learning_wave0_domain_contract_alignment.sql`:
+    - drops `courses.deadline_at`, `courses.allow_continue_after_fail`, `courses.keep_access_after_deadline`,
+    - drops `lessons.theory_content_type`,
+    - performs null precheck/fix for `practice_questions.question_type` and sets `NOT NULL`.
+
+- Dead code cleanup completed:
+  - removed `QuestionProgressJsonConverter` (unused by current entity mapping),
+  - removed obsolete `TheoryContentType` enum.
+
+- Regression verification:
+  - wave gate integration tests passed:
+    - `CourseLessonCrudIntegrationTest`,
+    - `Task05SubmitFlowIntegrationTest`,
+    - `Task06ReviewFlowIntegrationTest`,
+    - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+    - `Task08LearnerAnswersVisibilityIntegrationTest`,
+    - `ProgramManagementIntegrationTest`;
+  - result: **BUILD SUCCESS**, 33 tests, 0 failures/errors;
+  - post-cleanup compile check also passed (`mvn -f monolith-mvp/pom.xml -DskipTests compile`).
+
+## 2026-03-11 — ADHOC course/learning refactor: Wave 1 (REF-CM-02/REF-CM-03) baseline closure
+
+- Completed Wave 1 baseline from consolidated Phase C plan:
+  - finalized `LearningService` as compatibility facade with delegation to:
+    - `LessonAccessPolicy`,
+    - `PracticeSubmissionService`,
+    - `OpenReviewService`;
+  - preserved learner lesson read-model assembly inside `LearningService`.
+
+- Aligned Program/Course integration boundary to port-based contract:
+  - `ProgramService` switched from direct `CourseService` enrollment calls to `CourseEnrollmentPort`;
+  - `GroupService` switched from direct `CourseService` enrollment calls to `CourseEnrollmentPort`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - regression gate executed:
+    - `CourseLessonCrudIntegrationTest`,
+    - `Task05SubmitFlowIntegrationTest`,
+    - `Task06ReviewFlowIntegrationTest`,
+    - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+    - `Task08LearnerAnswersVisibilityIntegrationTest`;
+  - result: **BUILD SUCCESS**, tests run: 25, failures: 0, errors: 0.
+
+- Wave status: **WAVE 1 DONE (baseline), ready for Wave 2 (`REF-CM-04`/`REF-CM-07`)**.
+
+## 2026-03-11 — Wave 1 follow-up: single source of truth for theory lesson type checks
+
+- Addressed duplicated helper logic identified during Wave 1 service review:
+  - duplicate `isTheoryLesson(...)` checks existed in `CourseService` and `PracticeSubmissionService`.
+
+- Introduced a single source of truth at domain enum level:
+  - `LessonType.isTheory()`;
+  - `LessonType.isPractice()` (added alongside for symmetric domain API).
+
+- Refactored services to consume unified domain predicate:
+  - `CourseService` theory-count calculation now uses `lesson.getLessonType().isTheory()`;
+  - `PracticeSubmissionService.completeTheoryLesson(...)` now uses `lesson.getLessonType().isTheory()`;
+  - removed duplicated private helper methods.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest test` → **BUILD SUCCESS** (20 tests, 0 failures/errors).
+
+## 2026-03-11 — Wave 1 follow-up: facade delegation cleanup after boundary migration
+
+- Reduced residual compatibility-facade coupling after Wave 1 decomposition by switching remaining internal consumers from `CourseService` pass-through methods to focused services:
+  - `EnrollmentProgressService`: `CourseService` -> `CourseLessonAdminService` for course lessons read;
+  - `OpenReviewService`: `CourseService` -> `CourseAssignmentService` for reviewer-scope and review-permission checks.
+
+- Finalized `CourseService` scope as thin public application facade for externally used course endpoints only:
+  - removed obsolete delegation methods that mirrored extracted services (`CourseLessonAdminService`, `CourseLearnerReadService`, `CourseAssignmentService`) and no longer had call sites;
+  - removed now-unused injected dependencies from `CourseService` (`CourseAccessPolicy`, `CourseLessonAdminService`) and cleaned unused imports;
+  - kept local private `getCourseEntity(...)` helper backed by `CourseLearnerReadService` for internal CRUD methods in `CourseService`.
+
+- Minor follow-up cleanup in learner read service facade:
+  - removed unused imports in `LearningService` after previous decomposition.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest,Task06ReviewFlowIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest,Task08LearnerAnswersVisibilityIntegrationTest test` → **BUILD SUCCESS**, `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-11 - Course/learning controllers: redundant controller logic cleanup
+
+- Performed controller-layer validation for course/learning endpoints and moved non-transport logic from controllers into services.
+
+- `CoursesController` cleanup:
+  - removed overlap-validation checks and per-id iteration loops from controller methods;
+  - switched to service-level orchestration methods:
+    - `courseAssignmentService.updateCourseEnrollments(...)`,
+    - `courseAssignmentService.updateCourseReviewers(...)`,
+    - `courseAssignmentService.assignGroupsToCourse(...)`,
+    - `courseAssignmentService.unassignGroupsFromCourse(...)`,
+    - `programService.updateProgramUsers(...)`,
+    - `programService.updateProgramGroups(...)`.
+
+- `StudentController` cleanup:
+  - removed profile composition and role-specific comment masking from controller;
+  - switched to application-service methods:
+    - `userService.getStudentProfile(...)`,
+    - `userService.updateStudentProfile(...)`.
+
+- Service additions introduced to host extracted logic:
+  - `CourseAssignmentService`: overlap validation and list-orchestration wrappers for enrollments/reviewers/groups;
+  - `ProgramService`: overlap validation wrappers for program users/groups updates;
+  - `UserService`: student profile assembly and student comment masking for profile endpoints.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,Task05SubmitFlowIntegrationTest,Task06ReviewFlowIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest,Task08LearnerAnswersVisibilityIntegrationTest test` -> **BUILD SUCCESS**, `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-11 — ADHOC course/learning refactor: Wave 2 (REF-CM-04/REF-CM-07) completion
+
+- Completed Wave 2 performance/data-access scope from consolidated plan:
+  - `StatisticsService` preserved as compatibility facade and switched to delegation through:
+    - `StatisticsReportService`,
+    - `StatisticsQueryService`,
+    - `CsvReportRenderer`.
+
+- Implemented statistics query-layer aggregation to reduce per-row roundtrips:
+  - `LessonSubmissionRepository`:
+    - batch points sum by `(userId, courseId)`,
+    - batch completed lessons count by `(userId, courseId)`,
+    - batch retakes sum by `(userId, courseId)`;
+  - `LessonRepository`:
+    - batch max-points sum by `courseId`,
+    - batch lessons count by `courseId`;
+  - `EnrollmentRepository`:
+    - join-fetch read models (`findByUserIdWithUserAndCourse`, `findByCourseIdWithUserAndCourse`, `findAllWithUserAndCourse`);
+  - `GroupMembershipRepository`:
+    - join-fetch memberships by user set (`findByUserIdInWithGroup`).
+
+- Repository cleanup after usage scan (`REF-CM-07`):
+  - removed unused methods from `LessonSubmissionRepository`:
+    - `findFirstByStudentIdAndLessonIdAndStatusOrderBySubmittedAtDesc(...)`,
+    - `findFirstByStudentIdAndLessonIdOrderBySubmittedAtAsc(...)`;
+  - kept `findWithLockingByStudentIdAndLessonId(...)` as actively used by submit/review critical flows.
+
+- Added/supporting artifacts for Wave 2 context continuity:
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-C-CONSOLIDATED-PLAN-2026-03-10.md` updated with Wave 2 execution status section;
+  - `memory-bank/task-artifacts/ADHOC-COURSE-LEARNING-REFACTOR-PHASE-B-SUBAGENT-ARCH-ANALYSIS-2026-03-10.md` updated with implementation feedback against B3 recommendations.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - regression gate:
+    - `CourseLessonCrudIntegrationTest`,
+    - `Task05SubmitFlowIntegrationTest`,
+    - `Task06ReviewFlowIntegrationTest`,
+    - `Task07StatisticsAndLearnerSummaryIntegrationTest`,
+    - `Task08LearnerAnswersVisibilityIntegrationTest`,
+    - `ProgramManagementIntegrationTest`;
+  - result: **BUILD SUCCESS**, `Tests run: 33, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-12 — ADHOC course/learning refactor: Wave 3 (REF-CM-05) completion
+
+- Completed Wave 3 from consolidated Phase C plan (`Program integration alignment`).
+
+- Program integration and idempotent propagation updates:
+  - `ProgramService` keeps enrollment propagation via `CourseEnrollmentPort` and now uses a shared state resolver for both DTO read-model and propagation path:
+    - `resolveProgramCourseStatesForUser(...)`;
+  - replaced per-course enrollment lookups with batch preload:
+    - `EnrollmentRepository.findByUserIdAndCourseIdIn(...)`.
+
+- Assignment pattern parity (program two-lists contract):
+  - implemented missing method for programs assignment lists:
+    - `ProgramService.getProgramEnrollmentLists(programId)` returning `UserInNotInListsDto`;
+  - added admin endpoint:
+    - `GET /api/v1/admin/courses/programs/{programId}/assign`.
+
+- Program enrollment consistency hardening:
+  - direct unassign no longer removes `ProgramEnrollment` when user is still assigned through any program group;
+  - group unassign/group-membership removal now also preserves enrollment when user remains assigned through another group;
+  - save operations for program enrollments are now conditional (persist only newly created enrollments).
+
+- Repository read-path alignment:
+  - `ProgramEnrollmentRepository.findByUserId(...)` and `findByProgramId(...)` switched to join-fetch user/program read-model queries.
+
+- Integration coverage updates:
+  - `ProgramManagementIntegrationTest` expanded with wave-3 scenarios:
+    - two-lists program assignment API behavior,
+    - preserving enrollment on direct unassign while group assignment exists,
+    - removing enrollment after group unassignment.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` -> **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=ProgramManagementIntegrationTest test` -> **BUILD SUCCESS**, `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-13 — ADHOC validation: groups in monolith vs Unicraft
+
+- Completed targeted validation of current groups implementation in `monolith-mvp` against reconstructed Unicraft group model:
+  - source artifact: `memory-bank/task-artifacts/ADHOC-UNICRAFT-GROUPS-MONOLITH-VALIDATION-2026-03-13.md`.
+
+- Fixed current-state architecture conclusions:
+  - platform currently uses 2 roles (`ADMIN`, `STUDENT`) and already supports "admin works as learner" via learner endpoints;
+  - groups currently implement: membership + group->course assignment + group->program assignment + auto-apply for newly added members;
+  - typed-group invariant (single `COMPANY`/`DEPARTMENT`/`POSITION` per user) is enforced in service logic.
+
+- Main gap cluster documented for future refactor planning:
+  - no manager/trainer/self-registration/lifecycle/audit capabilities in groups;
+  - reviewer scope is course-based (`course_reviewers`) and not group-scoped;
+  - critical consistency gap: no assignment-source model (direct/group/program), causing unstable behavior on unassign/remove/delete flows.
+
+- Architectural simplification decisions (for Unicraft-clone target) documented:
+  - keep simplified role model (admin + user/student), no manager/trainer roles for now;
+  - focus group subsystem on bulk assignment to courses/programs and progress tracking;
+  - prioritize P0 refactor scope around assignment source-of-truth and consistent enrollment recalculation.
+
+## 2026-03-13 — ADHOC: technical specification for source-aware group/course/program assignment refactor
+
+- Prepared detailed implementation-ready technical specification for backend refactor:
+  - `memory-bank/task-artifacts/ADHOC-GROUP-ASSIGNMENT-SOURCE-REFORM-TZ-2026-03-13.md`.
+
+- Specification fixes target domain contract for assignment consistency:
+  - source-aware model (`DIRECT` / `GROUP` / `PROGRAM`) as single source of truth for access;
+  - deterministic unassign/reconcile rules for group/course/program operations;
+  - explicit progress fate policy for full unassign (including Unicraft-aligned program unassign rule).
+
+- Specification includes implementation boundaries and rollout details:
+  - DB changes (new source tables, constraints, indexes, migration/backfill strategy),
+  - service-layer orchestration (`EnrollmentSourceService`) and transactional guarantees,
+  - non-breaking API strategy,
+  - state-machine and mandatory decision-matrix edge cases,
+  - integration/regression test requirements and acceptance criteria.
+
+## 2026-03-13 - ADHOC correction: source model canceled, separate course progress model
+
+- Replaced previous source-aware direction with source-agnostic contract.
+- Added updated technical specification:
+  - memory-bank/task-artifacts/ADHOC-GROUP-ASSIGNMENT-SOURCE-REFORM-TZ-2026-03-13.md
+- Fixed mandatory rules in spec:
+  - unassign from course always removes Enrollment;
+  - incomplete progress is deleted;
+  - completed progress is retained permanently;
+  - unassign from program removes ProgramEnrollment and cascades unassign to all program courses.
+- Fixed architectural decision:
+  - split assignment and progress by introducing dedicated course_progress entity;
+  - move started completed status from Enrollment to course_progress in target design.
+
+## 2026-03-13 - ADHOC implementation: group/program/course unassign refactor without assignment source
+
+- Implemented target persistence split `Enrollment` vs `CourseProgress`:
+  - added Flyway migration `V5__course_progress_split_from_enrollment.sql`;
+  - created `course_progress` table with unique `(user_id, course_id)` and index;
+  - performed backfill from `enrollments.started_at/completed_at` with status derivation (`NEW`, `IN_PROGRESS`, `COMPLETED`);
+  - removed `started_at/completed_at` from `enrollments`.
+
+- Added domain/repository layer for course progress:
+  - `CourseProgress`, `CourseProgressStatus`, `CourseProgressRepository`.
+
+- Introduced unified orchestration service for enrollment lifecycle:
+  - `CourseEnrollmentLifecycleService` (assign, unassign, reset progress, program cascade);
+  - `CourseAssignmentService`, `ProgramService`, `GroupService` switched to source-agnostic lifecycle behavior.
+
+- Implemented required unassign semantics in services:
+  - course unassign always removes `Enrollment`;
+  - incomplete progress -> delete `CourseProgress` + `LessonSubmission` for course;
+  - completed progress -> retain `CourseProgress` and `LessonSubmission`;
+  - program unassign -> remove `ProgramEnrollment` + cascade through unified course unassign;
+  - repeated unassign is idempotent.
+
+- Updated read/statistics path to new progress source:
+  - learner/statistics/reporting now read started/completed/status from `course_progress`.
+
+- Added/updated integration coverage for mandatory matrix and regressions:
+  - `CourseLessonCrudIntegrationTest`,
+  - `GroupManagementIntegrationTest`,
+  - `ProgramManagementIntegrationTest`,
+  - `Task07StatisticsAndLearnerSummaryIntegrationTest`.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -Dtest=CourseLessonCrudIntegrationTest,GroupManagementIntegrationTest,ProgramManagementIntegrationTest,Task07StatisticsAndLearnerSummaryIntegrationTest test -DfailIfNoTests=false`;
+  - all targeted suites passed (0 failures / 0 errors).
+
+## 2026-03-13 - Program access rule fix: PREVIOUS_COURSES_COMPLETED requires full prefix completion
+
+- Fixed `ProgramService.resolveProgramCourseStatesForUser(...)`:
+  - for `PREVIOUS_COURSES_COMPLETED`, course availability now depends on completion of **all previous courses** in program order, not only the immediate previous course.
+  - implemented via cumulative prefix flag `allPreviousCompleted`.
+
+- Added integration regression test:
+  - `ProgramManagementIntegrationTest.previous_courses_completed_should_require_all_previous_courses_completed`;
+  - verifies 3-course chain behavior: C opens only after A and B are completed.
+
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml clean -Dtest=ProgramManagementIntegrationTest#previous_courses_completed_should_require_all_previous_courses_completed test`;
+  - result: **BUILD SUCCESS**, `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-03-17 — Swagger/OpenAPI contract validation across all controllers
+
+- Performed full swagger-annotation validation for all REST controllers in `monolith-mvp`:
+  - `AuthController`,
+  - `CoursesController`,
+  - `FilesController`,
+  - `ProgramsController`,
+  - `ProgressController`,
+  - `SectionsController`,
+  - `StudentController`,
+  - `UsersController`.
+
+- Contract alignment decisions and changes:
+  - standardized operation descriptions for every endpoint (`@Operation(summary, description)`),
+  - aligned response DTO schemas to actual method return types,
+  - fixed list endpoint schemas to use array contracts (`@ArraySchema`) instead of single-object schemas,
+  - clarified business-level `400/404` responses where service behavior indicates validation/domain-not-found scenarios,
+  - refined CSV export response content declarations to explicit text payload schemas.
+
+- OpenAPI global configuration update:
+  - removed global OpenAPI security requirement from `OpenAPIConfig` (`addSecurityItem(...)`),
+  - kept only `bearerAuth` scheme registration in components,
+  - security is now declared explicitly at controller level through `@SecurityRequirement`, preventing accidental auth requirement exposure on public endpoints (e.g., `/api/v1/auth/**`).
+
+- Verification:
+  - module compilation passed: `mvn -q -f monolith-mvp/pom.xml -DskipTests compile`;
+  - full selected integration test run was attempted, but blocked by pre-existing unrelated test compilation issue in `CourseLessonCrudIntegrationTest` (`LessonSubmission#setFirstSubmittedAt(...)` missing), not by swagger changes.
+
+## 2026-03-22 — Course points aggregation aligned with question-level scoring model
+
+- Reworked statistics/reporting earned-points calculation to support current lesson scoring model (question-level `pointsType` in `questionProgress`) instead of legacy direct DB sum of `pointsAwarded`.
+- `StatisticsReportService` now computes earned points by:
+  - loading submissions in batch for `(userIds, courseIds)`;
+  - loading practice questions in batch (`PracticeQuestionRepository.findByLessonIdIn(...)`);
+  - recalculating submission points via `PracticeScoringPolicy.scoreQuestion(...)` for each question progress entry;
+  - summing per `(userId, courseId)` in-memory aggregation.
+- Repository support updates:
+  - added `LessonSubmissionRepository.findByStudentIdInAndLessonCourseIdIn(...)`;
+  - added `PracticeQuestionRepository.findByLessonIdIn(...)`;
+  - restored query-backed implementations for:
+    - `countCompletedLessonsByUserIdsAndCourseIds(...)`,
+    - `sumRetakesByUserIdsAndCourseIds(...)`.
+- Integration test alignment:
+  - updated `Task07StatisticsAndLearnerSummaryIntegrationTest` to current learner flow contract:
+    - explicit lesson start before each submit (`POST /student/lessons/{id}/start`),
+    - assertions via `lessonProgress.status/pointsAwarded` payload shape.
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test` → **BUILD SUCCESS**.
+
+## 2026-03-22 - Efficiency formula aligned to completed-lessons-only rule
+
+- Business rule alignment implemented for statistics and CSV reports:
+  - efficiency now equals: `earned points on completed lessons / max points of completed lessons * 100`;
+  - progress remains: `completed lessons / total lessons * 100`.
+- Introduced a single in-service source of truth for course/user point aggregation in `StatisticsReportService`:
+  - `aggregatePointsByUserAndCourse(...)` now returns one aggregation object with:
+    - total earned points,
+    - earned points on completed lessons,
+    - max points on completed lessons;
+  - `calculateEfficiencyByUserAndCourse(...)` computes efficiency map once and is reused by:
+    - `userCourseStats(...)`,
+    - `courseStats(...)`,
+    - `summaryReportCsv()` and `summaryReportCsv(courseId)`.
+- Integration test update:
+  - `Task07StatisticsAndLearnerSummaryIntegrationTest` extended with a second (not completed) lesson to validate:
+    - efficiency = `100` when all completed lessons are solved at max,
+    - progress = `50` when completed 1 of 2 lessons,
+    - CSV values: efficiency `100.00`, progress `50.00%`.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` -> **BUILD SUCCESS**;
+  - `mvn -pl monolith-mvp -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test -q` -> **BUILD SUCCESS**;
+  - focused `CourseLessonCrudIntegrationTest` methods still fail on pre-existing flow constraints (`Theory lesson not started`), not introduced by this change-set.
+
+## 2026-03-22 — Fix: `LessonRepository.sumFullPointsByCourseIds` query binding/type alignment
+
+- Fixed JPQL aggregation method in `LessonRepository`:
+  - added explicit parameter binding `@Param("courseIds")` for `sumFullPointsByCourseIds(...)`;
+  - aligned `coalesce` fallback literal to long type (`0L`) in projection query:
+    - `coalesce(sum(l.fullPoints), 0L) as value`.
+- Context:
+  - the method returns `CourseMetricProjection.getValue(): Long`, so explicit long fallback avoids numeric type ambiguity in JPQL/Hibernate parsing and projection mapping.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
+
+## 2026-03-22 — Practice lesson points consistency: DB recalculation method
+
+- Added SQL-based repository method to normalize persisted `lessons.full_points` for existing practice lessons according to sum of question points:
+  - `LessonRepository.recalculatePracticeLessonsFullPoints()`.
+- Implementation details:
+  - native SQL update over `lessons` with correlated aggregate from `practice_questions`;
+  - applies only to `lesson_kind = 'PRACTICE'`;
+  - writes `coalesce(sum(pq.full_points), 0)` to `lessons.full_points`.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
+
+## 2026-03-22 — Practice lesson `full_points` as source of truth (dynamic getter rollback)
+
+- Finalized architecture decision for practice lessons:
+  - `lessons.full_points` is the authoritative value;
+  - dynamic override `PracticeLesson#getFullPoints()` was removed to avoid lazy/N+1 side effects and dual-source inconsistency.
+
+- Ensured deterministic recalculation on question mutations in `CourseLessonAdminService`:
+  - added `recalculatePracticeLessonFullPoints(PracticeLesson lesson)`;
+  - called after create question-pool apply (`createPracticeLesson(...)`);
+  - called after update question-pool apply (`updatePracticeLesson(...)` when `questions` payload is present).
+
+- Behavior validation notes:
+  - practice question mutations in application flow are centralized in `CourseLessonAdminService.applyQuestionPool(...)`;
+  - with transactional save, `lesson.questions` and `lesson.fullPoints` are persisted atomically within the same write flow.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**;
+  - `mvn -pl monolith-mvp -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test -q` → **BUILD SUCCESS**.
+
+## 2026-03-22 — CSV report streaming in HTTP response body (flush each 50 rows)
+
+- Refactored CSV export delivery path to stream directly to HTTP response writer instead of building one large in-memory response string.
+- Scope intentionally limited to transport/output layer; statistics aggregation logic was not changed.
+
+- Controller layer:
+  - `ProgressController` CSV endpoints switched from `ResponseEntity<String>` to direct writing via `HttpServletResponse` writer:
+    - `GET /api/v1/admin/progress/reports/summary.csv`
+    - `GET /api/v1/admin/progress/courses/{courseId}/summary-report.csv`
+  - response `Content-Type`/encoding are set explicitly (`text/plain`, UTF-8).
+
+- Service/renderer layer:
+  - `CsvReportRenderer` extended with writer-based methods:
+    - `writeHeader(Writer, List<String>)`
+    - `writeRow(Writer, List<String>)`
+  - `StatisticsReportService` added writer-based streaming methods:
+    - `writeSummaryReportCsv(Writer)`
+    - `writeSummaryReportCsv(Long, Writer)`
+  - Implemented periodic flush policy in both CSV flows:
+    - `writer.flush()` every 50 data rows,
+    - final flush at method end.
+  - Existing string-returning methods were preserved as compatibility wrappers via `StringWriter`.
+
+- Facade alignment:
+  - `StatisticsService` now exposes writer-based delegating methods for both summary CSV variants.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
+  - Focused CSV-related integration test run was prepared; broader `Task07StatisticsAndLearnerSummaryIntegrationTest` currently fails in this branch due a pre-existing unrelated schema mismatch (`learning_programs.deadline_days` in H2 test context), not introduced by CSV streaming changes.
+
+## 2026-03-22 - Statistics/report refactor: unified report context + typed CSV rows + formatter extraction
+
+- Refactored report/statistics internals without changing controller contracts or endpoint behavior.
+- Scope implemented according to requested items: **1, 2, 3, 5**.
+
+- `StatisticsReportService`:
+  - introduced unified internal `ReportContext` that centralizes loading of:
+    - progress by user/course,
+    - course max points and lessons count,
+    - earned points and efficiency,
+    - optional completed lessons / retakes / memberships.
+  - replaced duplicated per-method data-loading blocks in:
+    - `userCourseStats(...)`,
+    - `courseStats(...)`,
+    - `writeSummaryReportCsv(...)`,
+    - `writeSummaryReportCsv(courseId, ...)`.
+  - extracted shared CSV writing pipeline (`writeCsvRows(...)`) to standardize row streaming + periodic flush behavior.
+
+- Typed row models for CSV mapping:
+  - `ReportRowDto` converted into shared typed base row contract used by CSV row mappers.
+  - introduced internal typed CSV row carriers (`SummaryCsvRow`, `CourseSummaryCsvRow`) and explicit column mappers instead of ad-hoc inline `List<String>` construction.
+  - row mapping now follows a stable, explicit transformation path:
+    domain/enrollment -> typed row dto -> CSV columns.
+
+- Formatting standardization:
+  - added `StatisticsReportFormatter` component with centralized formatting rules for:
+    - date/time parts,
+    - duration/spent time,
+    - login extraction,
+    - enrollment status text,
+    - numeric formatting (efficiency/progress),
+    - null-safe textual rendering.
+  - removed duplicated formatter logic from `StatisticsReportService` and delegated to formatter component.
+
+- Null-safety/stability improvements (internal):
+  - `courseStats(...)` now safely handles missing `CourseProgress` by returning `null` status instead of risking NPE.
+  - practice submission scoring uses null-safe access for `questionProgress` collection.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` -> **BUILD SUCCESS**.

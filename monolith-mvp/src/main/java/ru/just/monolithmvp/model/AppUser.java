@@ -43,6 +43,8 @@ public class AppUser {
     @Column(length = 2000)
     private String comment;
 
+    private String snils;
+
     private LocalDateTime createdAt;
     private String createdBy;
     private LocalDateTime lastVisit;

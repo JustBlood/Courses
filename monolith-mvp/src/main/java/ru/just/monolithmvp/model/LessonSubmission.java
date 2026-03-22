@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -15,6 +16,7 @@ import java.util.List;
 @Table(name = "lesson_submissions")
 @Getter
 @Setter
+@ToString
 @NoArgsConstructor
 public class LessonSubmission {
     @Id
@@ -33,18 +35,15 @@ public class LessonSubmission {
     @Column(nullable = false)
     private SubmissionStatus status;
 
-    @Column(nullable = false)
-    private Boolean completed;
-
-    @Column(nullable = false)
-    private Integer pointsAwarded = 0;
-
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "question_progress_json", columnDefinition = "jsonb")
     private List<QuestionProgress> questionProgress = new ArrayList<>();
 
     @Column(nullable = false)
     private Integer attemptCounter = 0;
+
+    @Column(nullable = false)
+    private LocalDateTime startedAt;
 
     @Column(nullable = false)
     private LocalDateTime submittedAt;

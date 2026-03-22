@@ -1,8 +1,9 @@
 package ru.just.monolithmvp.dto.user;
 
+import ru.just.monolithmvp.dto.group.GroupDto;
 import ru.just.monolithmvp.model.Role;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 public record UserDto(
         Long id,
@@ -12,12 +13,14 @@ public record UserDto(
         boolean activation,
         boolean enabled,
         String phone,
+        String snils,
         String comment,
         String avatarFilePath,
-        LocalDateTime createdAt,
+        Long createdAt,
         String createdBy,
-        LocalDateTime lastVisit,
-        LocalDateTime deactivatedAt,
-        String deactivatedBy
+        Long lastVisit,
+        Long deactivatedAt,
+        String deactivatedBy,
+        List<GroupDto> groups
 ) {
 }
