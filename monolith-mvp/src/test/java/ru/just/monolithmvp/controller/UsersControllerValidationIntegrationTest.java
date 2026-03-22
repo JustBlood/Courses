@@ -9,6 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -79,6 +81,78 @@ class UsersControllerValidationIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getAvailableToAssignUsers_shouldReturnAllUsers_forEmptyGeneralGroup() throws Exception {
+        String adminToken = login("admin@local", "admin123");
+
+        Long userAId = createUser(adminToken, "available-a-" + UUID.randomUUID() + "@example.com");
+        Long userBId = createUser(adminToken, "available-b-" + UUID.randomUUID() + "@example.com");
+        UUID groupId = createGroup(adminToken, "Empty General " + UUID.randomUUID());
+
+        String response = mockMvc.perform(get("/api/v1/admin/groups/{groupId}/users/availableToAssign", groupId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        var users = objectMapper.readTree(response);
+        assertThat(users.isArray()).isTrue();
+        assertThat(users).isNotEmpty();
+        assertThat(containsUserId(users, userAId)).isTrue();
+        assertThat(containsUserId(users, userBId)).isTrue();
+    }
+
+    private Long createUser(String adminToken, String email) throws Exception {
+        String createResponse = mockMvc.perform(post("/api/v1/admin/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fullName": "Available User",
+                                  "email": "%s",
+                                  "role": "STUDENT",
+                                  "password": "Password1!"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(createResponse).get("id").asLong();
+    }
+
+    private UUID createGroup(String adminToken, String title) throws Exception {
+        String createGroupResponse = mockMvc.perform(post("/api/v1/admin/groups")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "%s",
+                                  "type": "GENERAL"
+                                }
+                                """.formatted(title)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return UUID.fromString(objectMapper.readTree(createGroupResponse).get("id").asText());
+    }
+
+    private boolean containsUserId(com.fasterxml.jackson.databind.JsonNode users, Long userId) {
+        if (users == null || !users.isArray()) {
+            return false;
+        }
+        for (var user : users) {
+            if (user.has("id") && user.get("id").asLong() == userId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String login(String email, String password) throws Exception {

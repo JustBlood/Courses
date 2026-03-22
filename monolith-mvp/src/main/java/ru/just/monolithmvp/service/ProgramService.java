@@ -330,7 +330,7 @@ public class ProgramService {
         Boolean completedProgram = null;
         if (userId == null) {
             courseDtos = orderedCourses.stream()
-                    .map(pc -> new ProgramCourseDto(pc.getCourse().getId(), pc.getCourse().getTitle(), pc.getCourse().getDescription(), pc.getCourse().getCoverFilePath(), null, Long.valueOf(pc.getCourse().getDeadlineDays()), pc.getOrderIndex(), null, null, null))
+                    .map(pc -> new ProgramCourseDto(pc.getCourse().getId(), pc.getCourse().getTitle(), pc.getCourse().getDescription(), pc.getCourse().getCoverFilePath(), null, pc.getCourse().getDeadlineDays() != null ? Long.valueOf(pc.getCourse().getDeadlineDays()) : null, pc.getOrderIndex(), null, null, null))
                     .toList();
         } else {
             List<ResolvedProgramCourseState> courseStates = resolveProgramCourseStatesForUser(program, userId);
@@ -424,9 +424,12 @@ public class ProgramService {
         boolean allPreviousCompleted = true;
         boolean previousViewed = false;
 
-        Long deadlineAt = programEnrollmentRepository.findByUserIdAndProgramId(userId, program.getId())
+        Long deadlineAt = null;
+        if (program.getDeadlineDays() != null) {
+            deadlineAt = programEnrollmentRepository.findByUserIdAndProgramId(userId, program.getId())
                     .map(programEnrollment -> programEnrollment.getEnrolledAt().plusDays(program.getDeadlineDays()).toEpochSecond(ZoneOffset.UTC))
                     .orElse(null);
+        }
 
         for (int i = 0; i < orderedCourses.size(); i++) {
             ProgramCourse pc = orderedCourses.get(i);

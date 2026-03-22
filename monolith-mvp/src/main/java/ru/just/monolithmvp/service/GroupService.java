@@ -312,6 +312,9 @@ public class GroupService {
         // для общих групп - можно назначать всех, кто ещё не записан в эту группу
         // для компании/подразделения/должности - нужно возвращать всех, кто вообще не записан на этот тип группы.
         if (GroupType.GENERAL == group.getType()) {
+            if (allAssignedUserIds.isEmpty()) {
+                return userRepository.findAll().stream().map(userMapper::toDto).toList();
+            }
             return userRepository.findAllByIdNotIn(allAssignedUserIds).stream().map(userMapper::toDto).toList();
         }
         return userRepository.findAllWhichNotAssignedToGroupType(group.getType()).stream().map(userMapper::toDto).toList();
