@@ -141,16 +141,4 @@ public class ProgressController {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         statisticsService.writeSummaryReportCsv(response.getWriter());
     }
-
-    @GetMapping(value = "/courses/{courseId}/summary-report.csv", produces = MediaType.TEXT_PLAIN_VALUE)
-    @Operation(summary = "Скачать сводный CSV-отчет по конкретному курсу", description = "Возвращает CSV-отчет по выбранному курсу")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV отчёт по курсу", content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE, schema = @Schema(type = "string"))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Курс не найден", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class)))
-    })
-    public void courseSummaryCsv(@PathVariable Long courseId, HttpServletResponse response) throws IOException {
-        response.setContentType(MediaType.TEXT_PLAIN_VALUE);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        statisticsService.writeSummaryReportCsv(courseId, response.getWriter());
-    }
 }

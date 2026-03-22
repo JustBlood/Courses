@@ -934,3 +934,44 @@
 - Verification:
   - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
   - Focused CSV-related integration test run was prepared; broader `Task07StatisticsAndLearnerSummaryIntegrationTest` currently fails in this branch due a pre-existing unrelated schema mismatch (`learning_programs.deadline_days` in H2 test context), not introduced by CSV streaming changes.
+
+## 2026-03-22 - Statistics/report refactor: unified report context + typed CSV rows + formatter extraction
+
+- Refactored report/statistics internals without changing controller contracts or endpoint behavior.
+- Scope implemented according to requested items: **1, 2, 3, 5**.
+
+- `StatisticsReportService`:
+  - introduced unified internal `ReportContext` that centralizes loading of:
+    - progress by user/course,
+    - course max points and lessons count,
+    - earned points and efficiency,
+    - optional completed lessons / retakes / memberships.
+  - replaced duplicated per-method data-loading blocks in:
+    - `userCourseStats(...)`,
+    - `courseStats(...)`,
+    - `writeSummaryReportCsv(...)`,
+    - `writeSummaryReportCsv(courseId, ...)`.
+  - extracted shared CSV writing pipeline (`writeCsvRows(...)`) to standardize row streaming + periodic flush behavior.
+
+- Typed row models for CSV mapping:
+  - `ReportRowDto` converted into shared typed base row contract used by CSV row mappers.
+  - introduced internal typed CSV row carriers (`SummaryCsvRow`, `CourseSummaryCsvRow`) and explicit column mappers instead of ad-hoc inline `List<String>` construction.
+  - row mapping now follows a stable, explicit transformation path:
+    domain/enrollment -> typed row dto -> CSV columns.
+
+- Formatting standardization:
+  - added `StatisticsReportFormatter` component with centralized formatting rules for:
+    - date/time parts,
+    - duration/spent time,
+    - login extraction,
+    - enrollment status text,
+    - numeric formatting (efficiency/progress),
+    - null-safe textual rendering.
+  - removed duplicated formatter logic from `StatisticsReportService` and delegated to formatter component.
+
+- Null-safety/stability improvements (internal):
+  - `courseStats(...)` now safely handles missing `CourseProgress` by returning `null` status instead of risking NPE.
+  - practice submission scoring uses null-safe access for `questionProgress` collection.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` -> **BUILD SUCCESS**.

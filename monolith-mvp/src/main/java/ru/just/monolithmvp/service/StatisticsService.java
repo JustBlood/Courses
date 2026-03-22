@@ -33,22 +33,7 @@ public class StatisticsService {
     }
 
     @Transactional(readOnly = true)
-    public String summaryReportCsv() {
-        return statisticsReportService.summaryReportCsv();
-    }
-
-    @Transactional(readOnly = true)
     public void writeSummaryReportCsv(Writer writer) throws IOException {
         statisticsReportService.writeSummaryReportCsv(writer);
-    }
-
-    @Transactional(readOnly = true)
-    public String summaryReportCsv(Long courseId) {
-        return statisticsReportService.summaryReportCsv(courseId);
-    }
-
-    @Transactional(readOnly = true)
-    public void writeSummaryReportCsv(Long courseId, Writer writer) throws IOException {
-        statisticsReportService.writeSummaryReportCsv(courseId, writer);
     }
 }

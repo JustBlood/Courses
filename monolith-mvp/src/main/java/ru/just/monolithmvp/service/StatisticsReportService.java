@@ -4,14 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.just.monolithmvp.dto.stat.CourseStudentStatDto;
+import ru.just.monolithmvp.dto.stat.ReportRowDto;
 import ru.just.monolithmvp.dto.stat.StudentCourseStatDto;
 import ru.just.monolithmvp.exception.NotFoundException;
 import ru.just.monolithmvp.model.*;
 import ru.just.monolithmvp.repository.*;
 import ru.just.monolithmvp.service.StatisticsQueryService.UserCourseKey;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
@@ -30,32 +29,22 @@ public class StatisticsReportService {
     private final CsvReportRenderer csvReportRenderer;
     private final PracticeScoringPolicy practiceScoringPolicy;
     private final LessonSubmissionRepository lessonSubmissionRepository;
+    private final StatisticsReportFormatter formatter;
 
     @Transactional(readOnly = true)
     public List<StudentCourseStatDto> userCourseStats(Long userId) {
         List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByUser(userId);
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
-        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(List.of(userId), courseIds);
-        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(List.of(userId), courseIds);
-
-        Map<Long, Integer> maxPointsByCourse = statisticsQueryService.sumMaxPointsByCourseIds(courseIds);
-        Map<Long, Long> totalLessonsByCourse = statisticsQueryService.countLessonsByCourseIds(courseIds);
-        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
-        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
-                pointsAggregation.earnedCompletedPointsByUserCourse(),
-                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        ReportContext context = buildReportContext(
+                List.of(userId),
+                courseIds,
+                false,
+                true,
+                false
         );
-        Map<UserCourseKey, Long> completedByUserCourse = statisticsQueryService
-                .countCompletedLessonsByUserAndCourse(List.of(userId), courseIds);
 
         return enrollments.stream()
-                .map(enrollment -> toStudentCourseStat(enrollment,
-                        progressByUserCourse.get(new UserCourseKey(enrollment.getUser().getId(), enrollment.getCourse().getId())),
-                        maxPointsByCourse,
-                        totalLessonsByCourse,
-                        earnedByUserCourse,
-                        efficiencyByUserCourse,
-                        completedByUserCourse))
+                .map(enrollment -> toStudentCourseStat(enrollment, context))
                 .toList();
     }
 
@@ -68,307 +57,199 @@ public class StatisticsReportService {
         List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByCourse(courseId);
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = List.of(courseId);
-        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
-        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(userIds, courseIds);
 
-        int maxPoints = statisticsQueryService.sumMaxPointsByCourseIds(courseIds).getOrDefault(courseId, 0);
-        long totalLessons = statisticsQueryService.countLessonsByCourseIds(courseIds).getOrDefault(courseId, 0L);
-        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
-        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
-                pointsAggregation.earnedCompletedPointsByUserCourse(),
-                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        ReportContext context = buildReportContext(
+                userIds,
+                courseIds,
+                false,
+                true,
+                false
         );
-        Map<UserCourseKey, Long> completedByUserCourse = statisticsQueryService
-                .countCompletedLessonsByUserAndCourse(userIds, courseIds);
+
+        long totalLessons = context.totalLessonsByCourse().getOrDefault(courseId, 0L);
+        int maxPoints = context.maxPointsByCourse().getOrDefault(courseId, 0);
 
         return enrollments.stream()
                 .map(enrollment -> {
                     AppUser user = enrollment.getUser();
                     UserCourseKey key = new UserCourseKey(user.getId(), courseId);
-                    CourseProgress progressModel = progressByUserCourse.get(key);
-                    int earned = earnedByUserCourse.getOrDefault(key, 0);
-                    long completed = completedByUserCourse.getOrDefault(key, 0L);
-                    int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
-                    int progress = totalLessons == 0 ? 0 : roundToInt(((double) completed * 100D) / totalLessons);
+                    CourseProgress progressModel = context.progressByUserCourse().get(key);
+                    long completed = context.completedByUserCourse().getOrDefault(key, 0L);
+                    int progress = totalLessons == 0
+                            ? 0
+                            : formatter.roundToInt(((double) completed * 100D) / totalLessons);
+
                     return new CourseStudentStatDto(
                             user.getId(),
                             user.getFullName(),
                             user.getEmail(),
-                            extractLogin(user.getEmail()),
-                            earned,
+                            formatter.extractLogin(user.getEmail()),
+                            context.earnedByUserCourse().getOrDefault(key, 0),
                             maxPoints,
-                            efficiency,
+                            context.efficiencyByUserCourse().getOrDefault(key, 0),
                             progress,
                             completed,
                             totalLessons,
-                            progressModel.getStatus(),
-                            fmt(enrollment.getEnrolledAt()),
-                            fmt(startedAt(progressModel)),
-                            fmt(completedAt(progressModel))
+                            progressModel == null ? null : progressModel.getStatus(),
+                            formatter.fmt(enrollment.getEnrolledAt()),
+                            formatter.fmt(formatter.startedAt(progressModel)),
+                            formatter.fmt(formatter.completedAt(progressModel))
                     );
                 })
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public String summaryReportCsv() {
-        try {
-            java.io.StringWriter writer = new java.io.StringWriter();
-            writeSummaryReportCsv(writer);
-            return writer.toString();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to render summary CSV", e);
-        }
-    }
-
-    @Transactional(readOnly = true)
     public void writeSummaryReportCsv(Writer writer) throws IOException {
-        List<Enrollment> enrollments = statisticsQueryService.findAllEnrollments();
+        List<Enrollment> enrollments = statisticsQueryService.findAllCompletedEnrollments();
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
-        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
-        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(userIds, courseIds);
 
-        Map<Long, List<GroupMembership>> membershipsByUser = loadMembershipsByUser(userIds);
-        Map<Long, Integer> maxPointsByCourse = statisticsQueryService.sumMaxPointsByCourseIds(courseIds);
-        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
-        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
-                pointsAggregation.earnedCompletedPointsByUserCourse(),
-                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        ReportContext context = buildReportContext(
+                userIds,
+                courseIds,
+                true,
+                false,
+                false
         );
 
         List<String> header = List.of(
-                "Группы",
                 "ФИО студента",
                 "СНИЛС",
-                "Email",
-                "Логин",
-                "CID",
+                "ID курса",
                 "Название курса",
-                "CID",
                 "Дата назначения",
-                "Время",
                 "Дата начала",
-                "Время",
                 "Дата завершения",
-                "Время",
-                "Баллов",
+                "Получено баллов",
+                "Максимум баллов",
                 "Эффективность",
-                "Продолжительность",
-                "Затрачено",
-                "Номер сертификата",
-                "Ссылка"
+                "Затрачено"
         );
         csvReportRenderer.writeHeader(writer, header);
 
-        int rowCount = 0;
-        for (Enrollment enrollment : enrollments) {
-            Long userId = enrollment.getUser().getId();
-            Long courseId = enrollment.getCourse().getId();
-            CourseProgress progress = progressByUserCourse.get(new UserCourseKey(userId, courseId));
-            UserCourseKey key = new UserCourseKey(userId, courseId);
-            int earned = earnedByUserCourse.getOrDefault(key, 0);
-            int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
-            String groups = membershipsByUser.getOrDefault(userId, List.of()).stream()
-                    .map(membership -> membership.getGroup().getTitle())
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .collect(Collectors.joining(" | "));
+        List<SummaryCsvRow> rows = enrollments.stream()
+                .map(enrollment -> toSummaryCsvRow(enrollment, context))
+                .toList();
 
-            List<String> row = List.of(
-                    groups,
-                    safe(enrollment.getUser().getFullName()),
-                    safe(enrollment.getUser().getSnils()),
-                    safe(enrollment.getUser().getEmail()),
-                    extractLogin(enrollment.getUser().getEmail()),
-                    "",
-                    safe(enrollment.getCourse().getTitle()),
-                    "",
-                    datePart(enrollment.getEnrolledAt()),
-                    timePart(enrollment.getEnrolledAt()),
-                    datePart(startedAt(progress)),
-                    timePart(startedAt(progress)),
-                    datePart(completedAt(progress)),
-                    timePart(completedAt(progress)),
-                    String.valueOf(earned),
-                    String.format(Locale.US, "%.2f", (double) efficiency),
-                    "",
-                    formatSpentTime(startedAt(progress), completedAt(progress)),
-                    "",
-                    ""
-            );
-            csvReportRenderer.writeRow(writer, row);
-            rowCount++;
-            if (rowCount % CSV_FLUSH_EVERY_ROWS == 0) {
-                writer.flush();
-            }
-        }
-        writer.flush();
+        writeCsvRows(writer, rows, this::toSummaryCsvColumns);
     }
 
-    @Transactional(readOnly = true)
-    public String summaryReportCsv(Long courseId) {
-        try {
-            java.io.StringWriter writer = new java.io.StringWriter();
-            writeSummaryReportCsv(courseId, writer);
-            return writer.toString();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to render course summary CSV", e);
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public void writeSummaryReportCsv(Long courseId, Writer writer) throws IOException {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new NotFoundException("Course not found: " + courseId));
-
-        List<Enrollment> enrollments = statisticsQueryService.findEnrollmentsByCourse(courseId);
-        List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
-        List<Long> courseIds = List.of(courseId);
-        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(userIds, courseIds);
-        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(userIds, courseIds);
-
-        int maxPoints = statisticsQueryService.sumMaxPointsByCourseIds(courseIds).getOrDefault(courseId, 0);
-        long totalLessons = statisticsQueryService.countLessonsByCourseIds(courseIds).getOrDefault(courseId, 0L);
-        Map<Long, List<GroupMembership>> membershipsByUser = loadMembershipsByUser(userIds);
-        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
-        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
-                pointsAggregation.earnedCompletedPointsByUserCourse(),
-                pointsAggregation.maxCompletedLessonPointsByUserCourse()
-        );
-        Map<UserCourseKey, Long> completedByUserCourse = statisticsQueryService
-                .countCompletedLessonsByUserAndCourse(userIds, courseIds);
-        Map<UserCourseKey, Integer> retakesByUserCourse = statisticsQueryService
-                .sumRetakesByUserAndCourse(userIds, courseIds);
-
-        List<String> header = List.of(
-                "Статус",
-                "Программа",
-                "ФИО",
-                "СНИЛС",
-                "Email",
-                "Логин",
-                "cid",
-                "Деактивирован",
-                "Компания",
-                "Подразделение",
-                "Должность",
-                "Группы",
-                "Баллов",
-                "Эффективность",
-                "Медалей",
-                "Пересдач",
-                "Назначено",
-                "Начало",
-                "Завершение",
-                "Дедлайн",
-                "Затрачено времени",
-                "Прогресс",
-                "Уроков",
-                "Продолжительность",
-                "Номер сертификата",
-                "Ссылка"
-        );
-        csvReportRenderer.writeHeader(writer, header);
-
-        int rowCount = 0;
-        for (Enrollment enrollment : enrollments) {
-
-            Long userId = enrollment.getUser().getId();
-            UserCourseKey key = new UserCourseKey(userId, courseId);
-            CourseProgress progressModel = progressByUserCourse.get(key);
-
-            if (!CourseProgressStatus.COMPLETED.equals(progressModel.getStatus())) {
-                continue;
-            }
-
-            int earned = earnedByUserCourse.getOrDefault(key, 0);
-            long completed = completedByUserCourse.getOrDefault(key, 0L);
-            int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
-            double progress = isCourseCompleted(progressModel) ? 100D : 0D;
-            int retakes = retakesByUserCourse.getOrDefault(key, 0);
-
-            List<GroupMembership> memberships = membershipsByUser.getOrDefault(userId, List.of());
-            String company = groupTitleByType(memberships, GroupType.COMPANY);
-            String department = groupTitleByType(memberships, GroupType.DEPARTMENT);
-            String position = groupTitleByType(memberships, GroupType.POSITION);
-            String groups = memberships.stream()
-                    .map(membership -> membership.getGroup().getTitle())
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .collect(Collectors.joining(" | "));
-
-            AppUser user = enrollment.getUser();
-            String deactivated = (!user.isActivation() || user.getDeactivatedAt() != null) ? "Да" : "Нет";
-
-            List<String> row = List.of(
-                    enrollmentStatus(progressModel),
-                    "",
-                    safe(user.getFullName()),
-                    safe(user.getSnils()),
-                    safe(user.getEmail()),
-                    extractLogin(user.getEmail()),
-                    "",
-                    deactivated,
-                    company,
-                    department,
-                    position,
-                    groups,
-                    String.valueOf(earned),
-                    String.format(Locale.US, "%.2f", (double) efficiency),
-                    "",
-                    String.valueOf(retakes),
-                    fmt(enrollment.getEnrolledAt()),
-                    fmt(startedAt(progressModel)),
-                    fmt(completedAt(progressModel)),
-                    calcDeadline(enrollment.getEnrolledAt(), course.getDeadlineDays()),
-                    formatSpentTime(startedAt(progressModel), completedAt(progressModel)),
-                    String.format(Locale.US, "%.2f%%", progress),
-                    completed + "/" + totalLessons,
-                    "",
-                    "",
-                    ""
-            );
-            csvReportRenderer.writeRow(writer, row);
-            rowCount++;
-            if (rowCount % CSV_FLUSH_EVERY_ROWS == 0) {
-                writer.flush();
-            }
-        }
-        writer.flush();
-    }
-
-    private StudentCourseStatDto toStudentCourseStat(Enrollment enrollment,
-                                                     CourseProgress progressModel,
-                                                     Map<Long, Integer> maxPointsByCourse,
-                                                     Map<Long, Long> totalLessonsByCourse,
-                                                     Map<UserCourseKey, Integer> earnedByUserCourse,
-                                                     Map<UserCourseKey, Integer> efficiencyByUserCourse,
-                                                     Map<UserCourseKey, Long> completedByUserCourse) {
+    private StudentCourseStatDto toStudentCourseStat(Enrollment enrollment, ReportContext context) {
         Long courseId = enrollment.getCourse().getId();
         Long userId = enrollment.getUser().getId();
         UserCourseKey key = new UserCourseKey(userId, courseId);
+        long completed = context.completedByUserCourse().getOrDefault(key, 0L);
+        long totalLessons = context.totalLessonsByCourse().getOrDefault(courseId, 0L);
+        int progress = totalLessons == 0
+                ? 0
+                : formatter.roundToInt(((double) completed * 100D) / totalLessons);
 
-        int maxPoints = maxPointsByCourse.getOrDefault(courseId, 0);
-        int earned = earnedByUserCourse.getOrDefault(key, 0);
-        long completed = completedByUserCourse.getOrDefault(key, 0L);
-        long totalLessons = totalLessonsByCourse.getOrDefault(courseId, 0L);
-
-        int efficiency = efficiencyByUserCourse.getOrDefault(key, 0);
-        int progress = totalLessons == 0 ? 0 : roundToInt(((double) completed * 100D) / totalLessons);
+        CourseProgress progressModel = context.progressByUserCourse().get(key);
 
         return new StudentCourseStatDto(
                 courseId,
                 enrollment.getCourse().getTitle(),
-                earned,
-                maxPoints,
-                efficiency,
+                context.earnedByUserCourse().getOrDefault(key, 0),
+                context.maxPointsByCourse().getOrDefault(courseId, 0),
+                context.efficiencyByUserCourse().getOrDefault(key, 0),
                 progress,
                 completed,
                 totalLessons,
-                fmt(enrollment.getEnrolledAt()),
-                fmt(startedAt(progressModel)),
-                fmt(completedAt(progressModel))
+                formatter.fmt(enrollment.getEnrolledAt()),
+                formatter.fmt(formatter.startedAt(progressModel)),
+                formatter.fmt(formatter.completedAt(progressModel))
+        );
+    }
+
+    private SummaryCsvRow toSummaryCsvRow(Enrollment enrollment, ReportContext context) {
+        Long userId = enrollment.getUser().getId();
+        Long courseId = enrollment.getCourse().getId();
+        UserCourseKey key = new UserCourseKey(userId, courseId);
+        CourseProgress progress = context.progressByUserCourse().get(key);
+
+        ReportRowDto row = new ReportRowDto(
+                enrollment.getUser().getFullName(),
+                enrollment.getUser().getSnils(),
+                courseId,
+                enrollment.getCourse().getTitle(),
+                context.earnedByUserCourse().getOrDefault(key, 0),
+                context.maxPointsByCourse().get(courseId),
+                context.efficiencyByUserCourse().getOrDefault(key, 0),
+                enrollment.getEnrolledAt(),
+                formatter.startedAt(progress),
+                formatter.completedAt(progress)
+        );
+
+        return new SummaryCsvRow(
+                row,
+                formatter.formatSpentTime(row.startedAt(), row.completedAt())
+        );
+    }
+
+    private List<String> toSummaryCsvColumns(SummaryCsvRow row) {
+        ReportRowDto base = row.base();
+        return List.of(
+                formatter.safe(base.fullName()),
+                formatter.safe(base.snils()),
+                String.valueOf(base.courseId()),
+                formatter.safe(base.courseTitle()),
+                formatter.datePart(base.enrolledAt()),
+                formatter.datePart(base.startedAt()),
+                formatter.datePart(base.completedAt()),
+                String.valueOf(base.earnedPoints()),
+                String.valueOf(base.maxPoints()),
+                String.valueOf(base.efficiencyPercent()),
+                row.spentTime()
+        );
+    }
+
+    private <T> void writeCsvRows(Writer writer,
+                                  List<T> rows,
+                                  java.util.function.Function<T, List<String>> rowMapper) throws IOException {
+        int rowCount = 0;
+        for (T row : rows) {
+            csvReportRenderer.writeRow(writer, rowMapper.apply(row));
+            rowCount++;
+            if (rowCount % CSV_FLUSH_EVERY_ROWS == 0) {
+                writer.flush();
+            }
+        }
+        writer.flush();
+    }
+
+    private ReportContext buildReportContext(Collection<Long> userIds,
+                                             Collection<Long> courseIds,
+                                             boolean includeMemberships,
+                                             boolean includeCompleted,
+                                             boolean includeRetakes) {
+        List<Long> normalizedUserIds = distinctIds(userIds);
+        List<Long> normalizedCourseIds = distinctIds(courseIds);
+
+        Map<UserCourseKey, CourseProgress> progressByUserCourse = loadProgressByUserCourse(normalizedUserIds, normalizedCourseIds);
+        UserCoursePointsAggregation pointsAggregation = aggregatePointsByUserAndCourse(normalizedUserIds, normalizedCourseIds);
+
+        Map<UserCourseKey, Integer> earnedByUserCourse = pointsAggregation.earnedPointsByUserCourse();
+        Map<UserCourseKey, Integer> efficiencyByUserCourse = calculateEfficiencyByUserAndCourse(
+                pointsAggregation.earnedCompletedPointsByUserCourse(),
+                pointsAggregation.maxCompletedLessonPointsByUserCourse()
+        );
+
+        return new ReportContext(
+                progressByUserCourse,
+                statisticsQueryService.sumMaxPointsByCourseIds(normalizedCourseIds),
+                statisticsQueryService.countLessonsByCourseIds(normalizedCourseIds),
+                earnedByUserCourse,
+                efficiencyByUserCourse,
+                includeCompleted
+                        ? statisticsQueryService.countCompletedLessonsByUserAndCourse(normalizedUserIds, normalizedCourseIds)
+                        : Map.of(),
+                includeRetakes
+                        ? statisticsQueryService.sumRetakesByUserAndCourse(normalizedUserIds, normalizedCourseIds)
+                        : Map.of(),
+                includeMemberships
+                        ? loadMembershipsByUser(normalizedUserIds)
+                        : Map.of()
         );
     }
 
@@ -422,7 +303,9 @@ public class StatisticsReportService {
             UserCourseKey key = maxCompletedEntry.getKey();
             int maxCompletedPoints = maxCompletedEntry.getValue();
             int earnedCompletedPoints = earnedCompletedByUserCourse.getOrDefault(key, 0);
-            int efficiency = maxCompletedPoints == 0 ? 0 : roundToInt(((double) earnedCompletedPoints * 100D) / maxCompletedPoints);
+            int efficiency = maxCompletedPoints == 0
+                    ? 0
+                    : formatter.roundToInt(((double) earnedCompletedPoints * 100D) / maxCompletedPoints);
             efficiencyByUserCourse.put(key, efficiency);
         }
         return efficiencyByUserCourse;
@@ -434,7 +317,9 @@ public class StatisticsReportService {
             return lesson.getFullPoints();
         }
 
-        return submission.getQuestionProgress().stream()
+        return Optional.ofNullable(submission.getQuestionProgress())
+                .orElse(List.of())
+                .stream()
                 .filter(progress -> progress.getPointsType() != null)
                 .mapToInt(progress -> {
                     PracticeQuestion question = practiceQuestionsById.get(progress.getQuestionId());
@@ -493,100 +378,22 @@ public class StatisticsReportService {
                 .toList();
     }
 
-    private String toStringNullable(Object value) {
-        return value == null ? null : value.toString();
-    }
-
-    private String fmt(Object value) {
-        return value == null ? "" : String.valueOf(value);
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String enrollmentStatus(CourseProgress progress) {
-        if (progress != null && progress.getStatus() == CourseProgressStatus.COMPLETED) {
-            return "Завершен";
-        }
-        if (progress != null && (progress.getStartedAt() != null || progress.getStatus() == CourseProgressStatus.IN_PROGRESS)) {
-            return "В процессе";
-        }
-        return "Назначен";
-    }
-
-    private boolean isCourseCompleted(CourseProgress progress) {
-        return progress != null && progress.getStatus() == CourseProgressStatus.COMPLETED;
-    }
-
-    private LocalDateTime startedAt(CourseProgress progress) {
-        return progress == null ? null : progress.getStartedAt();
-    }
-
-    private LocalDateTime completedAt(CourseProgress progress) {
-        return progress == null ? null : progress.getCompletedAt();
-    }
-
-    private String groupTitleByType(List<GroupMembership> memberships, GroupType type) {
-        return memberships.stream()
-                .filter(membership -> membership.getGroup().getType() == type)
-                .map(membership -> membership.getGroup().getTitle())
-                .findFirst()
-                .orElse("");
-    }
-
-    private String calcDeadline(LocalDateTime enrolledAt, Integer deadlineDays) {
-        if (enrolledAt == null || deadlineDays == null) {
-            return "";
-        }
-        return fmt(enrolledAt.plusDays(deadlineDays));
-    }
-
-    private String formatSpentTime(LocalDateTime startedAt, LocalDateTime completedAt) {
-        if (startedAt == null || completedAt == null || completedAt.isBefore(startedAt)) {
-            return "";
-        }
-
-        Duration duration = Duration.between(startedAt, completedAt);
-        long totalMinutes = duration.toMinutes();
-        long days = totalMinutes / (24 * 60);
-        long hours = (totalMinutes % (24 * 60)) / 60;
-        long minutes = totalMinutes % 60;
-
-        if (days > 0) {
-            return String.format("%dд %02d:%02d", days, hours, minutes);
-        }
-        return String.format("%02d:%02d", hours, minutes);
-    }
-
-    private String datePart(LocalDateTime dateTime) {
-        if (dateTime == null) {
-            return "";
-        }
-        return dateTime.toLocalDate().toString();
-    }
-
-    private String timePart(LocalDateTime dateTime) {
-        if (dateTime == null) {
-            return "";
-        }
-        return dateTime.toLocalTime().withNano(0).toString();
-    }
-
-    private String extractLogin(String email) {
-        if (email == null || email.isBlank()) {
-            return "";
-        }
-        int at = email.indexOf('@');
-        return at > 0 ? email.substring(0, at) : email;
-    }
-
-    private int roundToInt(double value) {
-        return (int) Math.round(value);
+    private record SummaryCsvRow(ReportRowDto base,
+                                 String spentTime) {
     }
 
     private record UserCoursePointsAggregation(Map<UserCourseKey, Integer> earnedPointsByUserCourse,
                                                Map<UserCourseKey, Integer> earnedCompletedPointsByUserCourse,
                                                Map<UserCourseKey, Integer> maxCompletedLessonPointsByUserCourse) {
+    }
+
+    private record ReportContext(Map<UserCourseKey, CourseProgress> progressByUserCourse,
+                                 Map<Long, Integer> maxPointsByCourse,
+                                 Map<Long, Long> totalLessonsByCourse,
+                                 Map<UserCourseKey, Integer> earnedByUserCourse,
+                                 Map<UserCourseKey, Integer> efficiencyByUserCourse,
+                                 Map<UserCourseKey, Long> completedByUserCourse,
+                                 Map<UserCourseKey, Integer> retakesByUserCourse,
+                                 Map<Long, List<GroupMembership>> membershipsByUser) {
     }
 }

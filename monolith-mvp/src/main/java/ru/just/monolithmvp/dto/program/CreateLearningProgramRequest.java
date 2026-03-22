@@ -7,7 +7,6 @@ public record CreateLearningProgramRequest(
         @NotBlank String title,
         String description,
         ProgramAccessCondition accessCondition,
-        Long deadlineDays,
-        Boolean blockAfterDeadline
+        Long deadlineDays
 ) {
 }

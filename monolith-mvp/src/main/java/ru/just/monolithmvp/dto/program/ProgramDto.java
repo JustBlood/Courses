@@ -11,7 +11,6 @@ public record ProgramDto(
         ProgramAccessCondition accessCondition,
         Long deadlineDays,
         Long deadlineAt,
-        Boolean blockAfterDeadline,
         Boolean completed,
         List<ProgramCourseDto> courses
 ) {

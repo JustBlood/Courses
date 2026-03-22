@@ -30,9 +30,6 @@ public class LearningProgram {
 
     private Long deadlineDays;
 
-    @Column(nullable = false)
-    private Boolean blockAfterDeadline = false;
-
     @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<ProgramCourse> courses = new ArrayList<>();

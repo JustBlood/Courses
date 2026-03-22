@@ -31,4 +31,6 @@ public interface ProgramEnrollmentRepository extends JpaRepository<ProgramEnroll
     Optional<ProgramEnrollment> findByUserIdAndProgramId(Long userId, Long programId);
 
     void deleteByProgramId(Long programId);
+
+    void deleteByUserId(Long userId);
 }

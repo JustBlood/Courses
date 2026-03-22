@@ -3,6 +3,7 @@ package ru.just.monolithmvp.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.model.Enrollment;
 import ru.just.monolithmvp.repository.EnrollmentRepository;
 import ru.just.monolithmvp.repository.LessonRepository;
@@ -35,8 +36,8 @@ public class StatisticsQueryService {
     }
 
     @Transactional(readOnly = true)
-    public List<Enrollment> findAllEnrollments() {
-        return enrollmentRepository.findAllWithUserAndCourse();
+    public List<Enrollment> findAllCompletedEnrollments() {
+        return enrollmentRepository.findAllWithUserAndCourseByProgressStatus(CourseProgressStatus.COMPLETED);
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ package ru.just.monolithmvp.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.model.Enrollment;
 
 import java.util.List;
@@ -39,8 +40,9 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             from Enrollment e
             join fetch e.user
             join fetch e.course
+            join CourseProgress cp on cp.user.id = e.user.id and cp.course.id = e.course.id and cp.status = :status
             """)
-    List<Enrollment> findAllWithUserAndCourse();
+    List<Enrollment> findAllWithUserAndCourseByProgressStatus(CourseProgressStatus status);
 
     Optional<Enrollment> findByUserIdAndCourseId(Long userId, Long courseId);
 

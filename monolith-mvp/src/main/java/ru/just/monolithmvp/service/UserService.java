@@ -57,6 +57,7 @@ public class UserService {
     private final FileStorageService fileStorageService;
 
     private static final DateTimeFormatter CSV_DT_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy H:mm");
+    private final ProgramEnrollmentRepository programEnrollmentRepository;
 
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
@@ -301,6 +302,7 @@ public class UserService {
         passwordSetupTokenRepository.deleteByUser_Id(userId);
         groupMembershipRepository.deleteAll(groupMembershipRepository.findByUserId(userId));
         userRepository.delete(user);
+        programEnrollmentRepository.deleteByUserId(userId);
     }
 
     @Transactional

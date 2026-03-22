@@ -1,5 +1,11 @@
 -- Wave 0 (REF-CM-01): domain/contract alignment for course-learning area
 
+alter table learning_programs
+    rename column deadline_at to deadline_days;
+
+alter table learning_programs
+    drop column block_after_deadline;
+
 -- 1) Drop obsolete course flags/columns
 alter table courses
     drop column if exists deadline_at;

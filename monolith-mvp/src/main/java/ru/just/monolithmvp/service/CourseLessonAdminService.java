@@ -174,7 +174,7 @@ public class CourseLessonAdminService {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson() != null && request.stopLesson(),
                 1, request.timeLimitMinutes());
         LessonType nextLessonType = patchValue(request.lessonType(), lesson.getLessonType());
-        if (LessonType.THEORY_PDF.equals(nextLessonType)) {
+        if (LessonType.THEORY_PDF.equals(nextLessonType) || LessonType.THEORY_VIDEO.equals(nextLessonType)) {
             if (request.content() != null && !fileStorageService.isFileExistsByRelativePath(request.content())) {
                 throw new BadRequestException("file is not exists");
             }
@@ -351,6 +351,11 @@ public class CourseLessonAdminService {
         }
         if (StringUtils.isBlank(request.content())) {
             throw new BadRequestException("content is required");
+        }
+        if (LessonType.THEORY_VIDEO.equals(request.lessonType()) || LessonType.THEORY_PDF.equals(request.lessonType())) {
+            if (!fileStorageService.isFileExistsByRelativePath(fileStorageService.normalizeStoredPath(request.content()))) {
+                throw new BadRequestException("file is not exists");
+            }
         }
     }
 

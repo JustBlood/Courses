@@ -211,14 +211,15 @@ public class ProgramService {
             throw new NotFoundException("Some courses were not found");
         }
 
-        final List<ProgramCourse> prevProgramCourses = programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId);
+//        final List<ProgramCourse> prevProgramCourses = programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId);
         programCourseRepository.deleteByProgramId(program.getId());
-        final List<Long> enrolledUserIds = getProgramEnrolledUserIds(programId);
-        for (Long userId : enrolledUserIds) { // fixme: пиздец как плохо
-            for (ProgramCourse programCourse : prevProgramCourses) {
-                courseEnrollmentLifecycleService.unassignFromCourse(userId, programCourse.getCourse().getId(), false);
-            }
-        }
+        // fixme: сейчас не удаляются назначения на курсы при изменении программы. Так задумано.
+//        final List<Long> enrolledUserIds = getProgramEnrolledUserIds(programId);
+//        for (Long userId : enrolledUserIds) { // fixme: пиздец как плохо
+//            for (ProgramCourse programCourse : prevProgramCourses) {
+//                courseEnrollmentLifecycleService.unassignFromCourse(userId, programCourse.getCourse().getId(), false);
+//            }
+//        }
         program.getCourses().clear();
 
         List<ProgramCourse> programCourses = new ArrayList<>();
@@ -357,7 +358,6 @@ public class ProgramService {
                 program.getAccessCondition(),
                 program.getDeadlineDays(),
                 deadlineAt,
-                program.getBlockAfterDeadline(),
                 completedProgram,
                 courseDtos
         );
@@ -375,7 +375,6 @@ public class ProgramService {
                 ? program.getAccessCondition() != null ? program.getAccessCondition() : ProgramAccessCondition.ALL_OPEN
                 : request.accessCondition());
         program.setDeadlineDays(request.deadlineDays());
-        program.setBlockAfterDeadline(request.blockAfterDeadline() != null ? request.blockAfterDeadline() : program.getBlockAfterDeadline());
     }
 
     private List<Long> getProgramEnrolledUserIds(Long programId) {
@@ -453,8 +452,7 @@ public class ProgramService {
                 unlockedByRule = previousViewed;
             }
 
-            boolean blockedByDeadline = Boolean.TRUE.equals(program.getBlockAfterDeadline())
-                    && program.getDeadlineDays() != null && deadlineAt != null
+            boolean blockedByDeadline = program.getDeadlineDays() != null && deadlineAt != null
                     && LocalDateTime.now(Clock.systemUTC()).isAfter(LocalDateTime.ofEpochSecond(deadlineAt, 0, ZoneOffset.UTC))
                     && !completed;
 
@@ -465,7 +463,7 @@ public class ProgramService {
                     pc.getCourse().getDescription(),
                     pc.getCourse().getCoverFilePath(),
                     courseDeadlineAt,
-                    Long.valueOf(pc.getCourse().getDeadlineDays()),
+                    pc.getCourse().getDeadlineDays() != null ? Long.valueOf(pc.getCourse().getDeadlineDays()) : null,
                     pc.getOrderIndex(),
                     available,
                     viewed,
