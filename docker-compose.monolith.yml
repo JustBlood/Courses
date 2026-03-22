@@ -1,5 +1,5 @@
 services:
-  monolith-postgres2:
+  monolith-postgres:
     image: postgres:16-alpine
     container_name: monolith-postgres2
     restart: unless-stopped
@@ -9,8 +9,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
-#    volumes:
-#      - monolith_pg_data:/var/lib/postgresql/data
+    volumes:
+      - monolith_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-courses}"]
       interval: 10s
@@ -18,19 +18,17 @@ services:
       retries: 10
 
   monolith-mvp:
-    # image: ${APP_IMAGE:?APP_IMAGE is required}
-    build:
-      dockerfile: monolith-mvp/Dockerfile
+    image: ${APP_IMAGE:-ghcr.io/justblood/courses-monolith:dev-latest}
     pull_policy: always
     container_name: monolith-mvp
     restart: unless-stopped
     depends_on:
-      monolith-postgres2:
+      monolith-postgres:
         condition: service_healthy
     environment:
       JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-pg,mail-smtp}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://monolith-postgres:5432/${POSTGRES_DB:-courses}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://monolith-postgres2:5432/${POSTGRES_DB:-courses}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       APP_MAIL_FROM: ${APP_MAIL_FROM:-kirillporozoff@yandex.ru}
