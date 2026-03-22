@@ -57,6 +57,7 @@ public class CourseLessonAdminService {
         applyPracticeLessonFields(lesson, request);
 
         applyQuestionPool(lesson, request.questions());
+        recalculatePracticeLessonFullPoints(lesson);
 
         final LessonDto dto = lessonMapper.toDto(lessonRepository.saveAndFlush(lesson));
         courseProgressService.recalcCourseProgress(courseId);
@@ -107,6 +108,7 @@ public class CourseLessonAdminService {
 
         if (!CollectionUtils.isEmpty(patchRequest.questions())) {
             applyQuestionPool(lesson, patchRequest.questions());
+            recalculatePracticeLessonFullPoints(lesson);
         }
 
         return lessonMapper.toDto(lessonRepository.save(lesson));
@@ -120,6 +122,9 @@ public class CourseLessonAdminService {
             throw new BadRequestException("Lesson does not belong to course");
         }
         final List<Lesson> lessonsToUpdatePosition = lessonRepository.findByCourse_IdAndPositionGreaterThan(courseId, lesson.getPosition());
+        if (lesson instanceof TheoryLesson theoryLesson) {
+            fileStorageService.deleteIfExists(theoryLesson.getContent());
+        }
         submissionRepository.deleteByLessonId(lessonId);
         practiceQuestionRepository.deleteAllByLessonId(lesson.getId());
         lessonRepository.delete(lesson);
@@ -169,13 +174,12 @@ public class CourseLessonAdminService {
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson() != null && request.stopLesson(),
                 1, request.timeLimitMinutes());
         LessonType nextLessonType = patchValue(request.lessonType(), lesson.getLessonType());
-        boolean wasPdfLesson = LessonType.THEORY_PDF.equals(lesson.getLessonType());
         if (LessonType.THEORY_PDF.equals(nextLessonType)) {
             if (request.content() != null && !fileStorageService.isFileExistsByRelativePath(request.content())) {
                 throw new BadRequestException("file is not exists");
             }
         }
-        if (wasPdfLesson && request.content() != null && !Objects.equals(request.content(), lesson.getContent())) {
+        if (request.content() != null && !Objects.equals(request.content(), lesson.getContent())) {
             fileStorageService.deleteIfExists(lesson.getContent());
         }
         lesson.setLessonType(nextLessonType);
@@ -191,11 +195,15 @@ public class CourseLessonAdminService {
         lesson.setShowQuestionStatus(patchValue(request.showQuestionStatus(), lesson.getShowQuestionStatus()));
         lesson.setShowCorrectAnswersAfterCompletion(patchValue(request.showCorrectAnswersAfterCompletion(), lesson.getShowCorrectAnswersAfterCompletion()));
         lesson.setLessonType(patchValue(request.lessonType(), lesson.getLessonType()));
+    }
 
-        final Integer fullTestLessonPoints = request.questions().stream()
-                .map(PracticeQuestionRequest::fullPoints)
-                .reduce(Integer::sum).orElse(null);
-        lesson.setFullPoints(patchValue(fullTestLessonPoints, lesson.getFullPoints()));
+    private void recalculatePracticeLessonFullPoints(PracticeLesson lesson) {
+        int fullPoints = lesson.getQuestions().stream()
+                .map(PracticeQuestion::getFullPoints)
+                .filter(Objects::nonNull)
+                .reduce(Integer::sum)
+                .orElse(0);
+        lesson.setFullPoints(fullPoints);
     }
 
     private <T> T patchValue(T requestedValue, T currentValue) {

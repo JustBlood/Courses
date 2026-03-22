@@ -1,7 +1,9 @@
 package ru.just.monolithmvp.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.just.monolithmvp.model.Lesson;
 import ru.just.monolithmvp.model.PracticeLesson;
 import ru.just.monolithmvp.repository.projection.CourseMetricProjection;
@@ -20,12 +22,12 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     long countByCourseId(Long courseId);
 
     @Query("""
-            select l.course.id as courseId, coalesce(sum(l.fullPoints), 0) as value
+            select l.course.id as courseId, coalesce(sum(l.fullPoints), 0L) as value
             from Lesson l
             where l.course.id in :courseIds
             group by l.course.id
             """)
-    List<CourseMetricProjection> sumFullPointsByCourseIds(List<Long> courseIds);
+    List<CourseMetricProjection> sumFullPointsByCourseIds(@Param("courseIds") List<Long> courseIds);
 
     @Query("""
             select l.course.id as courseId, count(l.id) as value

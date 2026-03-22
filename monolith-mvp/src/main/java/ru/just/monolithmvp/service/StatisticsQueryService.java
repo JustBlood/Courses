@@ -68,14 +68,6 @@ public class StatisticsQueryService {
     }
 
     @Transactional(readOnly = true)
-    public Map<UserCourseKey, Integer> sumEarnedPointsByUserAndCourse(Collection<Long> userIds,
-                                                                       Collection<Long> courseIds) {
-        return aggregateUserCourseMetric(userIds, courseIds,
-                ids -> submissionRepository.sumPointsByUserIdsAndCourseIds(ids.userIds(), ids.courseIds()),
-                value -> value.intValue());
-    }
-
-    @Transactional(readOnly = true)
     public Map<UserCourseKey, Long> countCompletedLessonsByUserAndCourse(Collection<Long> userIds,
                                                                           Collection<Long> courseIds) {
         return aggregateUserCourseMetric(userIds, courseIds,

@@ -8,7 +8,7 @@ public record ReportRowDto(
         String courseTitle,
         Integer earnedPoints,
         Integer maxPoints,
-        Double efficiencyPercent,
+        Integer efficiencyPercent,
         String enrolledAt,
         String startedAt,
         String completedAt

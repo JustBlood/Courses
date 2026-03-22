@@ -121,3 +121,10 @@ delete from course_progress;
 delete from enrollments;
 delete from program_enrollments;
 
+UPDATE lessons l
+SET full_points = COALESCE((
+       SELECT SUM(pq.full_points)
+       FROM practice_questions pq
+       WHERE pq.lesson_id = l.id
+   ), 0)
+WHERE l.lesson_kind = 'PRACTICE';

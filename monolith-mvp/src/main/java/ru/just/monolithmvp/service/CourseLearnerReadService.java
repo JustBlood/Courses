@@ -160,7 +160,6 @@ public class CourseLearnerReadService {
             final LessonSubmission submission = submissionsByLessonId.get(lesson.getId());
 
             int pointsAwarded;
-            int fullPoints;
             if (lesson instanceof PracticeLesson practiceLesson) {
                 final Map<Long, PracticeQuestion> questionsById = practiceLesson.getQuestions().stream()
                         .collect(Collectors.toMap(PracticeQuestion::getId, q -> q));
@@ -170,10 +169,8 @@ public class CourseLearnerReadService {
                             .map(progress -> practiceScoringPolicy.scoreQuestion(progress.getPointsType(), questionsById.get(progress.getQuestionId())))
                             .reduce(Integer::sum).orElse(0)
                         : 0;
-            fullPoints = practiceLesson.getMaxPointsByAllQuestions();
             } else {
                 pointsAwarded = submission != null ? lesson.getFullPoints() : 0;
-                fullPoints = lesson.getFullPoints();
             }
 
 
@@ -198,7 +195,7 @@ public class CourseLearnerReadService {
                     lesson.getLessonType(),
                     blocked,
                     blockReason,
-                    fullPoints,
+                    lesson.getFullPoints(),
                     new LessonProgressDto(
                         submissionStatus,
                         pointsAwarded

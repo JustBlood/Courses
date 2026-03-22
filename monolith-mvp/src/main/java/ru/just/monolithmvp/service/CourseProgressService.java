@@ -75,6 +75,7 @@ public class CourseProgressService {
             progress.setStatus(CourseProgressStatus.INCOMPLETED);
         } else {
             // курс проходится
+            progress.setCompletedAt(null);
             progress.setStatus(CourseProgressStatus.IN_PROGRESS);
         }
 

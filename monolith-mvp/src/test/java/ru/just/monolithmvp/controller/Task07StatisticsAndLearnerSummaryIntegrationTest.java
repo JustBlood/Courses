@@ -67,6 +67,8 @@ class Task07StatisticsAndLearnerSummaryIntegrationTest {
         enrollStudent(adminToken, courseId, studentId);
         Long lessonId = createPracticeTestLesson(adminToken, courseId, "Task07 Practice");
 
+        startLesson(studentToken, lessonId);
+
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", lessonId)
                         .header("Authorization", "Bearer " + studentToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -78,6 +80,8 @@ class Task07StatisticsAndLearnerSummaryIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isOk());
+
+        startLesson(studentToken, lessonId);
 
         mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/submit-practice", lessonId)
                         .header("Authorization", "Bearer " + studentToken)
@@ -105,8 +109,8 @@ class Task07StatisticsAndLearnerSummaryIntegrationTest {
 
         JsonNode learnerCourse = objectMapper.readTree(learnerCourseResponse);
         JsonNode lessonSummary = learnerCourse.get("lessons").get(0);
-        assertThat(lessonSummary.get("completed").asBoolean()).isTrue();
-        assertThat(lessonSummary.get("pointsAwarded").asInt()).isEqualTo(2);
+        assertThat(lessonSummary.get("lessonProgress").get("status").asText()).isEqualTo("COMPLETED");
+        assertThat(lessonSummary.get("lessonProgress").get("pointsAwarded").asInt()).isEqualTo(2);
 
         String myStatsResponse = mockMvc.perform(get("/api/v1/student/my/stats")
                         .header("Authorization", "Bearer " + studentToken))
@@ -255,6 +259,12 @@ class Task07StatisticsAndLearnerSummaryIntegrationTest {
                 .getResponse()
                 .getContentAsString();
         return objectMapper.readTree(createLessonResponse).get("id").asLong();
+    }
+
+    private void startLesson(String studentToken, Long lessonId) throws Exception {
+        mockMvc.perform(post("/api/v1/student/lessons/{lessonId}/start", lessonId)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk());
     }
 
     private String uniqueEmail(String prefix) {

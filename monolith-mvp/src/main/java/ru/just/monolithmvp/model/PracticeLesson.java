@@ -30,11 +30,7 @@ public class PracticeLesson extends Lesson {
     @OrderBy("questionIndex ASC")
     private List<PracticeQuestion> questions = new ArrayList<>();
 
-    public Integer getMaxPointsByAllQuestions() {
-        return questions.stream().map(PracticeQuestion::getFullPoints).reduce(Integer::sum).orElse(0);
-    }
-
     public boolean passedByPoints(Integer awardedPoints) {
-        return awardedPoints * 100 >= getMaxPointsByAllQuestions() * passingThresholdPercent;
+        return awardedPoints * 100 >= getFullPoints() * passingThresholdPercent;
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.just.monolithmvp.model.LessonSubmission;
 import ru.just.monolithmvp.model.SubmissionStatus;
 import ru.just.monolithmvp.repository.projection.UserCourseMetricProjection;
@@ -20,6 +21,14 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
         where s.student.id = :studentId and l.course.id = :courseId
         """)
     List<LessonSubmission> findByStudentIdAndLessonCourseId(Long studentId, Long courseId);
+
+    @Query("""
+        select s
+        from LessonSubmission s join fetch s.lesson l
+        where s.student.id in :userIds and l.course.id in :courseIds
+        """)
+    List<LessonSubmission> findByStudentIdInAndLessonCourseIdIn(@Param("userIds") List<Long> userIds,
+                                                                 @Param("courseIds") List<Long> courseIds);
     Optional<LessonSubmission> findByStudentIdAndLessonId(Long studentId, Long lessonId);
     long countByStudentIdAndLessonId(Long studentId, Long lessonId);
 
@@ -56,35 +65,23 @@ public interface LessonSubmissionRepository extends JpaRepository<LessonSubmissi
     @EntityGraph(attributePaths = {"lesson", "student"})
     List<LessonSubmission> findAllByStatusIn(List<SubmissionStatus> status);
 
-//    @Query("""
-//        select s.student.id as userId, s.lesson.course.id as courseId, coalesce(sum(s.pointsAwarded), 0) as value
-//        from LessonSubmission s
-//        where s.student.id in :ids and s.lesson.course.id in :courseIds
-//        group by s.student.id, s.lesson.course.id
-//        """)
-    default List<UserCourseMetricProjection> sumPointsByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
-        throw new NotImplementedException();
-    }
+    @Query("""
+        select s.student.id as userId, s.lesson.course.id as courseId, count(distinct s.lesson.id) as value
+        from LessonSubmission s
+        where s.status = 'COMPLETED' and s.student.id in :userIds and s.lesson.course.id in :courseIds
+        group by s.student.id, s.lesson.course.id
+        """)
+    List<UserCourseMetricProjection> countCompletedLessonsByUserIdsAndCourseIds(@Param("userIds") List<Long> userIds,
+                                                                                 @Param("courseIds") List<Long> courseIds);
 
-//    @Query("""
-//        select s.student.id as userId, s.lesson.course.id as courseId, count(distinct s.lesson.id) as value
-//        from LessonSubmission s
-//        where s.completed = true and s.student.id in :ids and s.lesson.course.id in :courseIds
-//        group by s.student.id, s.lesson.course.id
-//        """)
-    default List<UserCourseMetricProjection> countCompletedLessonsByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
-        throw new NotImplementedException();
-    }
-
-    //    @Query("""
-//            select s.student.id as userId,
-//                   s.lesson.course.id as courseId,
-//                   coalesce(sum(case when s.attemptCounter > 1 then s.attemptCounter - 1 else 0 end), 0) as value
-//            from LessonSubmission s
-//            where s.student.id in :ids and s.lesson.course.id in :courseIds
-//            group by s.student.id, s.lesson.course.id
-//            """)
-    default List<UserCourseMetricProjection> sumRetakesByUserIdsAndCourseIds(List<Long> userIds, List<Long> courseIds) {
-        throw new NotImplementedException();
-    }
+    @Query("""
+            select s.student.id as userId,
+                   s.lesson.course.id as courseId,
+                   coalesce(sum(case when s.attemptCounter > 1 then s.attemptCounter - 1 else 0 end), 0) as value
+            from LessonSubmission s
+            where s.student.id in :userIds and s.lesson.course.id in :courseIds
+            group by s.student.id, s.lesson.course.id
+            """)
+    List<UserCourseMetricProjection> sumRetakesByUserIdsAndCourseIds(@Param("userIds") List<Long> userIds,
+                                                                      @Param("courseIds") List<Long> courseIds);
 }

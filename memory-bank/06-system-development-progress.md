@@ -814,3 +814,68 @@
 - Verification:
   - module compilation passed: `mvn -q -f monolith-mvp/pom.xml -DskipTests compile`;
   - full selected integration test run was attempted, but blocked by pre-existing unrelated test compilation issue in `CourseLessonCrudIntegrationTest` (`LessonSubmission#setFirstSubmittedAt(...)` missing), not by swagger changes.
+
+## 2026-03-22 — Course points aggregation aligned with question-level scoring model
+
+- Reworked statistics/reporting earned-points calculation to support current lesson scoring model (question-level `pointsType` in `questionProgress`) instead of legacy direct DB sum of `pointsAwarded`.
+- `StatisticsReportService` now computes earned points by:
+  - loading submissions in batch for `(userIds, courseIds)`;
+  - loading practice questions in batch (`PracticeQuestionRepository.findByLessonIdIn(...)`);
+  - recalculating submission points via `PracticeScoringPolicy.scoreQuestion(...)` for each question progress entry;
+  - summing per `(userId, courseId)` in-memory aggregation.
+- Repository support updates:
+  - added `LessonSubmissionRepository.findByStudentIdInAndLessonCourseIdIn(...)`;
+  - added `PracticeQuestionRepository.findByLessonIdIn(...)`;
+  - restored query-backed implementations for:
+    - `countCompletedLessonsByUserIdsAndCourseIds(...)`,
+    - `sumRetakesByUserIdsAndCourseIds(...)`.
+- Integration test alignment:
+  - updated `Task07StatisticsAndLearnerSummaryIntegrationTest` to current learner flow contract:
+    - explicit lesson start before each submit (`POST /student/lessons/{id}/start`),
+    - assertions via `lessonProgress.status/pointsAwarded` payload shape.
+- Verification:
+  - `mvn -f monolith-mvp/pom.xml -DskipTests compile` → **BUILD SUCCESS**;
+  - `mvn -f monolith-mvp/pom.xml -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test` → **BUILD SUCCESS**.
+
+## 2026-03-22 — Fix: `LessonRepository.sumFullPointsByCourseIds` query binding/type alignment
+
+- Fixed JPQL aggregation method in `LessonRepository`:
+  - added explicit parameter binding `@Param("courseIds")` for `sumFullPointsByCourseIds(...)`;
+  - aligned `coalesce` fallback literal to long type (`0L`) in projection query:
+    - `coalesce(sum(l.fullPoints), 0L) as value`.
+- Context:
+  - the method returns `CourseMetricProjection.getValue(): Long`, so explicit long fallback avoids numeric type ambiguity in JPQL/Hibernate parsing and projection mapping.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
+
+## 2026-03-22 — Practice lesson points consistency: DB recalculation method
+
+- Added SQL-based repository method to normalize persisted `lessons.full_points` for existing practice lessons according to sum of question points:
+  - `LessonRepository.recalculatePracticeLessonsFullPoints()`.
+- Implementation details:
+  - native SQL update over `lessons` with correlated aggregate from `practice_questions`;
+  - applies only to `lesson_kind = 'PRACTICE'`;
+  - writes `coalesce(sum(pq.full_points), 0)` to `lessons.full_points`.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**.
+
+## 2026-03-22 — Practice lesson `full_points` as source of truth (dynamic getter rollback)
+
+- Finalized architecture decision for practice lessons:
+  - `lessons.full_points` is the authoritative value;
+  - dynamic override `PracticeLesson#getFullPoints()` was removed to avoid lazy/N+1 side effects and dual-source inconsistency.
+
+- Ensured deterministic recalculation on question mutations in `CourseLessonAdminService`:
+  - added `recalculatePracticeLessonFullPoints(PracticeLesson lesson)`;
+  - called after create question-pool apply (`createPracticeLesson(...)`);
+  - called after update question-pool apply (`updatePracticeLesson(...)` when `questions` payload is present).
+
+- Behavior validation notes:
+  - practice question mutations in application flow are centralized in `CourseLessonAdminService.applyQuestionPool(...)`;
+  - with transactional save, `lesson.questions` and `lesson.fullPoints` are persisted atomically within the same write flow.
+
+- Verification:
+  - `mvn -pl monolith-mvp -DskipTests compile -q` → **BUILD SUCCESS**;
+  - `mvn -pl monolith-mvp -Dtest=Task07StatisticsAndLearnerSummaryIntegrationTest test -q` → **BUILD SUCCESS**.
