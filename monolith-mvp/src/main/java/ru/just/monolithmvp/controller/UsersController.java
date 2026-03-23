@@ -275,7 +275,7 @@ public class UsersController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Список пользователей", content = @Content(array = @ArraySchema(schema = @Schema(implementation = CourseSummaryDto.class))))
     })
     public ResponseEntity<List<CourseSummaryDto>> getAvailableToAssignCourses(@PathVariable UUID groupId) {
-        return ResponseEntity.ok(groupAssignmentService.findCoursesNotAssignedToGroup(groupId).stream().map(courseMapper::toSummaryDto).toList());
+        return ResponseEntity.ok(groupAssignmentService.findCoursesNotAssignedToGroup(groupId));
     }
 
     @PostMapping("/groups/{groupId}/courses/assign")

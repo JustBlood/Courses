@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface GroupCourseAssignmentRepository extends JpaRepository<GroupCourseAssignment, Long> {
     boolean existsByGroupIdAndCourseId(UUID groupId, Long courseId);
-    @EntityGraph(attributePaths = {"course", "group"})
+    @EntityGraph(attributePaths = {"course", "group", "course.lessons"})
     List<GroupCourseAssignment> findByGroupId(UUID groupId);
     void deleteByGroupIdAndCourseId(UUID groupId, Long courseId);
 }
