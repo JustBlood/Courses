@@ -11,6 +11,7 @@ import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.projection.CourseMetricProjection;
 import ru.just.monolithmvp.repository.projection.UserCourseMetricProjection;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,8 @@ public class StatisticsQueryService {
     }
 
     @Transactional(readOnly = true)
-    public List<Enrollment> findAllCompletedEnrollments() {
-        return enrollmentRepository.findAllWithUserAndCourseByProgressStatus(CourseProgressStatus.COMPLETED);
+    public List<Enrollment> findAllCompletedEnrollments(LocalDateTime from, LocalDateTime to) {
+        return enrollmentRepository.findAllWithUserAndCourseByProgressStatus(CourseProgressStatus.COMPLETED, from, to);
     }
 
     @Transactional(readOnly = true)

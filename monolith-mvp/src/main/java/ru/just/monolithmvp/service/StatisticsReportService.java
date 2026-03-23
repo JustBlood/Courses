@@ -13,6 +13,7 @@ import ru.just.monolithmvp.service.StatisticsQueryService.UserCourseKey;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -100,8 +101,8 @@ public class StatisticsReportService {
     }
 
     @Transactional(readOnly = true)
-    public void writeSummaryReportCsv(Writer writer) throws IOException {
-        List<Enrollment> enrollments = statisticsQueryService.findAllCompletedEnrollments();
+    public void writeSummaryReportCsv(Writer writer, LocalDateTime from, LocalDateTime to) throws IOException {
+        List<Enrollment> enrollments = statisticsQueryService.findAllCompletedEnrollments(from, to);
         List<Long> userIds = distinctIds(enrollments.stream().map(e -> e.getUser().getId()).toList());
         List<Long> courseIds = distinctIds(enrollments.stream().map(e -> e.getCourse().getId()).toList());
 

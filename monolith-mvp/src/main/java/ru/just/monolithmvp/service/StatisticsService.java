@@ -9,6 +9,7 @@ import ru.just.monolithmvp.security.SecurityUtils;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -33,7 +34,7 @@ public class StatisticsService {
     }
 
     @Transactional(readOnly = true)
-    public void writeSummaryReportCsv(Writer writer) throws IOException {
-        statisticsReportService.writeSummaryReportCsv(writer);
+    public void writeSummaryReportCsv(Writer writer, LocalDateTime from, LocalDateTime to) throws IOException {
+        statisticsReportService.writeSummaryReportCsv(writer, from, to);
     }
 }
