@@ -29,7 +29,12 @@ import ru.just.monolithmvp.service.StatisticsService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/admin/progress")
@@ -136,9 +141,16 @@ public class ProgressController {
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "CSV отчёт", content = @Content(mediaType = MediaType.TEXT_PLAIN_VALUE, schema = @Schema(type = "string")))
     })
-    public void summaryCsv(HttpServletResponse response) throws IOException {
+    public void summaryCsv(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            HttpServletResponse response
+    ) throws IOException {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        LocalDateTime fromLocalDate = Optional.ofNullable(from).map(f -> LocalDate.parse(f, formatter).atStartOfDay()).orElse(null);
+        LocalDateTime toLocalDate = Optional.ofNullable(to).map(t -> LocalDate.parse(t, formatter).atTime(LocalTime.MAX)).orElse(null);
         response.setContentType(MediaType.TEXT_PLAIN_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        statisticsService.writeSummaryReportCsv(response.getWriter());
+        statisticsService.writeSummaryReportCsv(response.getWriter(), fromLocalDate, toLocalDate);
     }
 }

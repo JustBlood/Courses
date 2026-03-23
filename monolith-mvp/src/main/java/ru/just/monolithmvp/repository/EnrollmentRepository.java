@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import ru.just.monolithmvp.model.CourseProgressStatus;
 import ru.just.monolithmvp.model.Enrollment;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,9 +41,13 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
             from Enrollment e
             join fetch e.user
             join fetch e.course
-            join CourseProgress cp on cp.user.id = e.user.id and cp.course.id = e.course.id and cp.status = :status
+            join CourseProgress cp on cp.user.id = e.user.id
+              and cp.course.id = e.course.id
+              and cp.status = :status
+              and (CAST(:from as LocalDateTime) IS NULL OR cp.completedAt >= :from)
+              and (CAST(:to as LocalDateTime) IS NULL OR cp.completedAt <= :to)
             """)
-    List<Enrollment> findAllWithUserAndCourseByProgressStatus(CourseProgressStatus status);
+    List<Enrollment> findAllWithUserAndCourseByProgressStatus(CourseProgressStatus status, LocalDateTime from, LocalDateTime to);
 
     Optional<Enrollment> findByUserIdAndCourseId(Long userId, Long courseId);
 
