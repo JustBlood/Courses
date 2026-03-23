@@ -4,7 +4,8 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.just.monolithmvp.model.Course;
+import ru.just.monolithmvp.dto.course.CourseSummaryDto;
+import ru.just.monolithmvp.mapper.CourseMapper;
 import ru.just.monolithmvp.model.GroupCourseAssignment;
 import ru.just.monolithmvp.model.GroupProgramAssignment;
 import ru.just.monolithmvp.model.LearningProgram;
@@ -27,9 +28,12 @@ public class GroupAssignmentService {
     private final CourseAssignmentService courseAssignmentService;
     private final ProgramService programService;
     private final GroupProgramAssignmentRepository groupProgramAssignmentRepository;
+    private final CourseMapper courseMapper;
 
-    public List<Course> findCoursesNotAssignedToGroup(UUID groupId) {
-        return courseRepository.findAllNotAssignedToGroup(groupId);
+    @Transactional
+    public List<CourseSummaryDto> findCoursesNotAssignedToGroup(UUID groupId) {
+        return courseRepository.findAllNotAssignedToGroup(groupId).stream()
+                .map(courseMapper::toSummaryDto).toList();
     }
 
     public List<GroupCourseAssignment> findCourseAssignmentsByGroupId(UUID groupId) {
