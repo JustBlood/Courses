@@ -149,8 +149,8 @@ public class CourseService {
             }
             course.setCoverFilePath(newCoverFilePath);
         }
-        course.setDeadlineDays(patchValue(request.deadlineDays(), course.getDeadlineDays()));
-        course.setLessonsFreeOrder(patchValue(patchValue(request.lessonsFreeOrder(), course.getLessonsFreeOrder()), false));
+        course.setDeadlineDays(request.deadlineDays());
+        course.setLessonsFreeOrder(request.lessonsFreeOrder());
         course.setSection(request.sectionId() != null
                 ? sectionService.getSectionEntity(request.sectionId())
                 : course.getSection() != null
@@ -186,7 +186,7 @@ public class CourseService {
                     final List<CourseSummaryDto> coursesBySection = e.getValue().stream().map(this::toCourseSummaryDto).toList();
                     return new SectionWithCoursesDto(e.getKey().getId(), e.getKey().getTitle(), e.getKey().getDescription(), e.getKey().getPriority(), coursesBySection);
                 })
-                .sorted(Comparator.comparing(SectionWithCoursesDto::priority))
+                .sorted(Comparator.comparing(SectionWithCoursesDto::priority).reversed())
                 .toList();
     }
 

@@ -1,6 +1,7 @@
 package ru.just.monolithmvp.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import ru.just.monolithmvp.model.PracticeQuestion;
 import ru.just.monolithmvp.model.QuestionPointsType;
 import ru.just.monolithmvp.model.QuestionType;
@@ -39,7 +40,7 @@ public class PracticeScoringPolicy {
             long wrongSelected = selectedSet.stream().filter(answer -> !correctSet.contains(answer)).count();
             long missedCorrect = correctSet.stream().filter(answer -> !selectedSet.contains(answer)).count();
 
-            if (wrongSelected <= 1 && missedCorrect <= 1) {
+            if (!CollectionUtils.isEmpty(selectedAnswers) && wrongSelected <= 1 && missedCorrect <= 1) {
                 return QuestionPointsType.PARTIAL;
             }
         }
