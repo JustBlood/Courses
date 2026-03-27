@@ -228,14 +228,18 @@ public class PracticeSubmissionService {
 
     private Map<Long, List<String>> validateAndNormalizeAnswersByQuestion(PracticeLesson lesson,
                                                                              PracticeSubmissionRequest request) {
-        Map<Long, List<String>> incoming = request.questionAnswers();
-        if (incoming == null || incoming.isEmpty()) {
-            throw new BadRequestException("questionAnswers is required");
-        }
-
         Set<Long> lessonQuestionIds = lesson.getQuestions().stream()
                 .map(PracticeQuestion::getId)
                 .collect(Collectors.toSet());
+
+        Map<Long, List<String>> incoming = request.questionAnswers();
+        if (incoming == null || incoming.isEmpty()) {
+            incoming = new HashMap<>();
+        }
+
+        for (Long questionId : lessonQuestionIds) {
+            incoming.putIfAbsent(questionId, new ArrayList<>());
+        }
 
         Set<Long> incomingQuestionIndexes = incoming.keySet();
         if (!lessonQuestionIds.equals(incomingQuestionIndexes)) {
@@ -250,12 +254,8 @@ public class PracticeSubmissionService {
             PracticeQuestion question = questionsById.get(questionId);
             List<String> answers = normalizeList(incoming.get(questionId));
 
-            if (answers.isEmpty()) {
-                throw new BadRequestException("Требуется указать ответы для вопроса с id=" + questionId);
-            }
-
             if (question.getQuestionType() == QuestionType.OPEN_ANSWER || question.getQuestionType() == QuestionType.SINGLE_CHOICE) {
-                normalized.put(questionId, List.of(answers.getFirst()));
+                normalized.put(questionId, answers);
                 continue;
             }
 

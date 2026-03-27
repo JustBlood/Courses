@@ -19,7 +19,7 @@ public record UpdatePracticeLessonRequest(
         @Min(0) @Max(100) Integer passingThresholdPercent,
         Boolean shuffleOptions,
         Boolean showQuestionStatus,
-        Boolean showCorrectAnswers,
+        Boolean showCorrectAnswersAfterCompletion,
         List<@Valid PracticeQuestionRequest> questions
 ) {
 }

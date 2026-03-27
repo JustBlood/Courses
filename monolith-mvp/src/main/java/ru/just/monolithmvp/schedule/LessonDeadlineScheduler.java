@@ -31,6 +31,7 @@ public class LessonDeadlineScheduler {
                 .filter(s -> s.getStartedAt() != null && s.getLesson().getTimeLimitMinutes() != null)
                 .filter(s -> LocalDateTime.now(Clock.systemUTC()).isAfter(s.getStartedAt().plusMinutes(s.getLesson().getTimeLimitMinutes())))
                 .forEach(expiredSubmission -> {
+                    log.info("Нашлось зачисление на урок, у которого истек дедлайн. Урок: {}", expiredSubmission);
                     boolean isLastAttempt = false;
                     expiredSubmission.setAttemptCounter(Optional.ofNullable(expiredSubmission.getAttemptCounter()).orElse(0) + 1);
                     if (expiredSubmission.getLesson().getAttemptLimit() != null) {
@@ -39,7 +40,6 @@ public class LessonDeadlineScheduler {
                     expiredSubmission.setStatus(isLastAttempt ? SubmissionStatus.INCOMPLETED : SubmissionStatus.REWORKING);
                     expiredSubmission.setSubmittedAt(LocalDateTime.now(Clock.systemUTC()));
                     expiredSubmission.setStartedAt(null);
-                    log.info("Нашлось зачисление на урок, у которого истек дедлайн. Урок: {}", expiredSubmission);
                     lessonSubmissionRepository.saveAndFlush(expiredSubmission);
                     courseProgressService.recalcCourseProgressByUserInNewTransaction(expiredSubmission.getStudent().getId(), expiredSubmission.getLesson().getCourse().getId());
                 });

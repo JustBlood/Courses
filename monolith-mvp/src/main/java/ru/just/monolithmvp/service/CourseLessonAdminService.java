@@ -14,6 +14,7 @@ import ru.just.monolithmvp.repository.LessonRepository;
 import ru.just.monolithmvp.repository.LessonSubmissionRepository;
 import ru.just.monolithmvp.repository.PracticeQuestionRepository;
 
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -85,9 +86,10 @@ public class CourseLessonAdminService {
 
         applyLessonPositionPatch(lesson, request.position());
 
-        applyTheoryLessonFields(lesson, toCreateTheoryLessonRequest(request));
-
-        return lessonMapper.toDto(lessonRepository.save(lesson));
+        final String fileToDelete = applyTheoryLessonFields(lesson, toCreateTheoryLessonRequest(request));
+        final LessonDto lessonDto = lessonMapper.toDto(lessonRepository.save(lesson));
+        fileStorageService.deleteIfExists(fileToDelete);
+        return lessonDto;
     }
 
     @Transactional
@@ -166,25 +168,32 @@ public class CourseLessonAdminService {
         lesson.setTitle(Optional.ofNullable(title).orElse(lesson.getTitle()));
         lesson.setDescription(Optional.ofNullable(description).orElse(lesson.getDescription()));
         lesson.setStopLesson(Optional.ofNullable(stopLesson).orElse(lesson.getStopLesson()));
-        lesson.setAttemptLimit(Optional.ofNullable(attemptLimit).orElse(lesson.getAttemptLimit()));
-        lesson.setTimeLimitMinutes(Optional.ofNullable(timeLimitMinutes).orElse(lesson.getTimeLimitMinutes()));
+        lesson.setAttemptLimit(lesson.getAttemptLimit());
+        lesson.setTimeLimitMinutes(timeLimitMinutes);
     }
 
-    private void applyTheoryLessonFields(TheoryLesson lesson, CreateTheoryLessonRequest request) {
+    private String applyTheoryLessonFields(TheoryLesson lesson, CreateTheoryLessonRequest request) {
+        String fileToDelete = null;
         applyCommonLessonFields(lesson, request.title(), request.description(), request.stopLesson() != null && request.stopLesson(),
                 1, request.timeLimitMinutes());
         LessonType nextLessonType = patchValue(request.lessonType(), lesson.getLessonType());
-        if (LessonType.THEORY_PDF.equals(nextLessonType) || LessonType.THEORY_VIDEO.equals(nextLessonType)) {
+        if (LessonType.THEORY_PDF.equals(nextLessonType)) {
             if (request.content() != null && !fileStorageService.isFileExistsByRelativePath(request.content())) {
                 throw new BadRequestException("file is not exists");
             }
         }
-        if (request.content() != null && !Objects.equals(request.content(), lesson.getContent())) {
-            fileStorageService.deleteIfExists(lesson.getContent());
+        if (StringUtils.isNotBlank(request.content()) &&
+                (LessonType.THEORY_VIDEO.equals(lesson.getLessonType()) || LessonType.THEORY_PDF.equals(lesson.getLessonType()))) {
+            final String storedNormalizedPath = fileStorageService.normalizeStoredPath(URI.create(lesson.getContent()).getPath());
+            final String newNormalizedPath = fileStorageService.normalizeStoredPath(URI.create(request.content()).getPath());
+            if (!Objects.equals(newNormalizedPath, storedNormalizedPath)) {
+                fileToDelete = storedNormalizedPath;
+            }
         }
         lesson.setLessonType(nextLessonType);
         lesson.setContent(patchValue(request.content(), lesson.getContent()));
         lesson.setFullPoints(patchValue(request.fullPoints(), lesson.getFullPoints()));
+        return fileToDelete;
     }
 
     private void applyPracticeLessonFields(PracticeLesson lesson, CreatePracticeLessonRequest request) {
@@ -223,18 +232,16 @@ public class CourseLessonAdminService {
                 .filter(q -> q.id() != null)
                 .collect(Collectors.toMap(PracticeQuestionRequest::id, q -> q));
 
-        // Если в question нет чего-то, что есть в existedQuestions - то эти уроки надо удалить
-        if (!existedQuestionById.isEmpty() && !existedQuestionById.keySet().containsAll(questionsToUpdate.keySet())) {
+        // Если в questionsToUpdate нет чего-то, что есть в existedQuestionById - то эти уроки надо удалить
+        if (!existedQuestionById.isEmpty() && !existedQuestionById.keySet().equals(questionsToUpdate.keySet())) {
             final List<Long> questionIdsToDelete = existedQuestionById.keySet().stream()
                     .filter(questionToDelete -> !questionsToUpdate.containsKey(questionToDelete))
                     .toList();
-            final List<PracticeQuestion> lessonQuestionsWithoutDeleted = lesson.getQuestions().stream()
-                    .filter(q -> !questionIdsToDelete.contains(q.getId()))
-                    .toList();
-            // Удаляем вопросы из урока
-            lesson.setQuestions(lessonQuestionsWithoutDeleted);
+
             // Удаляем вопросы из submissions
-            onQuestionsChanged(questionIdsToDelete, lesson);
+            onQuestionsChanged(new ArrayList<>(questionIdsToDelete), lesson);
+            // Удаляем вопросы из урока
+            lesson.getQuestions().removeIf(q -> questionIdsToDelete.contains(q.getId()));
         }
 
         for (PracticeQuestionRequest q : questions) {
@@ -250,6 +257,7 @@ public class CourseLessonAdminService {
             entity.setFullPoints(q.fullPoints());
             entity.setPartialPoints(q.partialPoints() == null ? 0 : q.partialPoints());
             if (newQuestion) {
+                entity = practiceQuestionRepository.save(entity);
                 lesson.getQuestions().add(entity);
             }
         }
@@ -260,7 +268,7 @@ public class CourseLessonAdminService {
         for (LessonSubmission submission : lessonSubmissions) {
             final List<QuestionProgress> questionProgressWithoutDeletedQuestions = submission.getQuestionProgress().stream()
                     .filter(progress -> !questionIdsToDelete.contains(progress.getQuestionId()))
-                    .toList();
+                    .collect(Collectors.toList());
             submission.setQuestionProgress(questionProgressWithoutDeletedQuestions);
         }
         submissionRepository.saveAllAndFlush(lessonSubmissions);
@@ -290,7 +298,7 @@ public class CourseLessonAdminService {
                 request.passingThresholdPercent(),
                 request.shuffleOptions(),
                 request.showQuestionStatus(),
-                request.showCorrectAnswers(),
+                request.showCorrectAnswersAfterCompletion(),
                 request.questions()
         );
     }

@@ -72,7 +72,7 @@ public class CoursesController {
     }
 
     @PutMapping("/{courseId}")
-    @Operation(summary = "Обновить курс", description = "Обновляет поля курса и порядок уроков")
+    @Operation(summary = "Обновить курс", description = "Обновляет поля курса и порядок уроков. lessonsFreeOrder и deadlineDays надо передавать ВСЕГДА.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Курс обновлён", content = @Content(schema = @Schema(implementation = CourseDto.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Ошибка валидации или некорректные данные курса", content = @Content(schema = @Schema(implementation = ru.just.monolithmvp.dto.ApiResponse.class))),
