@@ -186,7 +186,7 @@ public class CourseService {
                     final List<CourseSummaryDto> coursesBySection = e.getValue().stream().map(this::toCourseSummaryDto).toList();
                     return new SectionWithCoursesDto(e.getKey().getId(), e.getKey().getTitle(), e.getKey().getDescription(), e.getKey().getPriority(), coursesBySection);
                 })
-                .sorted(Comparator.comparing(SectionWithCoursesDto::priority).reversed())
+                .sorted(Comparator.comparing(SectionWithCoursesDto::priority))
                 .toList();
     }
 

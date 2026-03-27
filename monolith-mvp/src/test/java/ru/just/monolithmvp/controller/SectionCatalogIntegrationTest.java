@@ -184,9 +184,9 @@ class SectionCatalogIntegrationTest {
         int highIndex = indexOfCourse(sections, "Course in high section");
         int defaultSectionIndex = indexOfCourse(sections, "Course without section");
 
-        assertThat(highIndex).isLessThan(lowIndex);
-        assertThat(lowIndex).isLessThan(defaultSectionIndex);
-        assertThat(highIndex).isLessThan(defaultSectionIndex);
+        assertThat(defaultSectionIndex).isLessThan(lowIndex);
+        assertThat(lowIndex).isLessThan(highIndex);
+        assertThat(defaultSectionIndex).isLessThan(highIndex);
     }
 
     private JsonNode findCourseByTitle(JsonNode sections, String title) {
