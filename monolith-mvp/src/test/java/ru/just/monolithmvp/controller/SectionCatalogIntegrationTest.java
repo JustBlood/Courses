@@ -66,7 +66,8 @@ class SectionCatalogIntegrationTest {
                                   "authorFullName": "Admin",
                                   "passingThresholdPercent": 70,
                                   "deadlineDays": 30,
-                                  "sectionId": %s
+                                  "sectionId": %s,
+                                  "lessonsFreeOrder": false
                                 }
                                 """, sectionId)))
                 .andExpect(status().isCreated())
@@ -148,7 +149,8 @@ class SectionCatalogIntegrationTest {
                                   "description": "No section",
                                   "authorFullName": "Admin",
                                   "passingThresholdPercent": 70,
-                                  "deadlineDays": 30
+                                  "deadlineDays": 30,
+                                  "lessonsFreeOrder": false
                                 }
                                 """))
                 .andExpect(status().isCreated());
@@ -182,9 +184,9 @@ class SectionCatalogIntegrationTest {
         int highIndex = indexOfCourse(sections, "Course in high section");
         int defaultSectionIndex = indexOfCourse(sections, "Course without section");
 
-        assertThat(defaultSectionIndex).isLessThan(lowIndex);
-        assertThat(lowIndex).isLessThan(highIndex);
-        assertThat(defaultSectionIndex).isLessThan(highIndex);
+        assertThat(highIndex).isLessThan(lowIndex);
+        assertThat(lowIndex).isLessThan(defaultSectionIndex);
+        assertThat(highIndex).isLessThan(defaultSectionIndex);
     }
 
     private JsonNode findCourseByTitle(JsonNode sections, String title) {
@@ -241,7 +243,8 @@ class SectionCatalogIntegrationTest {
                                   "authorFullName": "Admin",
                                   "passingThresholdPercent": 70,
                                   "deadlineDays": 30,
-                                  "sectionId": "%s"
+                                  "sectionId": "%s",
+                                  "lessonsFreeOrder": false
                                 }
                                 """.formatted(courseTitle, sectionId)))
                 .andExpect(status().isCreated());
