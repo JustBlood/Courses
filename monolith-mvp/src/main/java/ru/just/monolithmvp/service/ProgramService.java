@@ -210,19 +210,9 @@ public class ProgramService {
         if (existCourses.size() != request.orderedCourseIds().size()) {
             throw new NotFoundException("Some courses were not found");
         }
-
-//        final List<ProgramCourse> prevProgramCourses = programCourseRepository.findByProgramIdOrderByOrderIndexAsc(programId);
-        programCourseRepository.deleteByProgramId(program.getId());
-        // fixme: сейчас не удаляются назначения на курсы при изменении программы. Так задумано.
-//        final List<Long> enrolledUserIds = getProgramEnrolledUserIds(programId);
-//        for (Long userId : enrolledUserIds) { // fixme: пиздец как плохо
-//            for (ProgramCourse programCourse : prevProgramCourses) {
-//                courseEnrollmentLifecycleService.unassignFromCourse(userId, programCourse.getCourse().getId(), false);
-//            }
-//        }
         program.getCourses().clear();
+        learningProgramRepository.saveAndFlush(program);
 
-        List<ProgramCourse> programCourses = new ArrayList<>();
         for (int i = 0; i < request.orderedCourseIds().size(); i++) {
                 final ProgramCourse programCourse = new ProgramCourse();
                 Course course = new Course();
@@ -230,9 +220,10 @@ public class ProgramService {
                 programCourse.setCourse(course);
                 programCourse.setProgram(program);
                 programCourse.setOrderIndex(i + 1);
-                programCourses.add(programCourse);
+                program.getCourses().add(programCourse);
         }
-        programCourseRepository.saveAllAndFlush(programCourses);
+
+        learningProgramRepository.saveAndFlush(program);
 
         for (Long userId : getProgramEnrolledUserIds(programId)) {
             ensureProgramCourseEnrollmentsForUser(program, userId);
