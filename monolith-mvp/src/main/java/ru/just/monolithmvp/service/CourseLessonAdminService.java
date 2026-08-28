@@ -182,7 +182,7 @@ public class CourseLessonAdminService {
                 throw new BadRequestException("file is not exists");
             }
         }
-        if (StringUtils.isNotBlank(request.content()) &&
+        if (StringUtils.isNotBlank(request.content()) && !LinkValidator.isUrl(request.content()) &&
                 (LessonType.THEORY_VIDEO.equals(lesson.getLessonType()) || LessonType.THEORY_PDF.equals(lesson.getLessonType()))) {
             final String storedNormalizedPath = fileStorageService.normalizeStoredPath(URI.create(lesson.getContent()).getPath());
             final String newNormalizedPath = fileStorageService.normalizeStoredPath(URI.create(request.content()).getPath());
@@ -360,7 +360,7 @@ public class CourseLessonAdminService {
         if (StringUtils.isBlank(request.content())) {
             throw new BadRequestException("content is required");
         }
-        if (LessonType.THEORY_VIDEO.equals(request.lessonType()) || LessonType.THEORY_PDF.equals(request.lessonType())) {
+        if (LessonType.THEORY_VIDEO.equals(request.lessonType()) && !LinkValidator.isUrl(request.content()) || LessonType.THEORY_PDF.equals(request.lessonType())) {
             if (!fileStorageService.isFileExistsByRelativePath(fileStorageService.normalizeStoredPath(request.content()))) {
                 throw new BadRequestException("file is not exists");
             }
